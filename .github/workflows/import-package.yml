@@ -1,0 +1,32 @@
+name: Import Houshyar package
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Extract project package
+        run: |
+          test -f houshyar-ai-v0.5-qa.zip
+          unzip -oq houshyar-ai-v0.5-qa.zip -d /tmp/houshyar-package
+          test -d /tmp/houshyar-package/houshyar-ai-v0.3
+          cp -R /tmp/houshyar-package/houshyar-ai-v0.3/. .
+          rm -f houshyar-ai-v0.5-qa.zip
+
+      - name: Commit imported source
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m "Import Houshyar AI v0.5 source and QA"
+            git push
+          fi
