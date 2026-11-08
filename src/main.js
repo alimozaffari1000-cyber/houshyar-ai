@@ -29,14 +29,13 @@ async function submitMessage(event) {
   state.messages.push({role:'user',text});
   state.busy=true; render();
   try {
-    const endpoint=import.meta.env.VITE_AI_ENDPOINT;
-    if(!endpoint) throw new Error('AI_NOT_CONFIGURED');
+    const endpoint=import.meta.env.VITE_AI_ENDPOINT || '/api/chat';
     const response=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:text,history:state.messages.slice(-12)})});
-    if(!response.ok) throw new Error('پاسخ سرویس دریافت نشد ('+response.status+')');
-    const data=await response.json();
+    const data=await response.json().catch(()=>({}));
+    if(!response.ok) throw new Error(data.message || 'پاسخ سرویس دریافت نشد ('+response.status+')');
     state.messages.push({role:'assistant',text:data.reply || data.message || 'پاسخ خالی از سرویس دریافت شد.'});
   } catch(error) {
-    state.messages.push({role:'assistant',text:error.message==='AI_NOT_CONFIGURED'?'بخش گفت‌وگوی هوشمند هنوز به سرویس مدل زبانی متصل نشده است. برای فعال‌سازی، مدیر سامانه باید نشانی API را در تنظیمات امن انتشار وارد کند.':'فعلاً امکان دریافت پاسخ وجود ندارد. لطفاً بعداً دوباره تلاش کن.'});
+    state.messages.push({role:'assistant',text:error.message || 'فعلاً امکان دریافت پاسخ وجود ندارد. لطفاً بعداً دوباره تلاش کن.'});
   } finally { state.busy=false; render(); }
 }
 
