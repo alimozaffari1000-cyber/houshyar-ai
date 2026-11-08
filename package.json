@@ -8,7 +8,8 @@
     "build": "vite build",
     "preview": "vite preview --host 0.0.0.0",
     "qa": "node --test",
-    "agent:check": "node scripts/agent-check.mjs"
+    "agent:check": "node scripts/agent-check.mjs",
+    "agent:repair": "node scripts/agent-repair.mjs"
   },
   "devDependencies": {
     "vite": "^6.0.0"
