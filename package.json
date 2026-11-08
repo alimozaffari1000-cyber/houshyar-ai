@@ -10,7 +10,8 @@
     "qa": "node --test",
     "agent:check": "node scripts/agent-check.mjs",
     "agent:repair": "node scripts/agent-repair.mjs",
-    "security:scan": "node scripts/security-scan.mjs"
+    "security:scan": "node scripts/security-scan.mjs",
+    "quality:check": "node scripts/quality-agent.mjs"
   },
   "devDependencies": {
     "vite": "^6.0.0"
