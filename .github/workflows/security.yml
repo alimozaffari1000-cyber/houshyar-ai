@@ -20,7 +20,7 @@ jobs:
         with:
           node-version: 20
       - name: Install dependencies without changing lockfiles
-        run: npm install --no-package-lock
+        run: npm install --package-lock-only --ignore-scripts --no-audit
       - name: Scan tracked files for common secret patterns
         run: npm run security:scan
       - name: Audit dependency vulnerabilities
