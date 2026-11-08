@@ -15,10 +15,21 @@ export async function onRequestPost({ request, env }) {
   if (!latest) return json({ error: "MESSAGE_REQUIRED", message: "متن پیام خالی است." }, 400);
   if (latest.length > 6000) return json({ error: "MESSAGE_TOO_LONG", message: "پیام بیش از حد طولانی است." }, 413);
 
+  const safeHistory = [];
+  let historyChars = 0;
+  for (const item of incoming.slice(-10)) {
+    if (!item || !["user", "assistant"].includes(item.role)) continue;
+    const raw = item.content ?? item.text;
+    if (typeof raw !== "string" || !raw.trim() || historyChars >= 12000) continue;
+    const content = raw.trim().slice(0, Math.min(3000, 12000 - historyChars));
+    if (!content) continue;
+    safeHistory.push({ role: item.role, content });
+    historyChars += content.length;
+  }
+
   const messages = [
     { role: "system", content: "تو هوش‌یار، یک دستیار فارسی دقیق، کاربردی و چندمنظوره هستی. پاسخ‌ها را به زبان کاربر، روشن و مرحله‌ای ارائه کن. اطلاعات نامطمئن را قطعی جلوه نده. برای موضوعات پزشکی، مالی و حقوقی محدودیت‌ها و ریسک‌ها را روشن کن." },
-    ...incoming.slice(-10).filter(m => ["user", "assistant"].includes(m?.role) && typeof (m?.content ?? m?.text) === "string")
-      .map(m => ({ role: m.role, content: String(m.content ?? m.text).slice(0, 6000) })),
+    ...safeHistory,
   ];
   if (messages[messages.length - 1]?.role !== "user" || messages[messages.length - 1]?.content !== latest) {
     messages.push({ role: "user", content: latest });
