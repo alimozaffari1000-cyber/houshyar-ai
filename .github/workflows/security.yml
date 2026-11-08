@@ -1,0 +1,52 @@
+name: Houshyar Security Watch
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "30 5 * * 1"
+  workflow_dispatch:
+permissions:
+  contents: read
+  issues: write
+jobs:
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies without changing lockfiles
+        run: npm install --no-package-lock
+      - name: Scan tracked files for common secret patterns
+        run: npm run security:scan
+      - name: Audit dependency vulnerabilities
+        run: npm audit --audit-level=high
+      - name: Run project tests
+        run: npm run qa
+      - name: Report security failure
+        if: failure() && github.event_name != 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = "Houshyar Security Watch: review required";
+            const { owner, repo } = context.repo;
+            const existing = await github.rest.issues.listForRepo({ owner, repo, state: "open", per_page: 100 });
+            if (existing.data.some(issue => issue.title === title && !issue.pull_request)) {
+              core.info("An open security review issue already exists.");
+              return;
+            }
+            await github.rest.issues.create({
+              owner, repo, title,
+              body: [
+                "The automated security workflow failed. This is a request for human review, not proof of a breach.",
+                "",
+                "Workflow run: " + context.serverUrl + "/" + owner + "/" + repo + "/actions/runs/" + context.runId,
+                "Commit: " + context.sha,
+                "",
+                "Do not paste secrets into this issue. If a credential was exposed, revoke and rotate it at the provider."
+              ].join("\n")
+            });
