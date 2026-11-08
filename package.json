@@ -9,7 +9,8 @@
     "preview": "vite preview --host 0.0.0.0",
     "qa": "node --test",
     "agent:check": "node scripts/agent-check.mjs",
-    "agent:repair": "node scripts/agent-repair.mjs"
+    "agent:repair": "node scripts/agent-repair.mjs",
+    "security:scan": "node scripts/security-scan.mjs"
   },
   "devDependencies": {
     "vite": "^6.0.0"
