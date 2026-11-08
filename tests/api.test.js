@@ -12,10 +12,25 @@ test('health endpoint reports API status', async () => {
   assert.equal((await response.json()).status, 'ready');
 });
 
+test('rejects malformed JSON', async () => {
+  const response = await onRequestPost({
+    request: new Request('https://example.test/api/chat', { method: 'POST', body: '{bad json' }),
+    env: { GROQ_API_KEY: 'test' }
+  });
+  assert.equal(response.status, 400);
+  assert.equal((await response.json()).error, 'INVALID_JSON');
+});
+
 test('rejects empty messages', async () => {
   const response = await onRequestPost({ request: request({ message: '  ' }), env: { GROQ_API_KEY: 'test' } });
   assert.equal(response.status, 400);
   assert.equal((await response.json()).error, 'MESSAGE_REQUIRED');
+});
+
+test('rejects oversized messages', async () => {
+  const response = await onRequestPost({ request: request({ message: 'x'.repeat(6001) }), env: { GROQ_API_KEY: 'test' } });
+  assert.equal(response.status, 413);
+  assert.equal((await response.json()).error, 'MESSAGE_TOO_LONG');
 });
 
 test('reports missing secret without calling upstream', async () => {
@@ -36,5 +51,18 @@ test('forwards chat to Groq and returns the assistant reply', async () => {
     assert.equal(response.status, 200);
     assert.equal((await response.json()).reply, 'سلام، من هوش‌یار هستم.');
     assert.equal(sent.messages.at(-1).content, 'سلام');
+    assert.equal(sent.messages[0].role, 'system');
+  } finally { globalThis.fetch = originalFetch; }
+});
+
+test('does not expose upstream provider errors to the browser', async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response('private provider diagnostic', { status: 401 });
+  try {
+    const response = await onRequestPost({ request: request({ message: 'سلام' }), env: { GROQ_API_KEY: 'test-key' } });
+    assert.equal(response.status, 502);
+    const body = await response.json();
+    assert.equal(body.error, 'UPSTREAM_ERROR');
+    assert.equal(JSON.stringify(body).includes('private provider diagnostic'), false);
   } finally { globalThis.fetch = originalFetch; }
 });
