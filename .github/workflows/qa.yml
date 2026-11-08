@@ -18,7 +18,7 @@ jobs:
         with:
           node-version: 20
       - run: npm install
-      - name: Project agent diagnostics
+      - name: Project and secret-safety diagnostics
         run: npm run agent:check
       - name: Automated tests
         run: npm run qa
@@ -46,6 +46,6 @@ jobs:
                 "Run: " + context.serverUrl + "/" + owner + "/" + repo + "/actions/runs/" + context.runId,
                 "Commit: " + context.sha,
                 "",
-                "This report is diagnostic; Cloudflare account settings and API secrets cannot be changed by this workflow."
+                "This report is diagnostic; Cloudflare account settings and API secrets require owner authorization."
               ].join("\n")
             });
