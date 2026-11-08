@@ -15,7 +15,7 @@ function render() {
       <button data-prompt="برای انجام کارهایم یک برنامه مرحله‌ای بساز">🧭 برنامه‌ریزی <small>قدم‌به‌قدم</small></button>
     </section>
     <section class="chat" aria-live="polite">${state.messages.map(m=>`<article class="msg ${m.role}"><b>${m.role==='user'?'شما':'هوش‌یار'}</b><p>${escapeHTML(m.text)}</p></article>`).join('')}${state.busy?'<article class="msg assistant"><b>هوش‌یار</b><p>در حال آماده‌سازی پاسخ…</p></article>':''}</section>
-    <form id="chat-form"><textarea id="prompt" rows="1" placeholder="پیامت را اینجا بنویس…" required></textarea><button id="send" type="submit" ${state.busy?'disabled':''}>ارسال ↑</button></form>
+    <form id="chat-form"><textarea id="prompt" aria-label="پیام شما" rows="1" placeholder="پیامت را اینجا بنویس…" required></textarea><button id="send" type="submit" ${state.busy?'disabled':''}>ارسال ↑</button></form>
     <p class="notice">این نسخه اولیه است. اتصال مدل هوش مصنوعی پس از تنظیم امن کلید سرویس فعال می‌شود؛ فعلاً اطلاعات محرمانه وارد نکن.</p></main>
     <footer>هوش‌یار AI · نسخه ۰.۶ آزمایشی</footer>`;
   app.querySelectorAll('[data-prompt]').forEach(b=>b.addEventListener('click',()=>{const input=app.querySelector('#prompt');input.value=b.dataset.prompt;input.focus();}));
