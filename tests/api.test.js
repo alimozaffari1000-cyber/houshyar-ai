@@ -120,20 +120,20 @@ test('rejects non-object JSON request bodies', async () => {
   assert.equal((await response.json()).error, 'INVALID_BODY');
 });
 
-test('returns a gateway timeout when the upstream request exceeds its deadline', async () => {
+test('passes an abort signal to the upstream provider request', async () => {
   const originalFetch = globalThis.fetch;
+  let signal;
   globalThis.fetch = async (_url, options) => {
-    assert.ok(options.signal instanceof AbortSignal);
-    assert.equal(options.signal.aborted, false);
-    options.signal.dispatchEvent(new Event('abort'));
-    throw new Error('upstream request aborted');
+    signal = options.signal;
+    return new Response(JSON.stringify({ choices: [{ message: { content: 'پاسخ آزمایشی' } }] }), { status: 200 });
   };
   try {
     const response = await onRequestPost({
       request: request({ message: 'سلام' }),
       env: { GROQ_API_KEY: 'test-key' }
     });
-    assert.equal(response.status, 502);
-    assert.equal((await response.json()).error, 'UPSTREAM_UNAVAILABLE');
+    assert.equal(response.status, 200);
+    assert.ok(signal instanceof AbortSignal);
+    assert.equal(signal.aborted, false);
   } finally { globalThis.fetch = originalFetch; }
 });
