@@ -1,7 +1,7 @@
 import './style.css';
 
 const app = document.querySelector('#app');
-const state = { messages: [], busy: false };
+const state = { messages: [], busy: false, draft: '' };
 const escapeHTML = (value='') => String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
 function render() {
@@ -15,10 +15,12 @@ function render() {
       <button data-prompt="برای انجام کارهایم یک برنامه مرحله‌ای بساز">🧭 برنامه‌ریزی <small>قدم‌به‌قدم</small></button>
     </section>
     <section class="chat" aria-live="polite">${state.messages.map(m=>`<article class="msg ${m.role}"><b>${m.role==='user'?'شما':'هوش‌یار'}</b><p>${escapeHTML(m.text)}</p></article>`).join('')}${state.busy?'<article class="msg assistant"><b>هوش‌یار</b><p>در حال آماده‌سازی پاسخ…</p></article>':''}</section>
-    <form id="chat-form"><textarea id="prompt" aria-label="پیام شما" rows="1" placeholder="پیامت را اینجا بنویس…" required></textarea><button id="send" type="submit" ${state.busy?'disabled':''}>ارسال ↑</button></form>
+    <form id="chat-form"><textarea id="prompt" aria-label="پیام شما" rows="1" placeholder="پیامت را اینجا بنویس…" required>${escapeHTML(state.draft)}</textarea><button id="send" type="submit" ${state.busy?'disabled':''}>ارسال ↑</button></form>
     <p class="notice">این نسخه اولیه است. اتصال مدل هوش مصنوعی پس از تنظیم امن کلید سرویس فعال می‌شود؛ فعلاً اطلاعات محرمانه وارد نکن.</p></main>
     <footer>هوش‌یار AI · نسخه ۰.۶ آزمایشی</footer>`;
-  app.querySelectorAll('[data-prompt]').forEach(b=>b.addEventListener('click',()=>{const input=app.querySelector('#prompt');input.value=b.dataset.prompt;input.focus();}));
+  app.querySelectorAll('[data-prompt]').forEach(b=>b.addEventListener('click',()=>{const input=app.querySelector('#prompt');state.draft=b.dataset.prompt;input.value=state.draft;input.focus();}));
+  const prompt=app.querySelector('#prompt');
+  prompt.addEventListener('input',()=>{state.draft=prompt.value;});
   app.querySelector('#chat-form').addEventListener('submit',submitMessage);
 }
 
@@ -26,6 +28,7 @@ async function submitMessage(event) {
   event.preventDefault();
   const input=app.querySelector('#prompt'); const text=input.value.trim();
   if(!text || state.busy) return;
+  state.draft='';
   state.messages.push({role:'user',text});
   state.busy=true; render();
   try {
