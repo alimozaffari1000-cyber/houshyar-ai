@@ -91,6 +91,7 @@ export async function onRequestPost({ request, env }) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort("upstream_timeout"), UPSTREAM_TIMEOUT_MS);
   let upstream;
+  let data;
   try {
     upstream = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
@@ -103,9 +104,13 @@ export async function onRequestPost({ request, env }) {
       }),
       signal: controller.signal
     });
+    if (upstream.ok) data = await upstream.json();
   } catch {
     if (controller.signal.aborted) {
       return json({ error: "UPSTREAM_TIMEOUT", message: "پاسخ سرویس هوش مصنوعی بیش از زمان مجاز طول کشید." }, 504);
+    }
+    if (upstream) {
+      return json({ error: "EMPTY_REPLY", message: "پاسخ معتبری از مدل دریافت نشد." }, 502);
     }
     return json({ error: "UPSTREAM_UNAVAILABLE", message: "ارتباط با سرویس هوش مصنوعی برقرار نشد." }, 502);
   } finally {
@@ -115,7 +120,6 @@ export async function onRequestPost({ request, env }) {
   if (!upstream.ok) {
     return json({ error: "UPSTREAM_ERROR", message: "سرویس هوش مصنوعی موقتاً پاسخ‌گو نیست." }, 502);
   }
-  const data = await upstream.json().catch(() => null);
   const reply = data?.choices?.[0]?.message?.content;
   if (typeof reply !== "string" || !reply.trim()) {
     return json({ error: "EMPTY_REPLY", message: "پاسخ معتبری از مدل دریافت نشد." }, 502);
