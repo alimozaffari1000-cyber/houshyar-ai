@@ -137,3 +137,31 @@ test('passes an abort signal to the upstream provider request', async () => {
     assert.equal(signal.aborted, false);
   } finally { globalThis.fetch = originalFetch; }
 });
+
+
+test('returns 504 when the upstream deadline aborts the request', async () => {
+  const originalFetch = globalThis.fetch;
+  const originalSetTimeout = globalThis.setTimeout;
+  const originalClearTimeout = globalThis.clearTimeout;
+  globalThis.setTimeout = (callback) => {
+    callback();
+    return 1;
+  };
+  globalThis.clearTimeout = () => {};
+  globalThis.fetch = async (_url, options) => {
+    assert.equal(options.signal.aborted, true);
+    throw new Error('request aborted by deadline');
+  };
+  try {
+    const response = await onRequestPost({
+      request: request({ message: 'سلام' }),
+      env: { GROQ_API_KEY: 'test-key' }
+    });
+    assert.equal(response.status, 504);
+    assert.equal((await response.json()).error, 'UPSTREAM_TIMEOUT');
+  } finally {
+    globalThis.fetch = originalFetch;
+    globalThis.setTimeout = originalSetTimeout;
+    globalThis.clearTimeout = originalClearTimeout;
+  }
+});
