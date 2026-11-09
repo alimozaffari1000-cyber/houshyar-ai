@@ -15,3 +15,11 @@ test('ورودی کاربر قبل از نمایش escape می‌شود', async 
   assert.match(js,/escapeHTML/);
   assert.match(js,/replace\(\/\[&<>"'\]/);
 });
+
+test('پیش‌نویس پیام هنگام انتظار برای پاسخ حفظ می‌شود', async () => {
+  const js=await readFile(new URL('../src/main.js',import.meta.url),'utf8');
+  assert.ok(js.includes("draft: ''"));
+  assert.ok(js.includes('${escapeHTML(state.draft)}'));
+  assert.ok(js.includes("prompt.addEventListener('input',()=>{state.draft=prompt.value;});"));
+  assert.ok(js.includes("state.draft='';\n  state.messages.push"));
+});
