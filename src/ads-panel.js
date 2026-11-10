@@ -13,6 +13,10 @@ export function initAdsPanel(container, user) {
       <div><small>دعوت‌های ثبت‌شده</small><strong id="ads-referrals">—</strong><small id="ads-qualified">دعوت تأییدشده: —</small></div>
     </div>
     <div class="ads-referral"><b>کد دعوت شما</b><div><code id="ads-code">—</code><button type="button" id="ads-copy" disabled>کپی کد</button></div></div>
+    <form id="ads-referral-form" class="ads-referral-entry">
+      <label>کد دعوتی که دریافت کرده‌اید<input name="code" maxlength="20" minlength="10" pattern="[A-Za-z0-9]{10,20}" required></label>
+      <button type="submit">ثبت کد دعوت</button>
+    </form>
     <form id="ads-campaign-form">
       <h4>ثبت کمپین تبلیغاتی</h4>
       <label>عنوان تبلیغ<input name="title" maxlength="100" required></label>
@@ -78,6 +82,25 @@ export function initAdsPanel(container, user) {
     const code = root.querySelector("#ads-code").textContent;
     try { await navigator.clipboard.writeText(code); setStatus("کد دعوت کپی شد."); }
     catch { setStatus("کپی خودکار در دسترس نیست؛ کد را دستی کپی کنید."); }
+  });
+  root.querySelector("#ads-referral-form").addEventListener("submit", async event => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const submit = form.querySelector('button[type="submit"]');
+    submit.disabled = true;
+    setStatus("در حال ثبت کد دعوت…");
+    try {
+      const values = new FormData(form);
+      await request("/api/ads/referrals", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: values.get("code") })
+      });
+      form.reset();
+      setStatus("کد دعوت ثبت شد؛ پاداش پس از احراز شرایط معتبر می‌شود.");
+      await refresh();
+    } catch (error) { setStatus(error.message); }
+    finally { submit.disabled = false; }
   });
   root.querySelector("#ads-campaign-form").addEventListener("submit", async event => {
     event.preventDefault();
