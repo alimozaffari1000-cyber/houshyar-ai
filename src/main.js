@@ -37,7 +37,7 @@ async function submitMessage(event) {
   if(!text || state.busy) return;
   state.draft='';
   state.messages.push({role:'user',text});
-  state.busy=true; render();
+  state.busy=true; render(); scrollChat();
   try {
     const endpoint=import.meta.env.VITE_AI_ENDPOINT || '/api/chat';
     const response=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:text,history:state.messages.slice(-12)})});
@@ -46,7 +46,7 @@ async function submitMessage(event) {
     state.messages.push({role:'assistant',text:data.reply || data.message || 'پاسخ خالی از سرویس دریافت شد.'});
   } catch(error) {
     state.messages.push({role:'assistant',text:error.message || 'فعلاً امکان دریافت پاسخ وجود ندارد. لطفاً بعداً دوباره تلاش کن.'});
-  } finally { state.busy=false; render(); }
+  } finally { state.busy=false; render(); scrollChat(); }
 }
 
 render();
