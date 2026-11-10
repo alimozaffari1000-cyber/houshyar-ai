@@ -99,3 +99,13 @@ test("payment migration deduplicates provider events and protects the wallet led
   assert.match(migration, /CREATE TRIGGER IF NOT EXISTS trg_wallet_ledger_no_delete/);
   assert.match(migration, /WALLET_LEDGER_IMMUTABLE/);
 });
+
+
+test("payment migration stores money safely and prevents duplicate invoice grants", () => {
+  const migration = readFileSync("migrations/0004_payment_ledger.sql", "utf8");
+  assert.match(migration, /base_amount_minor INTEGER NOT NULL CHECK \(base_amount_minor > 0\)/);
+  assert.match(migration, /idempotency_key TEXT NOT NULL UNIQUE/);
+  assert.match(migration, /invoice_id TEXT NOT NULL UNIQUE REFERENCES payment_invoices/);
+  assert.match(migration, /auto_renew_enabled INTEGER NOT NULL DEFAULT 0/);
+  assert.doesNotMatch(migration, /amount_(?:minor|units) REAL/);
+});
