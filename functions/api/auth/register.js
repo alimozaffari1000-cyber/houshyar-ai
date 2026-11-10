@@ -14,13 +14,17 @@ export async function onRequestPost({ request, env }) {
   if (limited) return limited;
   if (!validEmail(email)) return authJson({ error: "INVALID_EMAIL", message: "ایمیل معتبر وارد کنید." }, 400);
   if (password.length < 12 || password.length > 128) return authJson({ error: "WEAK_PASSWORD", message: "رمز عبور باید حداقل ۱۲ و حداکثر ۱۲۸ نویسه باشد." }, 400);
+  let existing;
+  try { existing = await env.DB.prepare("SELECT id FROM users WHERE email_normalized = ? LIMIT 1").bind(email).first(); }
+  catch { return authJson({ error: "REGISTRATION_UNAVAILABLE" }, 503); }
+  if (existing) return authJson({ accepted: true, verificationRequired: true }, 202);
   const now = Math.floor(Date.now() / 1000);
   const id = crypto.randomUUID();
   const record = await createPasswordRecord(password);
   try {
     await env.DB.prepare("INSERT INTO users (id, email_normalized, password_hash, password_salt, password_iterations, status, role, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 'pending', 'user', ?, ?)").bind(id, email, record.hash, record.salt, record.iterations, now, now).run();
   } catch {
-    return authJson({ accepted: true, verificationRequired: true }, 202);
+    return authJson({ error: "REGISTRATION_UNAVAILABLE" }, 503);
   }
   const token = createAuthToken();
   await env.DB.prepare("INSERT INTO email_verification_tokens (id, user_id, token_hash, created_at, expires_at) VALUES (?, ?, ?, ?, ?)").bind(crypto.randomUUID(), id, await hashAuthToken(token), now, now + 86400).run();
@@ -28,7 +32,7 @@ export async function onRequestPost({ request, env }) {
     const link = authEmailLink(env, "verify_email", token);
     await sendAuthEmail(env, { to: email, subject: "تأیید ایمیل هوش‌یار", text: "برای فعال‌سازی حساب هوش‌یار، پیوند زیر را در سایت باز کنید و تأیید را بزنید:\n" + link + "\nاین پیوند تا ۲۴ ساعت معتبر است." });
   } catch {
-    return authJson({ error: "AUTH_EMAIL_DELIVERY_FAILED", message: "حساب ایجاد شد اما ایمیل ارسال نشد؛ از ارسال دوباره ایمیل تأیید استفاده کنید." }, 503);
+    // Keep the response indistinguishable from duplicate-address handling.
   }
   return authJson({ accepted: true, verificationRequired: true }, 202);
 }
