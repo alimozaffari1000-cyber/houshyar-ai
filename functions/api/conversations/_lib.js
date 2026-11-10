@@ -73,11 +73,18 @@ export function normalizeTitle(value, messages) {
 }
 
 export async function ownedConversation(db, userId, id) {
-  return db.prepare("SELECT id, title, messages_json, message_count, created_at, updated_at FROM conversations WHERE id = ? AND user_id = ? LIMIT 1").bind(id, userId).first();
+  return db.prepare("SELECT id, title, messages_json, message_count, created_at, updated_at, project_id FROM conversations WHERE id = ? AND user_id = ? LIMIT 1").bind(id, userId).first();
 }
 
 export function validConversationId(value) {
   return typeof value === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+}
+
+export async function validOwnedProject(db, userId, projectId) {
+  if (projectId === null || projectId === undefined || projectId === "") return true;
+  if (!validConversationId(projectId)) return false;
+  const row = await db.prepare("SELECT id FROM projects WHERE id = ? AND user_id = ? LIMIT 1").bind(projectId, userId).first();
+  return Boolean(row);
 }
 
 export { getSessionUser, originAllowed };
