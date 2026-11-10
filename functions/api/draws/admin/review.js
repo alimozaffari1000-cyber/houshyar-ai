@@ -19,6 +19,7 @@ export async function onRequestPost({ request, env }) {
     if (!campaign) return adJson({ error: "DRAW_NOT_FOUND" }, 404);
     if (action === "open" && campaign.status !== "draft") return adJson({ error: "DRAW_NOT_DRAFT" }, 409);
     if (action === "cancel" && !["draft", "scheduled", "open"].includes(campaign.status)) return adJson({ error: "DRAW_CANNOT_CANCEL" }, 409);
+    if (action === "open" && campaign.starts_at && campaign.starts_at > now) return adJson({ error: "DRAW_START_NOT_REACHED" }, 409);
     if (action === "open" && campaign.ends_at && campaign.ends_at <= now) return adJson({ error: "DRAW_PERIOD_EXPIRED" }, 409);
     const nextStatus = action === "open" ? "open" : "cancelled";
     const update = env.DB.prepare("UPDATE draw_campaigns SET status = ?, updated_at = ? WHERE id = ? AND status = ?")
