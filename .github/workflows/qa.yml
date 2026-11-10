@@ -6,36 +6,30 @@ on:
   schedule:
     - cron: "0 5 * * *"
   workflow_dispatch:
+
+# Least privilege: CI reads source and may open a diagnostic issue only.
 permissions:
-  contents: write
+  contents: read
   issues: write
+
+concurrency:
+  group: houshyar-guardian-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   guardian:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
-          persist-credentials: true
-      - uses: actions/setup-node@v4
+          persist-credentials: false
+      - uses: actions/setup-node@v7
         with:
-          node-version: 20
+          node-version: 24
+          package-manager-cache: false
       - name: Install dependencies
         run: npm install
-      - name: Apply safe automatic repairs
-        if: github.event_name != 'pull_request'
-        run: npm run agent:repair
-      - name: Save safe repairs to repository
-        if: github.event_name != 'pull_request'
-        run: |
-          if [[ -n "$(git status --porcelain -- .gitignore wrangler.toml)" ]]; then
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add .gitignore wrangler.toml
-            git commit -m "chore(agent): apply safe configuration repairs"
-            git push
-          else
-            echo "No repair commit required."
-          fi
       - name: Project and secret-safety diagnostics
         run: npm run agent:check
       - name: Automated tests
@@ -44,7 +38,7 @@ jobs:
         run: npm run build
       - name: Report failure as GitHub issue
         if: failure() && github.event_name != 'pull_request'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const title = "Houshyar Guardian: automated check failed";
@@ -64,6 +58,6 @@ jobs:
                 "Run: " + context.serverUrl + "/" + owner + "/" + repo + "/actions/runs/" + context.runId,
                 "Commit: " + context.sha,
                 "",
-                "Only allowlisted safe configuration repairs are automatic. Application logic, credentials, and Cloudflare account settings are never modified automatically."
+                "The guardian runs with read-only repository contents access. It never changes application files, credentials, or Cloudflare settings."
               ].join("\n")
             });
