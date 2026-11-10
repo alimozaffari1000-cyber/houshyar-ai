@@ -1,4 +1,4 @@
-import { requireAdsUser, adJson, readAdsJson } from "../../_lib/ads.js";
+import { requireAdsUser, adJson, readAdsJson } from "../_lib/ads.js";
 
 export async function onRequestGet({ request, env }) {
   const auth = await requireAdsUser({ request, env });
