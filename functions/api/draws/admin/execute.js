@@ -65,7 +65,7 @@ export async function onRequestPost({ request, env }) {
         "SELECT ?, ?, ?, 'houshyar-draw-sha256-counter-rejection-v1', ?, ?, ?, ?, 'pending' " +
         "WHERE EXISTS (SELECT 1 FROM draw_campaigns WHERE id = ? AND status = 'drawn') " +
         "AND NOT EXISTS (SELECT 1 FROM draw_results WHERE campaign_id = ?)"
-      ).bind(resultId, campaignId, winner.id, commitment, hex(seed), nowPublished, nowPublished, campaignId, campaignId),
+      ).bind(resultId, campaignId, winner.id, commitment, hex(seed), nowPublished, nowPublished, entries.length, snapshotHash, campaignId, campaignId),
       env.DB.prepare(
         "INSERT INTO draw_audit_events (id, campaign_id, actor_user_id, event_type, event_payload_json, created_at) " +
         "SELECT ?, ?, ?, 'draw_executed', ?, ? WHERE EXISTS (SELECT 1 FROM draw_results WHERE campaign_id = ? AND id = ?)"
