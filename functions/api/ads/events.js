@@ -1,4 +1,4 @@
-import { scoreAdEvent } from "../../ads/fraud-score.js";
+import { scoreAdEvent } from "../../../src/ads/fraud-score.js";
 import { requireAdsUser, adJson, readAdsJson, checkAdsRateLimit } from "../_lib/ads.js";
 
 export async function onRequestPost({ request, env }) {
