@@ -20,3 +20,11 @@ test("scheduled cleanup uses remote D1 and requires server-side Cloudflare secre
   assert.match(workflow, /secrets\.CLOUDFLARE_ACCOUNT_ID/);
   assert.match(workflow, /d1 execute houshyar-ai-db --remote --file scripts\/d1-cleanup\.sql/);
 });
+
+import { readFileSync as readMigration } from "node:fs";
+
+test("identity schema permits pending accounts required by email verification", () => {
+  const schema = readMigration("migrations/0001_identity_usage_security.sql", "utf8");
+  assert.match(schema, /CHECK \(status IN \('pending', 'active', 'suspended', 'deleted'\)\)/);
+  assert.match(schema, /status = 'pending'/);
+});
