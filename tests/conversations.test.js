@@ -80,6 +80,6 @@ test("conversation lookup always scopes by both conversation and owner", async (
 });
 
 test("conversation history payload is bounded for multilingual content", () => {
-  const tooLarge = [{ role: "user", text: "م".repeat(6000) }, { role: "assistant", text: "پ".repeat(6000) }, ...Array(14).fill({ role: "user", text: "ز".repeat(6000) })];
+  const tooLarge = [{ role: "user", text: "م".repeat(6000) }, { role: "assistant", text: "پ".repeat(6000) }, ...Array(17).fill({ role: "user", text: "ز".repeat(6000) })];
   assert.equal(normalizeMessages(tooLarge), null);
 });
