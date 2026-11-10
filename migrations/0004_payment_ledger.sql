@@ -16,14 +16,15 @@ CREATE TABLE IF NOT EXISTS payment_invoices (
   exchange_rate_decimal TEXT,
   destination_reference TEXT,
   destination_memo TEXT,
-  provider_invoice_id TEXT UNIQUE,
+  provider_invoice_id TEXT,
   idempotency_key TEXT NOT NULL UNIQUE,
   status TEXT NOT NULL DEFAULT 'pending'
     CHECK (status IN ('pending', 'confirming', 'paid', 'underpaid', 'overpaid', 'expired', 'failed', 'manual_review', 'refunded')),
   expires_at INTEGER NOT NULL,
   confirmed_at INTEGER,
   created_at INTEGER NOT NULL,
-  updated_at INTEGER NOT NULL
+  updated_at INTEGER NOT NULL,
+  UNIQUE(provider_id, provider_invoice_id)
 );
 
 CREATE INDEX IF NOT EXISTS idx_payment_invoices_user_created
@@ -35,13 +36,15 @@ CREATE INDEX IF NOT EXISTS idx_payment_invoices_status_expiry
 CREATE TABLE IF NOT EXISTS payment_events (
   id TEXT PRIMARY KEY,
   invoice_id TEXT NOT NULL REFERENCES payment_invoices(id) ON DELETE RESTRICT,
-  provider_event_id TEXT NOT NULL UNIQUE,
+  provider_id TEXT NOT NULL,
+  provider_event_id TEXT NOT NULL,
   event_type TEXT NOT NULL,
   payload_sha256 TEXT NOT NULL,
   processing_status TEXT NOT NULL DEFAULT 'received'
     CHECK (processing_status IN ('received', 'processed', 'rejected', 'failed')),
   received_at INTEGER NOT NULL,
-  processed_at INTEGER
+  processed_at INTEGER,
+  UNIQUE(provider_id, provider_event_id)
 );
 
 CREATE INDEX IF NOT EXISTS idx_payment_events_invoice
@@ -88,8 +91,22 @@ CREATE TABLE IF NOT EXISTS subscriptions (
   current_period_end INTEGER,
   cancel_at_period_end INTEGER NOT NULL DEFAULT 0 CHECK (cancel_at_period_end IN (0, 1)),
   created_at INTEGER NOT NULL,
-  updated_at INTEGER NOT NULL
+  updated_at INTEGER NOT NULL,
+  UNIQUE(provider_id, provider_subscription_id)
 );
 
 CREATE INDEX IF NOT EXISTS idx_subscriptions_user_status
   ON subscriptions(user_id, status);
+
+-- Corrective entries are appended; existing wallet entries are never edited or deleted.
+CREATE TRIGGER IF NOT EXISTS trg_wallet_ledger_no_update
+BEFORE UPDATE ON wallet_ledger_entries
+BEGIN
+  SELECT RAISE(ABORT, 'WALLET_LEDGER_IMMUTABLE');
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_wallet_ledger_no_delete
+BEFORE DELETE ON wallet_ledger_entries
+BEGIN
+  SELECT RAISE(ABORT, 'WALLET_LEDGER_IMMUTABLE');
+END;
