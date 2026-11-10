@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { normalizeMessages, normalizeTitle, validConversationId, onRequestGet as listConversations, onRequestPost as createConversation } from "../functions/api/conversations/index.js";
 import { onRequestGet as getConversation, onRequestPut as updateConversation, onRequestDelete as deleteConversation } from "../functions/api/conversations/[id].js";
+import { ownedConversation } from "../functions/api/conversations/_lib.js";
 
 const validId = "123e4567-e89b-42d3-a456-426614174000";
 const messages = [{ role: "user", text: "سلام" }, { role: "assistant", text: "سلام، چطور کمک کنم؟" }];
@@ -66,7 +67,6 @@ test("conversation mutations reject requests without same-origin header", async 
 test("conversation lookup always scopes by both conversation and owner", async () => {
   let query = "";
   let values = [];
-  const { ownedConversation } = await import("../functions/api/conversations/_lib.js");
   const db = {
     prepare(sql) {
       query = sql;
@@ -80,7 +80,6 @@ test("conversation lookup always scopes by both conversation and owner", async (
 });
 
 test("conversation history payload is bounded for multilingual content", () => {
-  const { normalizeMessages } = await import("../functions/api/conversations/_lib.js");
   const tooLarge = [{ role: "user", text: "م".repeat(6000) }, { role: "assistant", text: "پ".repeat(6000) }, ...Array(14).fill({ role: "user", text: "ز".repeat(6000) })];
   assert.equal(normalizeMessages(tooLarge), null);
 });
