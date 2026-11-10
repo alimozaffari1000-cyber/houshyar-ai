@@ -73,8 +73,6 @@ CREATE TABLE IF NOT EXISTS ad_reward_ledger (
   source_type TEXT NOT NULL,
   source_id TEXT NOT NULL,
   idempotency_key TEXT NOT NULL UNIQUE,
-  status TEXT NOT NULL DEFAULT 'pending'
-    CHECK (status IN ('pending', 'available', 'reversed', 'void')),
   created_at INTEGER NOT NULL
 );
 
