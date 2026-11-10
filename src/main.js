@@ -1,4 +1,5 @@
 import './style.css';
+import { initAccountPanel } from './account.js';
 
 const app = document.querySelector('#app');
 const state = { messages: [], busy: false, draft: '' };
@@ -12,7 +13,7 @@ const scrollChat = () => {
 
 function render() {
   app.innerHTML = `
-    <header class="top"><div class="brand"><span class="logo">هـ</span><div><strong>هوش‌یار</strong><small>دستیار هوشمند چندمنظوره</small></div></div><span class="status"><i></i> نسخه آزمایشی</span></header>
+    <header class="top"><div class="brand"><span class="logo">هـ</span><div><strong>هوش‌یار</strong><small>دستیار هوشمند چندمنظوره</small></div></div><div class="top-actions"><button id="account-open" type="button" class="account-open">حساب کاربری</button><span class="status"><i></i> نسخه آزمایشی</span></div></header>
     <main><section class="welcome"><span class="eyebrow">HOUSHYAR AI</span><h1>سلام، چطور می‌توانم<br><em>کمکت کنم؟</em></h1><p>سؤال بپرس، ایده‌پردازی کن، متن بنویس یا برای کارهایت برنامه‌ریزی کن.</p></section>
     <section class="suggestions" aria-label="پیشنهادهای شروع گفتگو">
       <button type="button" data-prompt="برای کسب‌وکارم چند ایده درآمدزایی پیشنهاد بده">💡 ایده‌پردازی <small>راه‌حل و پیشنهاد</small></button>
@@ -26,6 +27,7 @@ function render() {
     <p class="input-hint">Enter برای ارسال · Shift + Enter برای رفتن به خط بعد</p>
     <p class="notice">نسخه آزمایشی: گفتگو فقط تا زمان باز بودن این صفحه در حافظه موقت مرورگر نگه داشته می‌شود. اطلاعات محرمانه، رمز عبور یا کلید بانکی ارسال نکن.</p></main>
     <footer>هوش‌یار AI · نسخه آزمایشی</footer>`;
+  initAccountPanel(app);
   app.querySelectorAll('[data-prompt]').forEach(b=>b.addEventListener('click',()=>{const input=app.querySelector('#prompt');state.draft=b.dataset.prompt;input.value=state.draft;input.focus();}));
   const prompt=app.querySelector('#prompt');
   const resize=()=>{prompt.style.height='auto';prompt.style.height=Math.min(prompt.scrollHeight,160)+'px';};
