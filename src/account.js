@@ -2,6 +2,87 @@ import { initAdsPanel } from "./ads-panel.js";
 import { initDrawAdminPanel } from "./draw-admin-panel.js";
 
 const safe = (value) => String(value ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
+
+async function loadConversationHistory(content, status, panel) {
+  const list = content.querySelector("#conversation-history");
+  if (!list) return;
+  list.textContent = "در حال دریافت تاریخچه…";
+  try {
+    const response = await fetch("/api/conversations", { credentials: "same-origin", cache: "no-store" });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.message || (data.error === "HISTORY_NOT_CONFIGURED" ? "ذخیره تاریخچه هنوز روی سرور فعال نشده است." : "دریافت تاریخچه انجام نشد."));
+    const conversations = Array.isArray(data.conversations) ? data.conversations : [];
+    list.replaceChildren();
+    if (!conversations.length) {
+      const empty = document.createElement("p");
+      empty.className = "history-empty";
+      empty.textContent = "هنوز گفتگوی ذخیره‌شده‌ای ندارید. پس از ارسال اولین پیام و دریافت پاسخ، گفتگو در این فهرست ثبت می‌شود.";
+      list.append(empty);
+      return;
+    }
+    for (const item of conversations) {
+      const row = document.createElement("article");
+      row.className = "conversation-row";
+      const info = document.createElement("div");
+      info.className = "conversation-info";
+      const title = document.createElement("strong");
+      title.textContent = item.title || "گفتگوی بدون عنوان";
+      const meta = document.createElement("small");
+      const date = Number(item.updated_at) > 0 ? new Date(Number(item.updated_at) * 1000).toLocaleString("fa-IR") : "";
+      meta.textContent = (Number(item.message_count) || 0) + " پیام · " + date;
+      info.append(title, meta);
+      const actions = document.createElement("div");
+      actions.className = "conversation-actions";
+      const open = document.createElement("button");
+      open.type = "button"; open.textContent = "بازکردن";
+      open.addEventListener("click", async () => {
+        open.disabled = true;
+        try {
+          const result = await fetch("/api/conversations/" + encodeURIComponent(item.id), { credentials: "same-origin", cache: "no-store" });
+          const detail = await result.json().catch(() => ({}));
+          if (!result.ok || !detail.conversation) throw new Error(detail.message || "بارگذاری گفتگو انجام نشد.");
+          panel.hidden = true;
+          window.dispatchEvent(new CustomEvent("houshyar:load-conversation", { detail: detail.conversation }));
+        } catch (error) { status.textContent = error.message; open.disabled = false; }
+      });
+      const rename = document.createElement("button");
+      rename.type = "button"; rename.textContent = "تغییر عنوان";
+      rename.addEventListener("click", async () => {
+        const nextTitle = window.prompt("عنوان جدید گفتگو را وارد کنید:", item.title || "");
+        if (nextTitle === null || !nextTitle.trim()) return;
+        rename.disabled = true;
+        try {
+          const result = await fetch("/api/conversations/" + encodeURIComponent(item.id), {
+            method: "PUT", credentials: "same-origin",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ title: nextTitle.trim() })
+          });
+          const detail = await result.json().catch(() => ({}));
+          if (!result.ok) throw new Error(detail.message || "تغییر عنوان انجام نشد.");
+          await loadConversationHistory(content, status, panel);
+        } catch (error) { status.textContent = error.message; rename.disabled = false; }
+      });
+      const remove = document.createElement("button");
+      remove.type = "button"; remove.textContent = "حذف";
+      remove.addEventListener("click", async () => {
+        if (!window.confirm("این گفتگو برای همیشه حذف شود؟")) return;
+        remove.disabled = true;
+        try {
+          const result = await fetch("/api/conversations/" + encodeURIComponent(item.id), { method: "DELETE", credentials: "same-origin" });
+          const detail = await result.json().catch(() => ({}));
+          if (!result.ok) throw new Error(detail.message || "حذف گفتگو انجام نشد.");
+          await loadConversationHistory(content, status, panel);
+        } catch (error) { status.textContent = error.message; remove.disabled = false; }
+      });
+      actions.append(open, rename, remove);
+      row.append(info, actions);
+      list.append(row);
+    }
+  } catch (error) {
+    list.textContent = error.message || "تاریخچه در دسترس نیست.";
+  }
+}
+
 export function initAccountPanel(app) {
   const button = app.querySelector("#account-open");
   if (!button || app.querySelector("#account-panel")) return;
@@ -70,8 +151,10 @@ export function initAccountPanel(app) {
             <div id="draw-admin-panel-mount"></div>
           </section>
           <section class="dashboard-view" data-dashboard-view="activity" hidden>
-            <div class="dashboard-info"><b>تاریخچه گفتگوها</b><p>ذخیره دائمی و بازیابی گفتگوها هنوز فعال نشده است. گفتگوهای فعلی با بسته‌شدن یا تازه‌سازی صفحه ممکن است از دست بروند.</p></div>
-            <div class="dashboard-info"><b>پروژه‌های ذخیره‌شده</b><p>فضای پروژه و ذخیره فایل‌ها در مرحله توسعه است و هنوز داده‌ای در این بخش ثبت نمی‌شود.</p></div>
+            <div class="dashboard-info"><b>تاریخچه گفتگوها</b><p>گفتگوهای ذخیره‌شده فقط برای حساب فعلی قابل مشاهده‌اند. امکان بازکردن، تغییر عنوان و حذف هر گفتگو وجود دارد.</p></div>
+            <div class="history-toolbar"><button type="button" id="history-refresh">به‌روزرسانی فهرست</button><button type="button" id="history-new">شروع گفتگوی تازه</button></div>
+            <div id="conversation-history" class="conversation-history" aria-live="polite">در حال دریافت تاریخچه…</div>
+            <div class="dashboard-info"><b>پروژه‌های ذخیره‌شده</b><p>فضای مستقل پروژه‌ها و ذخیره فایل‌ها در مرحله بعدی توسعه قرار دارد.</p></div>
           </section>
           <section class="dashboard-view" data-dashboard-view="plan" hidden>
             <div class="dashboard-info"><b>طرح فعلی</b><p>وضعیت طرح اشتراکی هنوز به سامانه صورتحساب متصل نشده است؛ هیچ اشتراک پولی فعالی از این صفحه اعلام نمی‌شود.</p></div>
@@ -87,7 +170,13 @@ export function initAccountPanel(app) {
         content.querySelectorAll("[data-dashboard-tab]").forEach(tab => tab.addEventListener("click", () => {
           content.querySelectorAll("[data-dashboard-tab]").forEach(item => item.classList.toggle("active", item === tab));
           content.querySelectorAll("[data-dashboard-view]").forEach(view => { view.hidden = view.dataset.dashboardView !== tab.dataset.dashboardTab; });
+          if (tab.dataset.dashboardTab === "activity") loadConversationHistory(content, status, panel);
         }));
+        content.querySelector("#history-refresh").addEventListener("click", () => loadConversationHistory(content, status, panel));
+        content.querySelector("#history-new").addEventListener("click", () => {
+          panel.hidden = true;
+          window.dispatchEvent(new CustomEvent("houshyar:new-conversation"));
+        });
         content.querySelectorAll("[data-dashboard-prompt]").forEach(item => item.addEventListener("click", () => {
           const prompt = app.querySelector("#prompt");
           if (!prompt) return;
