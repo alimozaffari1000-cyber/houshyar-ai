@@ -101,6 +101,16 @@ async function persistConversation() {
   }
 }
 
+window.addEventListener('houshyar:new-conversation', () => {
+  if (state.busy) return;
+  state.messages = [];
+  state.conversationId = null;
+  state.draft = '';
+  state.historyNotice = 'گفتگوی تازه آماده است.';
+  render();
+  app.querySelector('#prompt')?.focus();
+});
+
 window.addEventListener('houshyar:load-conversation', event => {
   const conversation = event.detail;
   if (!conversation || !Array.isArray(conversation.messages)) return;
@@ -117,6 +127,7 @@ async function submitMessage(event) {
   const input=app.querySelector('#prompt'); const text=input.value.trim();
   if(!text || state.busy) return;
   state.draft='';
+  if (state.messages.length > 78) state.messages.splice(0, 2);
   state.messages.push({role:'user',text});
   state.busy=true; render(); scrollChat();
   try {
