@@ -1,6 +1,7 @@
 import { checkChatRateLimit } from "./_lib/chat-rate-limit.js";
 import { getSessionUser } from "./_lib/auth.js";
 import { reserveDailyChat, releaseDailyChat } from "./_lib/daily-quota.js";
+import { routeAgentRequest } from "./_lib/agent-router.js";
 
 const MAX_BODY_BYTES = 32 * 1024;
 const UPSTREAM_TIMEOUT_MS = 20_000;
