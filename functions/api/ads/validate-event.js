@@ -1,5 +1,19 @@
 import { requireAdsUser, adJson, readAdsJson } from "../_lib/ads.js";
 
+export async function onRequestGet({ request, env }) {
+  const auth = await requireAdsUser({ request, env });
+  if (auth.response) return auth.response;
+  if (auth.user.role !== "admin") return adJson({ error: "FORBIDDEN" }, 403);
+  try {
+    const rows = await env.DB.prepare(
+      "SELECT e.id, e.campaign_id, c.title AS campaign_title, e.event_type, e.risk_score, e.fraud_reason, e.occurred_at " +
+      "FROM ad_events e JOIN ad_campaigns c ON c.id = e.campaign_id " +
+      "WHERE e.validation_status IN ('pending', 'review') ORDER BY e.risk_score DESC, e.occurred_at ASC LIMIT 100"
+    ).all();
+    return adJson({ events: rows.results || [] });
+  } catch { return adJson({ error: "AD_EVENT_QUEUE_UNAVAILABLE" }, 503); }
+}
+
 function validId(value) { return typeof value === "string" && /^[0-9a-f-]{36}$/i.test(value); }
 
 export async function onRequestPost({ request, env }) {
