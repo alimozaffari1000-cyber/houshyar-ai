@@ -35,16 +35,81 @@ export function initAccountPanel(app) {
       }
       if (!response.ok) throw new Error("بررسی حساب انجام نشد.");
       if (data.authenticated) {
-        status.textContent = "وارد حساب شده‌اید.";
-        const q = data.quota?.enabled ? `<div class="quota-box"><b>سهمیه امروز</b><strong>${safe(data.quota.remaining)} از ${safe(data.quota.limit)}</strong><small>مصرف‌شده: ${safe(data.quota.used)} · بازنشانی: ${new Date(data.quota.resetAt * 1000).toLocaleString("fa-IR")}</small></div>` : '<p class="account-muted">نمایش سهمیه هنوز فعال نشده است.</p>';
-        content.innerHTML = `<p class="account-email"></p>${q}<div id="ads-panel-mount"></div><div id="draw-admin-panel-mount"></div><button type="button" id="account-logout" class="account-submit">خروج از حساب</button>`;
-        content.querySelector(".account-email").textContent = data.user.email;
+        status.textContent = "داشبورد حساب شما";
+        const quota = data.quota?.enabled ? `
+          <div class="quota-box">
+            <b>سهمیه روزانه گفتگو</b>
+            <strong>${safe(data.quota.remaining)} از ${safe(data.quota.limit)} درخواست باقی‌مانده</strong>
+            <small>مصرف‌شده: ${safe(data.quota.used)} · بازنشانی: ${new Date(data.quota.resetAt * 1000).toLocaleString("fa-IR")}</small>
+          </div>` : `
+          <div class="dashboard-info">
+            <b>سهمیه و مصرف</b>
+            <p>نمایش آمار مصرف پس از فعال‌سازی سهمیه‌بندی سرور در دسترس خواهد بود.</p>
+          </div>`;
+        content.innerHTML = `
+          <div class="dashboard-user">
+            <span class="dashboard-avatar" aria-hidden="true">هـ</span>
+            <div><strong>خوش آمدید</strong><p class="account-email"></p><small>حساب هوش‌یار</small></div>
+          </div>
+          <nav class="dashboard-tabs" aria-label="بخش‌های داشبورد">
+            <button type="button" class="active" data-dashboard-tab="overview">نمای کلی</button>
+            <button type="button" data-dashboard-tab="activity">گفتگوها و پروژه‌ها</button>
+            <button type="button" data-dashboard-tab="plan">اشتراک و اعتبار</button>
+            <button type="button" data-dashboard-tab="security">امنیت حساب</button>
+          </nav>
+          <section class="dashboard-view" data-dashboard-view="overview">
+            ${quota}
+            <div class="dashboard-section-head"><strong>شروع سریع</strong><small>یک کار را انتخاب کنید تا درخواست در کادر گفتگو آماده شود.</small></div>
+            <div class="dashboard-shortcuts">
+              <button type="button" data-dashboard-prompt="موضوع موردنظر من را دقیق بررسی کن و نتیجه را مرحله‌ای ارائه بده:">تحقیق و بررسی</button>
+              <button type="button" data-dashboard-prompt="برای هدف من یک برنامه اجرایی با مراحل و زمان‌بندی بساز:">برنامه‌ریزی</button>
+              <button type="button" data-dashboard-prompt="برای کسب‌وکار من چند راهکار عملی رشد و جذب مشتری پیشنهاد بده:">کسب‌وکار</button>
+              <button type="button" data-dashboard-prompt="این متن را حرفه‌ای و روان بازنویسی کن:">تولید محتوا</button>
+            </div>
+            <div id="ads-panel-mount"></div>
+            <div id="draw-admin-panel-mount"></div>
+          </section>
+          <section class="dashboard-view" data-dashboard-view="activity" hidden>
+            <div class="dashboard-info"><b>تاریخچه گفتگوها</b><p>ذخیره دائمی و بازیابی گفتگوها هنوز فعال نشده است. گفتگوهای فعلی با بسته‌شدن یا تازه‌سازی صفحه ممکن است از دست بروند.</p></div>
+            <div class="dashboard-info"><b>پروژه‌های ذخیره‌شده</b><p>فضای پروژه و ذخیره فایل‌ها در مرحله توسعه است و هنوز داده‌ای در این بخش ثبت نمی‌شود.</p></div>
+          </section>
+          <section class="dashboard-view" data-dashboard-view="plan" hidden>
+            <div class="dashboard-info"><b>طرح فعلی</b><p>وضعیت طرح اشتراکی هنوز به سامانه صورتحساب متصل نشده است؛ هیچ اشتراک پولی فعالی از این صفحه اعلام نمی‌شود.</p></div>
+            <div class="dashboard-info"><b>اعتبار و پاداش تبلیغاتی</b><p>اعتبار قابل استفاده یا پاداش نقدی فقط پس از ثبت و تسویه واقعی نمایش داده می‌شود. این بخش فعلاً فعال نیست.</p></div>
+            <div class="dashboard-info"><b>پرداخت</b><p>درگاه بانکی و پرداخت رمزارزی هنوز در محیط عملیاتی پیکربندی نشده‌اند.</p></div>
+          </section>
+          <section class="dashboard-view" data-dashboard-view="security" hidden>
+            <div class="dashboard-info"><b>وضعیت ورود</b><p>شما با این حساب وارد شده‌اید. اطلاعات نشست از طریق کوکی امن سمت سرور مدیریت می‌شود.</p></div>
+            <div class="dashboard-info"><b>توصیه امنیتی</b><p>رمز عبور منحصربه‌فرد و حداقل ۱۲ نویسه‌ای استفاده کنید و آن را در اختیار دیگران قرار ندهید.</p></div>
+            <button type="button" id="account-logout" class="account-submit">خروج از حساب</button>
+          </section>`;
+        content.querySelector(".account-email").textContent = data.user?.email || "ایمیل ثبت‌شده";
+        content.querySelectorAll("[data-dashboard-tab]").forEach(tab => tab.addEventListener("click", () => {
+          content.querySelectorAll("[data-dashboard-tab]").forEach(item => item.classList.toggle("active", item === tab));
+          content.querySelectorAll("[data-dashboard-view]").forEach(view => { view.hidden = view.dataset.dashboardView !== tab.dataset.dashboardTab; });
+        }));
+        content.querySelectorAll("[data-dashboard-prompt]").forEach(item => item.addEventListener("click", () => {
+          const prompt = app.querySelector("#prompt");
+          if (!prompt) return;
+          prompt.value = item.dataset.dashboardPrompt;
+          prompt.dispatchEvent(new Event("input", { bubbles: true }));
+          panel.hidden = true;
+          prompt.focus();
+        }));
         initAdsPanel(content.querySelector("#ads-panel-mount"), data.user);
-        if (data.user.role === "admin") initDrawAdminPanel(content.querySelector("#draw-admin-panel-mount"));
+        if (data.user?.role === "admin") initDrawAdminPanel(content.querySelector("#draw-admin-panel-mount"));
         content.querySelector("#account-logout").addEventListener("click", async () => {
-          const out = await fetch("/api/auth/logout", { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "same-origin" });
-          if (out.ok) { status.textContent = "از حساب خارج شدید."; content.innerHTML = ""; }
-          else status.textContent = "خروج انجام نشد؛ دوباره تلاش کنید.";
+          const logout = content.querySelector("#account-logout");
+          logout.disabled = true;
+          try {
+            const out = await fetch("/api/auth/logout", { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "same-origin" });
+            if (!out.ok) throw new Error("خروج انجام نشد؛ دوباره تلاش کنید.");
+            status.textContent = "از حساب خارج شدید.";
+            content.innerHTML = "";
+          } catch (error) {
+            status.textContent = error.message;
+            logout.disabled = false;
+          }
         });
         return;
       }
