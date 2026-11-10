@@ -118,3 +118,24 @@ button:focus-visible,textarea:focus-visible{outline:2px solid #58d9bd;outline-of
 [dir="ltr"] .service-card{text-align:left}
 @media(max-width:680px){.service-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.service-heading{align-items:flex-start;flex-direction:column}.service-search,.service-search input{width:100%}}
 @media(max-width:390px){.service-catalog{padding:13px}.service-grid{gap:8px}.service-card{padding:11px}.service-card small{min-height:58px}.service-heading h2{font-size:18px}}
+
+
+/* Customer dashboard */
+.account-panel{overflow-y:auto;align-items:start}
+.account-card{width:min(100%,680px);max-height:calc(100vh - 36px);overflow-y:auto}
+.dashboard-user{display:flex;align-items:center;gap:12px;padding:12px 0 16px}
+.dashboard-avatar{width:42px;height:42px;display:grid;place-items:center;border-radius:13px;background:#1d3c4a;color:#65e2c4;font-size:22px}
+.dashboard-user strong{font-size:14px}.dashboard-user p{margin:3px 0;font-size:11px}.dashboard-user small{font-size:10px;color:#91a6bf}
+.dashboard-tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;padding:7px;background:#0d1b2c;border:1px solid #2b475e;border-radius:12px;margin:4px 0 14px}
+.dashboard-tabs button{min-width:0;padding:9px 5px;border:1px solid transparent;border-radius:8px;background:transparent;color:#aebfd2;font:10px Vazirmatn;cursor:pointer}
+.dashboard-tabs button.active{background:#183047;border-color:#3c637b;color:#65e2c4}
+.dashboard-view[hidden]{display:none}
+.dashboard-section-head{display:grid;gap:4px;margin:16px 0 9px}
+.dashboard-section-head strong{font-size:13px}.dashboard-section-head small{font-size:10px;color:#91a6bf;line-height:1.8}
+.dashboard-shortcuts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:14px}
+.dashboard-shortcuts button{padding:12px 9px;border:1px solid #304b63;border-radius:10px;background:#13283b;color:#dce8f7;text-align:right;font:11px Vazirmatn;cursor:pointer}
+.dashboard-shortcuts button:focus-visible,.dashboard-tabs button:focus-visible{outline:2px solid #65e2c4;outline-offset:2px}
+.dashboard-info{margin:10px 0;padding:13px;background:#0d1b2c;border:1px solid #2b475e;border-radius:11px}
+.dashboard-info b{font-size:12px;color:#dce8f7}.dashboard-info p{margin:6px 0 0;color:#9bb0c7;font-size:11px;line-height:1.9}
+.dashboard-view .quota-box{margin-bottom:14px}
+@media(max-width:520px){.account-panel{padding:10px}.account-card{max-height:calc(100vh - 20px);padding:15px}.dashboard-tabs{grid-template-columns:repeat(2,minmax(0,1fr))}.dashboard-tabs button{font-size:11px;padding:10px}.dashboard-shortcuts{gap:7px}}
