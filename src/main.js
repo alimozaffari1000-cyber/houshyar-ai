@@ -2,6 +2,7 @@ import './style.css';
 import { initAccountPanel } from './account.js';
 import { initAuthFlows } from './auth-flows.js';
 import { initAdPlacement } from './ad-placement.js';
+import { initDrawPanel } from './draw-panel.js';
 import { translate as t, getLocale, setLocale, localeOptions } from './i18n.js';
 
 const app = document.querySelector('#app');
@@ -27,6 +28,7 @@ function render() {
       <button type="button" data-prompt="برای انجام کارهایم یک برنامه مرحله‌ای بساز">🧭 برنامه‌ریزی <small>قدم‌به‌قدم</small></button>
     </section>
     <div id="home-ad-slot"></div>
+    <div id="draw-panel-mount"></div>
     <div class="chat-tools"><span>${t('chat',locale)}</span><button id="clear-chat" type="button" ${state.messages.length || state.draft ? '' : 'disabled'}>${t('clear',locale)}</button></div>
     <section class="chat" aria-live="polite" aria-label="پیام‌های گفتگو">${state.messages.map((m,i)=>`<article class="msg ${m.role}"><div class="msg-head"><b>${m.role==='user'?'شما':'هوش‌یار'}</b>${m.agent?'<small class="agent-label"> · '+escapeHTML(m.agent.label)+'</small>':''}${m.role==='assistant'?'<button type="button" class="copy-reply" data-index="'+i+'" aria-label="کپی پاسخ">کپی</button>':''}</div><p>${escapeHTML(m.text)}</p></article>`).join('')}${state.busy?'<article class="msg assistant" role="status"><b>هوش‌یار</b><p>در حال آماده‌سازی پاسخ…</p></article>':''}</section>
     <form id="chat-form"><textarea id="prompt" aria-label="پیام شما" rows="1" maxlength="6000" placeholder="${t('placeholder',locale)}" required>${escapeHTML(state.draft)}</textarea><button id="send" type="submit" ${state.busy?'disabled':''}>${t('send',locale)}</button></form>
@@ -37,6 +39,7 @@ function render() {
   initAccountPanel(app);
   initAuthFlows(app);
   initAdPlacement(app.querySelector('#home-ad-slot'));
+  initDrawPanel(app);
   app.querySelectorAll('[data-prompt]').forEach(b=>b.addEventListener('click',()=>{const input=app.querySelector('#prompt');state.draft=b.dataset.prompt;input.value=state.draft;input.focus();}));
   const prompt=app.querySelector('#prompt');
   const resize=()=>{prompt.style.height='auto';prompt.style.height=Math.min(prompt.scrollHeight,160)+'px';};
