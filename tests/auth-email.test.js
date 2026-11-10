@@ -83,5 +83,5 @@ test("password reset updates the account, consumes its token, and revokes sessio
   const response = await resetPassword({ request, env: { AUTH_ENABLED: "true", DB: db } });
   assert.equal(response.status, 200);
   assert.deepEqual(await response.json(), { passwordReset: true, sessionsRevoked: true });
-  assert.equal(statements.length, 3);
+  assert.equal(statements.filter(item => item.sql.startsWith("UPDATE ")).length, 3);
 });
