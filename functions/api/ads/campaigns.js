@@ -39,12 +39,14 @@ export async function onRequestPost({ request, env }) {
   const id = crypto.randomUUID();
   const now = Math.floor(Date.now() / 1000);
   try {
-    await env.DB.prepare(
-      "INSERT INTO ad_campaigns (id, advertiser_user_id, title, creative_payload, destination_url, pricing_model, budget_minor, currency_code, reward_rate_bps, status, starts_at, ends_at, created_at, updated_at) " +
-      "VALUES (?, ?, ?, ?, ?, ?, ?, ?, 500, 'pending_review', ?, ?, ?, ?)"
-    ).bind(id, auth.user.id, title, JSON.stringify({ description }), destinationUrl, pricingModel, budgetMinor, currencyCode, startsAt, endsAt, now, now).run();
-    await env.DB.prepare("INSERT INTO audit_events (id, actor_user_id, event_type, target_type, target_id, metadata_json, created_at) VALUES (?, ?, 'ad_campaign_submitted', 'ad_campaign', ?, ?, ?)")
-      .bind(crypto.randomUUID(), auth.user.id, id, JSON.stringify({ pricingModel, budgetMinor, currencyCode }), now).run();
+    await env.DB.batch([
+      env.DB.prepare(
+        "INSERT INTO ad_campaigns (id, advertiser_user_id, title, creative_payload, destination_url, pricing_model, budget_minor, currency_code, reward_rate_bps, status, starts_at, ends_at, created_at, updated_at) " +
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, 500, 'pending_review', ?, ?, ?, ?)"
+      ).bind(id, auth.user.id, title, JSON.stringify({ description }), destinationUrl, pricingModel, budgetMinor, currencyCode, startsAt, endsAt, now, now),
+      env.DB.prepare("INSERT INTO audit_events (id, actor_user_id, event_type, target_type, target_id, metadata_json, created_at) VALUES (?, ?, 'ad_campaign_submitted', 'ad_campaign', ?, ?, ?)")
+        .bind(crypto.randomUUID(), auth.user.id, id, JSON.stringify({ pricingModel, budgetMinor, currencyCode }), now)
+    ]);
     return adJson({ accepted: true, campaign: { id, title, status: "pending_review" }, message: "کمپین برای بررسی ارسال شد و تا تأیید مدیر نمایش داده نمی‌شود." }, 201);
   } catch { return adJson({ error: "CAMPAIGN_CREATE_FAILED" }, 503); }
 }
