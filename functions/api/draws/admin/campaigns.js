@@ -1,4 +1,4 @@
-import { requireDrawUser, checkDrawRate, adJson, readAdsJson } from "../_lib/draws.js";
+import { requireDrawUser, checkDrawRate, adJson, readAdsJson } from "../../_lib/draws.js";
 
 export async function onRequestPost({ request, env }) {
   const auth = await requireDrawUser({ request, env, write: true });
