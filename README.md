@@ -1,18 +1,43 @@
-# هوش‌یار AI
+# Houshyar AI
 
-نسخه اولیه پروژه هوش‌یار؛ پلتفرم دستیار هوشمند چندمنظوره.
+Houshyar is a Persian-first, right-to-left multi-purpose AI assistant built with Vite and Cloudflare Pages Functions.
 
-## وضعیت نسخه
-- نسخه بسته آماده: 0.5.0
-- معماری هدف: Cloudflare Workers + Static Assets + D1
-- مدل زبانی: Groq API (کلید API باید در محیط امن Worker تنظیم شود)
-- تیم تخصصی: ۶ نقش شامل توسعه، محصول، طراحی، امنیت، محتوا و QA
+## Current implementation
 
-## نکته مهم
-این مخزن تازه ایجاد شده است. فایل‌های اجرایی پروژه هنوز به این مخزن منتقل نشده‌اند. بسته کامل نسخه 0.5.0 در گفتگوی ChatGPT ارائه شده است و باید فایل‌های آن به مخزن اضافه شوند.
+- Responsive Persian RTL chat interface.
+- Server-side Groq chat integration at `/api/chat`.
+- Conversation history filtering and length limits.
+- Request-body cap and upstream timeout (see the API implementation).
+- Automated Node.js tests, build checks, security checks, and quality checks.
 
-## آزمون‌ها
-پس از انتقال سورس، دستور `npm run qa` آزمون‌های ایستا را اجرا می‌کند. آزمون‌های زنده به مقدار `QA_BASE_URL` و یک نمونه منتشرشده نیاز دارند.
+## Requirements
 
-## انتشار
-برای راه‌اندازی، ابتدا فایل `README-FA.md` و `DEPLOY-CHECKLIST-FA.md` بسته نسخه را دنبال کنید. هیچ کلید یا رمز محرمانه‌ای را در Git ثبت نکنید.
+- Node.js 20 or newer.
+- A Groq API key configured only as a server-side Cloudflare secret named `GROQ_API_KEY`.
+
+## Local development
+
+```bash
+npm install
+npm run dev
+```
+
+## Validation
+
+```bash
+npm run qa
+npm run agent:check
+npm run security:scan
+npm run build
+npm run quality:check
+```
+
+## Deployment
+
+See [Cloudflare setup instructions in Persian](CLOUDFLARE-SETUP-FA.md). Configure the Pages build command as `npm run build` and the output directory as `dist`. Never place provider credentials in browser-visible `VITE_*` variables or commit secrets.
+
+## Production readiness
+
+This repository is an early-stage prototype, not a fully production-hardened public service. The chat endpoint currently has no user authentication or per-user quota/rate limit. Before opening it to the public, configure server-side abuse prevention, request rate limiting, cost controls, monitoring, and an appropriate privacy policy. Authentication, billing, user accounts, persistent chat history, and database isolation are not implemented.
+
+The automated checks are not a penetration test and do not certify the deployed Cloudflare environment.
