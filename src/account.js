@@ -1,4 +1,5 @@
 import { initAdsPanel } from "./ads-panel.js";
+import { initDrawAdminPanel } from "./draw-admin-panel.js";
 
 const safe = (value) => String(value ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
 export function initAccountPanel(app) {
@@ -36,9 +37,10 @@ export function initAccountPanel(app) {
       if (data.authenticated) {
         status.textContent = "وارد حساب شده‌اید.";
         const q = data.quota?.enabled ? `<div class="quota-box"><b>سهمیه امروز</b><strong>${safe(data.quota.remaining)} از ${safe(data.quota.limit)}</strong><small>مصرف‌شده: ${safe(data.quota.used)} · بازنشانی: ${new Date(data.quota.resetAt * 1000).toLocaleString("fa-IR")}</small></div>` : '<p class="account-muted">نمایش سهمیه هنوز فعال نشده است.</p>';
-        content.innerHTML = `<p class="account-email"></p>${q}<div id="ads-panel-mount"></div><button type="button" id="account-logout" class="account-submit">خروج از حساب</button>`;
+        content.innerHTML = `<p class="account-email"></p>${q}<div id="ads-panel-mount"></div><div id="draw-admin-panel-mount"></div><button type="button" id="account-logout" class="account-submit">خروج از حساب</button>`;
         content.querySelector(".account-email").textContent = data.user.email;
         initAdsPanel(content.querySelector("#ads-panel-mount"), data.user);
+        if (data.user.role === "admin") initDrawAdminPanel(content.querySelector("#draw-admin-panel-mount"));
         content.querySelector("#account-logout").addEventListener("click", async () => {
           const out = await fetch("/api/auth/logout", { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "same-origin" });
           if (out.ok) { status.textContent = "از حساب خارج شدید."; content.innerHTML = ""; }
