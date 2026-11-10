@@ -30,3 +30,12 @@ test('delivery migration seeds disabled public slots and adds event review audit
   assert.match(sql, /ALTER TABLE ad_events ADD COLUMN slot_key/);
   assert.match(sql, /ALTER TABLE ad_events ADD COLUMN validated_by/);
 });
+
+test('settlement records are provider-scoped, idempotent and reconciled', async () => {
+  const sql = await readFile(new URL('../migrations/0007_ad_reporting_settlement.sql', import.meta.url), 'utf8');
+  assert.match(sql, /CREATE TABLE IF NOT EXISTS ad_settlements/);
+  assert.match(sql, /UNIQUE\(provider, provider_reference\)/);
+  assert.match(sql, /idempotency_key TEXT NOT NULL UNIQUE/);
+  assert.match(sql, /net_amount_minor = gross_amount_minor - fees_minor/);
+  assert.match(sql, /ALTER TABLE ad_events ADD COLUMN fraud_reason/);
+});
