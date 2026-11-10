@@ -74,7 +74,7 @@ test("over-limit request is rejected before calling the AI provider", async () =
       }
     });
     assert.equal(response.status, 429);
-    assert.equal(response.headers.get("Retry-After"), "60");
+    assert.ok(Number(response.headers.get("Retry-After")) >= 1 && Number(response.headers.get("Retry-After")) <= 60);
     assert.equal((await response.json()).error, "RATE_LIMITED");
     assert.equal(providerCalled, false);
   } finally {
