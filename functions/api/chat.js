@@ -144,6 +144,68 @@ export async function onRequestPost({ request, env }) {
   }
 
   const selectedAgent = routeAgentRequest(latest);
+  // Multi-specialist orchestration is explicitly opt-in and disabled by default.
+  if (body.mode === "coordinated") {
+    if (env.AGENT_COORDINATION_ENABLED !== "true") {
+      await releaseQuota();
+      return json({ error: "COORDINATION_DISABLED", message: "هماهنگی چندایجنتی هنوز در این محیط فعال نشده است." }, 503);
+    }
+
+    const executeSpecialist = async ({ instruction, prompt, maxTokens }) => {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort("agent_step_timeout"), 12_000);
+      try {
+        const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+          method: "POST",
+          headers: { "Authorization": `Bearer ${env.GROQ_API_KEY}`, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: env.GROQ_MODEL || "llama-3.3-70b-versatile",
+            messages: [
+              { role: "system", content: "تو یکی از متخصصان هوش‌یار هستی. فقط در محدوده تخصص خود پاسخ بده. هیچ ابزار یا اقدام بیرونی در اختیار نداری. نقش: " + instruction },
+              { role: "user", content: prompt }
+            ],
+            temperature: 0.3,
+            max_tokens: maxTokens
+          }),
+          signal: controller.signal
+        });
+        if (!response.ok) throw new Error("UPSTREAM_ERROR");
+        const payload = await response.json();
+        const output = payload?.choices?.[0]?.message?.content;
+        if (typeof output !== "string" || !output.trim()) throw new Error("EMPTY_REPLY");
+        return output.trim();
+      } finally {
+        clearTimeout(timeout);
+      }
+    };
+
+    try {
+      const coordinated = await coordinateAgentRequest({ message: latest, execute: executeSpecialist });
+      if (!coordinated.reply) {
+        await releaseQuota();
+        return json({
+          error: coordinated.reason || "COORDINATION_FAILED",
+          message: "هماهنگی متخصصان کامل نشد؛ دوباره تلاش کنید.",
+          failures: coordinated.failures || []
+        }, 502);
+      }
+      return json({
+        reply: coordinated.reply,
+        agent: { id: "coordinator", label: "هماهنگ‌کننده هوش‌یار", labelEn: "Houshyar coordinator" },
+        coordination: {
+          status: coordinated.reason,
+          specialistSteps: coordinated.steps,
+          failedSteps: coordinated.failures || [],
+          maxSpecialists: 2,
+          externalTools: false
+        }
+      });
+    } catch {
+      await releaseQuota();
+      return json({ error: "COORDINATION_FAILED", message: "اجرای هماهنگی متخصصان ناموفق بود." }, 502);
+    }
+  }
+
   const messages = [
     { role: "system", content: "تو هوش‌یار، یک دستیار چندمنظوره و چندزبانه دقیق و کاربردی هستی. پاسخ را به زبان کاربر، روشن و مرحله‌ای ارائه کن. اطلاعات نامطمئن را قطعی جلوه نده. برای موضوعات پزشکی، مالی و حقوقی محدودیت‌ها و ریسک‌ها را روشن کن. هرگز ادعا نکن جستجوی زنده، اقدام بیرونی، اجرای کد یا دسترسی به ابزار انجام داده‌ای مگر واقعاً انجام شده باشد.\n\nنقش تخصصی این درخواست: " + selectedAgent.instruction },
     ...safeHistory,
