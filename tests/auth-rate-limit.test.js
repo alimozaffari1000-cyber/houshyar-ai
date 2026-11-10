@@ -23,3 +23,16 @@ test("auth limiter rejects when either IP or email bucket exceeds the limit", as
 test("auth limiter fails closed without D1", async () => {
   await assert.rejects(() => checkAuthRateLimit({ db: null, action: "login", email: "a@b.com", clientIp: "unknown" }));
 });
+
+test("verification and recovery use distinct throttling buckets", async () => {
+  const keys = [];
+  const db = { prepare(sql) { return { bind(...args) { keys.push(args[0]); return { first: async () => ({ request_count: 1 }) }; } }; } };
+  for (const action of ["verify", "resend", "password-reset", "reset-confirm"]) {
+    const result = await checkAuthRateLimit({ db, action, email: "user@example.com", clientIp: "203.0.113.8", now: 1800000000 });
+    assert.equal(result.allowed, true);
+  }
+  assert.ok(keys.some(key => key.startsWith("auth:verify:")));
+  assert.ok(keys.some(key => key.startsWith("auth:resend:")));
+  assert.ok(keys.some(key => key.startsWith("auth:password-reset:")));
+  assert.ok(keys.some(key => key.startsWith("auth:reset-confirm:")));
+});
