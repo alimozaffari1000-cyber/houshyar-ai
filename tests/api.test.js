@@ -28,7 +28,7 @@ test('rejects non-JSON content types', async () => {
 
 test('rejects malformed JSON', async () => {
   const response = await onRequestPost({
-    request: new Request('https://example.test/api/chat', { method: 'POST', body: '{bad json' }),
+    request: new Request('https://example.test/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{bad json' }),
     env: { GROQ_API_KEY: 'test' }
   });
   assert.equal(response.status, 400);
