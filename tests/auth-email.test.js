@@ -43,3 +43,45 @@ test("auth links include token as a query parameter on the configured origin", (
   }, "verify_email", "opaque-token");
   assert.equal(url, "https://houshyar.example.test/#verify_email=opaque-token");
 });
+
+import { onRequestPost as resetPassword } from "../functions/api/auth/reset-password.js";
+
+test("password reset updates the account, consumes its token, and revokes sessions in one D1 batch", async () => {
+  const statements = [];
+  const db = {
+    prepare(sql) {
+      return {
+        bind(...values) {
+          const statement = { sql, values };
+          statements.push(statement);
+          return {
+            ...statement,
+            async first() { return { request_count: 1 }; }
+          };
+        }
+      };
+    },
+    async batch(batchStatements) {
+      assert.equal(batchStatements.length, 3);
+      assert.match(batchStatements[0].sql, /^UPDATE users/);
+      assert.match(batchStatements[0].sql, /password_reset_tokens/);
+      assert.match(batchStatements[1].sql, /^UPDATE password_reset_tokens/);
+      assert.match(batchStatements[2].sql, /^UPDATE sessions/);
+      return batchStatements.map(() => ({ meta: { changes: 1 } }));
+    }
+  };
+
+  const request = new Request("https://houshyar.example.test/api/auth/reset-password", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "origin": "https://houshyar.example.test",
+      "cf-connecting-ip": "192.0.2.10"
+    },
+    body: JSON.stringify({ token: "x".repeat(48), password: "correct horse battery" })
+  });
+  const response = await resetPassword({ request, env: { AUTH_ENABLED: "true", DB: db } });
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), { passwordReset: true, sessionsRevoked: true });
+  assert.equal(statements.length, 3);
+});
