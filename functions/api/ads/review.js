@@ -23,11 +23,17 @@ export async function onRequestPost({ request, env }) {
   const now = Math.floor(Date.now() / 1000);
   const status = decision === "approve" ? "approved" : "rejected";
   try {
-    const result = await env.DB.prepare("UPDATE ad_campaigns SET status = ?, reviewed_by = ?, reviewed_at = ?, updated_at = ? WHERE id = ? AND status = 'pending_review'")
-      .bind(status, auth.user.id, now, now, campaignId).run();
-    if (!result.meta?.changes) return adJson({ error: "CAMPAIGN_NOT_PENDING" }, 409);
-    await env.DB.prepare("INSERT INTO audit_events (id, actor_user_id, event_type, target_type, target_id, metadata_json, created_at) VALUES (?, ?, ?, 'ad_campaign', ?, ?, ?)")
-      .bind(crypto.randomUUID(), auth.user.id, "ad_campaign_" + decision, campaignId, JSON.stringify({ reason }), now).run();
+    const results = await env.DB.batch([
+      env.DB.prepare("UPDATE ad_campaigns SET status = ?, reviewed_by = ?, reviewed_at = ?, updated_at = ? WHERE id = ? AND status = 'pending_review'")
+        .bind(status, auth.user.id, now, now, campaignId),
+      env.DB.prepare(
+        "INSERT INTO audit_events (id, actor_user_id, event_type, target_type, target_id, metadata_json, created_at) " +
+        "SELECT ?, ?, ?, 'ad_campaign', ?, ?, ? WHERE EXISTS (" +
+        "SELECT 1 FROM ad_campaigns WHERE id = ? AND status = ? AND reviewed_by = ? AND reviewed_at = ?)"
+      ).bind(crypto.randomUUID(), auth.user.id, "ad_campaign_" + decision, campaignId, JSON.stringify({ reason }), now, campaignId, status, auth.user.id, now)
+    ]);
+    if (!results[0]?.meta?.changes) return adJson({ error: "CAMPAIGN_NOT_PENDING" }, 409);
+    if (!results[1]?.meta?.changes) return adJson({ error: "AUDIT_WRITE_FAILED" }, 503);
     return adJson({ reviewed: true, campaignId, status });
   } catch { return adJson({ error: "REVIEW_FAILED" }, 503); }
 }
