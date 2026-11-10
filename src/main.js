@@ -1,5 +1,6 @@
 import './style.css';
 import { initAccountPanel } from './account.js';
+import { initAuthFlows } from './auth-flows.js';
 
 const app = document.querySelector('#app');
 const state = { messages: [], busy: false, draft: '' };
@@ -28,6 +29,7 @@ function render() {
     <p class="notice">نسخه آزمایشی: گفتگو فقط تا زمان باز بودن این صفحه در حافظه موقت مرورگر نگه داشته می‌شود. اطلاعات محرمانه، رمز عبور یا کلید بانکی ارسال نکن.</p></main>
     <footer>هوش‌یار AI · نسخه آزمایشی</footer>`;
   initAccountPanel(app);
+  initAuthFlows(app);
   app.querySelectorAll('[data-prompt]').forEach(b=>b.addEventListener('click',()=>{const input=app.querySelector('#prompt');state.draft=b.dataset.prompt;input.value=state.draft;input.focus();}));
   const prompt=app.querySelector('#prompt');
   const resize=()=>{prompt.style.height='auto';prompt.style.height=Math.min(prompt.scrollHeight,160)+'px';};
