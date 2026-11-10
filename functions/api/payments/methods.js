@@ -1,4 +1,4 @@
-import { listPaymentMethods } from "../../src/payments/catalog.js";
+import { listPaymentMethods } from "../../../src/payments/catalog.js";
 
 const json = (body, status = 200) => new Response(JSON.stringify(body), {
   status,
