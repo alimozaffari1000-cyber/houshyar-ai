@@ -139,3 +139,20 @@ button:focus-visible,textarea:focus-visible{outline:2px solid #58d9bd;outline-of
 .dashboard-info b{font-size:12px;color:#dce8f7}.dashboard-info p{margin:6px 0 0;color:#9bb0c7;font-size:11px;line-height:1.9}
 .dashboard-view .quota-box{margin-bottom:14px}
 @media(max-width:520px){.account-panel{padding:10px}.account-card{max-height:calc(100vh - 20px);padding:15px}.dashboard-tabs{grid-template-columns:repeat(2,minmax(0,1fr))}.dashboard-tabs button{font-size:11px;padding:10px}.dashboard-shortcuts{gap:7px}}
+
+
+/* Persistent conversation history */
+.history-status{min-height:18px;margin:4px 0 10px;color:#8eabc0;font-size:10px;line-height:1.8}
+.history-toolbar{display:flex;gap:8px;margin:10px 0}
+.history-toolbar button,.conversation-actions button{border:1px solid #3c526d;background:#13243a;color:#dce8f7;border-radius:8px;padding:8px 10px;font:10px Vazirmatn;cursor:pointer}
+.history-toolbar button:focus-visible,.conversation-actions button:focus-visible{outline:2px solid #65e2c4;outline-offset:2px}
+.conversation-history{display:grid;gap:8px;margin:10px 0}
+.history-empty{padding:14px;border:1px dashed #3c526d;border-radius:10px;color:#9bb0c7;font-size:11px;line-height:1.9}
+.conversation-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px;background:#0d1b2c;border:1px solid #2b475e;border-radius:10px}
+.conversation-info{min-width:0;display:grid;gap:5px}
+.conversation-info strong{font-size:11px;color:#e2edf8;overflow-wrap:anywhere}
+.conversation-info small{font-size:9px;color:#91a6bf;line-height:1.7}
+.conversation-actions{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end;flex-shrink:0}
+.conversation-actions button{padding:7px 8px;font-size:9px}
+.conversation-actions button:disabled,.history-toolbar button:disabled{opacity:.5;cursor:wait}
+@media(max-width:520px){.history-toolbar{flex-direction:column}.conversation-row{align-items:flex-start;flex-direction:column}.conversation-actions{width:100%;justify-content:flex-start}.conversation-actions button{flex:1}}
