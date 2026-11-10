@@ -1,4 +1,4 @@
-import { requireUser, readConversationBody, normalizeMessages, normalizeTitle, ownedConversation, validConversationId, json, originAllowed } from "./_lib.js";
+import { requireUser, readConversationBody, normalizeMessages, normalizeTitle, ownedConversation, validConversationId, validOwnedProject, json, originAllowed } from "./_lib.js";
 
 export async function onRequestGet({ request, env, params }) {
   const id = params?.id;
@@ -10,7 +10,7 @@ export async function onRequestGet({ request, env, params }) {
     if (!row) return json({ error: "NOT_FOUND" }, 404);
     let messages;
     try { messages = JSON.parse(row.messages_json); } catch { return json({ error: "HISTORY_CORRUPTED" }, 500); }
-    return json({ conversation: { id: row.id, title: row.title, messages, message_count: row.message_count, created_at: row.created_at, updated_at: row.updated_at } });
+    return json({ conversation: { id: row.id, title: row.title, messages, message_count: row.message_count, created_at: row.created_at, updated_at: row.updated_at, project_id: row.project_id || null } });
   } catch {
     return json({ error: "HISTORY_NOT_CONFIGURED" }, 503);
   }
@@ -30,17 +30,19 @@ export async function onRequestPut({ request, env, params }) {
     const messages = parsed.body.messages === undefined ? null : normalizeMessages(parsed.body.messages);
     if (parsed.body.messages !== undefined && !messages) return json({ error: "INVALID_MESSAGES" }, 400);
     const title = parsed.body.title === undefined ? existing.title : normalizeTitle(parsed.body.title, messages || JSON.parse(existing.messages_json));
+    const projectId = parsed.body.project_id === undefined ? existing.project_id : parsed.body.project_id;
+    if (!await validOwnedProject(env.DB, auth.user.id, projectId)) return json({ error: "PROJECT_NOT_FOUND", message: "پروژه انتخاب‌شده وجود ندارد یا متعلق به این حساب نیست." }, 404);
     const now = Math.floor(Date.now() / 1000);
-    if (messages) {
+    if (messages || parsed.body.project_id !== undefined) {
       await env.DB.prepare(
-        "UPDATE conversations SET title = ?, messages_json = ?, message_count = ?, updated_at = ? WHERE id = ? AND user_id = ?"
-      ).bind(title, JSON.stringify(messages), messages.length, now, id, auth.user.id).run();
+        "UPDATE conversations SET title = ?, messages_json = ?, message_count = ?, updated_at = ?, project_id = ? WHERE id = ? AND user_id = ?"
+      ).bind(title, JSON.stringify(messages || JSON.parse(existing.messages_json)), messages?.length ?? existing.message_count, now, projectId, id, auth.user.id).run();
     } else {
       await env.DB.prepare(
         "UPDATE conversations SET title = ?, updated_at = ? WHERE id = ? AND user_id = ?"
       ).bind(title, now, id, auth.user.id).run();
     }
-    return json({ saved: true, conversation: { id, title, message_count: messages?.length ?? existing.message_count, updated_at: now } });
+    return json({ saved: true, conversation: { id, title, message_count: messages?.length ?? existing.message_count, updated_at: now, project_id: projectId || null } });
   } catch {
     return json({ error: "HISTORY_SAVE_FAILED", message: "به‌روزرسانی گفتگو انجام نشد." }, 503);
   }
