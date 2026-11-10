@@ -24,10 +24,10 @@ export async function readConversationBody(request) {
   const type = request.headers.get("content-type") || "";
   if (!type.toLowerCase().includes("application/json")) return { error: json({ error: "UNSUPPORTED_MEDIA_TYPE" }, 415) };
   const declared = Number(request.headers.get("content-length"));
-  if (Number.isFinite(declared) && declared > 128 * 1024) return { error: json({ error: "BODY_TOO_LARGE" }, 413) };
+  if (Number.isFinite(declared) && declared > 512 * 1024) return { error: json({ error: "BODY_TOO_LARGE" }, 413) };
   let raw;
   try { raw = await request.text(); } catch { return { error: json({ error: "INVALID_JSON" }, 400) }; }
-  if (new TextEncoder().encode(raw).byteLength > 128 * 1024) return { error: json({ error: "BODY_TOO_LARGE" }, 413) };
+  if (new TextEncoder().encode(raw).byteLength > 512 * 1024) return { error: json({ error: "BODY_TOO_LARGE" }, 413) };
   try {
     const body = JSON.parse(raw);
     if (!body || typeof body !== "object" || Array.isArray(body)) return { error: json({ error: "INVALID_BODY" }, 400) };
@@ -44,7 +44,7 @@ export function normalizeMessages(value) {
     const content = typeof item.content === "string" ? item.content.trim() : typeof item.text === "string" ? item.text.trim() : "";
     if (!content || content.length > 6000) return null;
     total += content.length;
-    if (total > 80000) return null;
+    if (total > 100000) return null;
     messages.push({ role: item.role, content });
   }
   if (messages[0].role !== "user" || messages[messages.length - 1].role !== "assistant") return null;
