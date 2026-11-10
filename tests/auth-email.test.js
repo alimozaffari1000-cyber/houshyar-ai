@@ -41,5 +41,5 @@ test("auth links include token as a query parameter on the configured origin", (
     EMAIL_FROM: "no-reply@example.test",
     APP_BASE_URL: "https://houshyar.example.test/path"
   }, "verify_email", "opaque-token");
-  assert.equal(url, "https://houshyar.example.test/?verify_email=opaque-token");
+  assert.equal(url, "https://houshyar.example.test/#verify_email=opaque-token");
 });
