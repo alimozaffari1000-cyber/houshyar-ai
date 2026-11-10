@@ -21,7 +21,7 @@ export async function onRequestPost({ request, env }) {
   if (parsed.error) return parsed.error;
   const messages = normalizeMessages(parsed.body.messages);
   if (!messages) return json({ error: "INVALID_MESSAGES", message: "ساختار یا اندازه پیام‌های گفتگو معتبر نیست." }, 400);
-  const projectId = parsed.body.project_id ?? null;
+  const projectId = parsed.body.project_id || null;
   try {
     if (!await validOwnedProject(env.DB, auth.user.id, projectId)) return json({ error: "PROJECT_NOT_FOUND", message: "پروژه انتخاب‌شده وجود ندارد یا متعلق به این حساب نیست." }, 404);
   } catch { return json({ error: "PROJECTS_NOT_CONFIGURED" }, 503); }
