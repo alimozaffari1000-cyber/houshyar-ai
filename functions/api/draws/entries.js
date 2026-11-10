@@ -42,12 +42,15 @@ export async function onRequestPost({ request, env }) {
       return adJson({ accepted: true, entry: { id: entryId, campaignId, ticketCode, status: "eligible" }, paidEntry: false }, 201);
     }
     const existing = await env.DB.prepare(
-      "SELECT id, ticket_code, entry_status FROM draw_entries WHERE campaign_id = ? AND user_id = ? AND entry_status = 'eligible' LIMIT 1"
+      "SELECT id, ticket_code, entry_status FROM draw_entries WHERE campaign_id = ? AND user_id = ? LIMIT 1"
     ).bind(campaignId, auth.user.id).first();
-    if (existing) return adJson({ accepted: true, duplicate: true, entry: { id: existing.id, ticketCode: existing.ticket_code, status: existing.entry_status } });
-    const campaign = await env.DB.prepare("SELECT status, max_entries, ends_at FROM draw_campaigns WHERE id = ?").bind(campaignId).first();
+    if (existing?.entry_status === "eligible") return adJson({ accepted: true, duplicate: true, entry: { id: existing.id, ticketCode: existing.ticket_code, status: existing.entry_status } });
+    if (existing?.entry_status === "void") return adJson({ error: "DRAW_ENTRY_VOIDED" }, 409);
+    const campaign = await env.DB.prepare("SELECT status, max_entries, starts_at, ends_at FROM draw_campaigns WHERE id = ?").bind(campaignId).first();
     if (!campaign) return adJson({ error: "DRAW_NOT_FOUND" }, 404);
     if (campaign.status !== "open") return adJson({ error: "DRAW_NOT_OPEN" }, 409);
-    return adJson({ error: "DRAW_ENTRY_UNAVAILABLE", message: "ظرفیت دوره تکمیل شده یا زمان ثبت‌نام به پایان رسیده است." }, 409);
+    if (campaign.starts_at && campaign.starts_at > now) return adJson({ error: "DRAW_START_NOT_REACHED" }, 409);
+    if (campaign.ends_at && campaign.ends_at <= now) return adJson({ error: "DRAW_ENTRY_PERIOD_ENDED" }, 409);
+    return adJson({ error: "DRAW_ENTRY_UNAVAILABLE", message: "ظرفیت دوره تکمیل شده است." }, 409);
   } catch { return adJson({ error: "DRAW_ENTRY_FAILED" }, 503); }
 }
