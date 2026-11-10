@@ -1,10 +1,10 @@
 import { requireUser, readConversationBody, normalizeMessages, normalizeTitle, ownedConversation, validConversationId, json, originAllowed } from "./_lib.js";
 
 export async function onRequestGet({ request, env, params }) {
-  const auth = await requireUser(request, env);
-  if (auth.error) return auth.error;
   const id = params?.id;
   if (!validConversationId(id)) return json({ error: "NOT_FOUND" }, 404);
+  const auth = await requireUser(request, env);
+  if (auth.error) return auth.error;
   try {
     const row = await ownedConversation(env.DB, auth.user.id, id);
     if (!row) return json({ error: "NOT_FOUND" }, 404);
@@ -18,10 +18,10 @@ export async function onRequestGet({ request, env, params }) {
 
 export async function onRequestPut({ request, env, params }) {
   if (!originAllowed(request)) return json({ error: "ORIGIN_NOT_ALLOWED" }, 403);
-  const auth = await requireUser(request, env);
-  if (auth.error) return auth.error;
   const id = params?.id;
   if (!validConversationId(id)) return json({ error: "NOT_FOUND" }, 404);
+  const auth = await requireUser(request, env);
+  if (auth.error) return auth.error;
   const parsed = await readConversationBody(request);
   if (parsed.error) return parsed.error;
   try {
