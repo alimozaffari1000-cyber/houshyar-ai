@@ -22,3 +22,11 @@ test('reward ledger is append-only and has no mutable status column', async () =
   const ledger = sql.split('CREATE TABLE IF NOT EXISTS ad_reward_ledger')[1]?.split(');')[0] || '';
   assert.equal(ledger.includes('status TEXT'), false);
 });
+
+test('delivery migration seeds disabled public slots and adds event review audit fields', async () => {
+  const sql = await readFile(new URL('../migrations/0006_ad_delivery_validation.sql', import.meta.url), 'utf8');
+  assert.match(sql, /CREATE TABLE IF NOT EXISTS ad_slots/);
+  assert.match(sql, /'home_below_welcome'.*?, 0,/s);
+  assert.match(sql, /ALTER TABLE ad_events ADD COLUMN slot_key/);
+  assert.match(sql, /ALTER TABLE ad_events ADD COLUMN validated_by/);
+});
