@@ -82,7 +82,7 @@ CREATE TABLE IF NOT EXISTS subscriptions (
   user_id TEXT NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
   plan_id TEXT NOT NULL,
   provider_id TEXT NOT NULL,
-  provider_subscription_id TEXT UNIQUE,
+  provider_subscription_id TEXT,
   status TEXT NOT NULL
     CHECK (status IN ('pending', 'active', 'past_due', 'cancelled', 'expired')),
   billing_interval TEXT NOT NULL CHECK (billing_interval IN ('month', 'year')),
