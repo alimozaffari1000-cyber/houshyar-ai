@@ -97,3 +97,24 @@ button:focus-visible,textarea:focus-visible{outline:2px solid #58d9bd;outline-of
 .draw-admin-row>span,.draw-admin-row small{font-size:10px;color:#91a6bf}
 .draw-admin-actions{display:flex;flex-wrap:wrap;gap:6px}
 .draw-admin-actions button{flex:1}
+
+
+/* Customer-facing service catalog */
+.service-catalog{margin:34px 0 28px;padding:22px;background:#0d1b2c;border:1px solid #2b475e;border-radius:18px}
+.service-heading{display:flex;align-items:end;justify-content:space-between;gap:16px;margin-bottom:18px}
+.service-heading h2{font-size:21px;margin:7px 0 4px}
+.service-heading p{font-size:11px;color:#91a6bf;margin:0;line-height:1.8}
+.service-search input{width:min(240px,36vw);background:#091625;border:1px solid #3b5069;border-radius:10px;padding:10px 12px;color:#f1f6ff;font:12px Vazirmatn}
+.service-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px}
+.service-card{min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:8px;text-align:right;padding:15px;background:#14243a;border:1px solid #30445e;border-radius:13px;color:#edf2fb;font-family:Vazirmatn;cursor:pointer;transition:border-color .15s,transform .15s}
+.service-card:hover{border-color:#58d9bd;transform:translateY(-2px)}
+.service-card[hidden]{display:none}
+.service-icon{width:34px;height:34px;display:grid;place-items:center;border-radius:10px;background:#1d3c4a;color:#65e2c4;font-size:20px}
+.service-card strong{font-size:13px}
+.service-card small{min-height:42px;color:#9bb0c7;font-size:10px;line-height:1.9;font-weight:400}
+.service-action{margin-top:auto;color:#65e2c4;font-size:10px}
+.service-disclaimer{font-size:10px;color:#8196af;line-height:1.9;margin:14px 2px 0}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+[dir="ltr"] .service-card{text-align:left}
+@media(max-width:680px){.service-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.service-heading{align-items:flex-start;flex-direction:column}.service-search,.service-search input{width:100%}}
+@media(max-width:390px){.service-catalog{padding:13px}.service-grid{gap:8px}.service-card{padding:11px}.service-card small{min-height:58px}.service-heading h2{font-size:18px}}
