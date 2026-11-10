@@ -5,6 +5,7 @@ import { onRequestPost as eventsPost } from '../functions/api/ads/events.js';
 import { onRequestGet as referralsGet, onRequestPost as referralsPost } from '../functions/api/ads/referrals.js';
 import { onRequestGet as rewardsGet } from '../functions/api/ads/rewards.js';
 import { onRequestGet as reviewGet, onRequestPost as reviewPost } from '../functions/api/ads/review.js';
+import { onRequestPost as validateEventPost } from '../functions/api/ads/validate-event.js';
 
 const request = (path, method = 'GET', body) => new Request('https://example.test' + path, {
   method,
@@ -22,7 +23,8 @@ test('all advertising routes fail closed until the marketplace feature flag is e
     referralsPost({ request: request('/api/ads/referrals', 'POST', {}), env }),
     rewardsGet({ request: request('/api/ads/rewards'), env }),
     reviewGet({ request: request('/api/ads/review'), env }),
-    reviewPost({ request: request('/api/ads/review', 'POST', {}), env })
+    reviewPost({ request: request('/api/ads/review', 'POST', {}), env }),
+    validateEventPost({ request: request('/api/ads/validate-event', 'POST', {}), env })
   ];
   for (const response of await Promise.all(cases)) {
     assert.equal(response.status, 503);
