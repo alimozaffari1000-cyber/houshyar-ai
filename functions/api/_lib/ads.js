@@ -1,12 +1,13 @@
 import { getSessionUser, originAllowed } from "./auth.js";
 
-export const adJson = (body, status = 200) => new Response(JSON.stringify(body), {
+export const adJson = (body, status = 200, extraHeaders = {}) => new Response(JSON.stringify(body), {
   status,
   headers: {
     "Content-Type": "application/json; charset=utf-8",
     "Cache-Control": "no-store",
     "X-Content-Type-Options": "nosniff",
-    "Referrer-Policy": "strict-origin-when-cross-origin"
+    "Referrer-Policy": "strict-origin-when-cross-origin",
+    ...extraHeaders
   }
 });
 
