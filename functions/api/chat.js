@@ -1,4 +1,6 @@
 import { checkChatRateLimit } from "./_lib/chat-rate-limit.js";
+import { getSessionUser } from "./_lib/auth.js";
+import { reserveDailyChat, releaseDailyChat } from "./_lib/daily-quota.js";
 
 const MAX_BODY_BYTES = 32 * 1024;
 const UPSTREAM_TIMEOUT_MS = 20_000;
@@ -99,6 +101,34 @@ export async function onRequestPost({ request, env }) {
     }
   }
 
+  let quotaReservation = null;
+  let quotaUserId = null;
+  if (env.CHAT_QUOTA_ENABLED === "true") {
+    if (env.AUTH_ENABLED !== "true" || !env.DB) {
+      return json({ error: "QUOTA_NOT_CONFIGURED", message: "سهمیه کاربری هنوز راه‌اندازی نشده است." }, 503);
+    }
+    try {
+      const user = await getSessionUser(env.DB, request);
+      if (!user) return json({ error: "AUTH_REQUIRED", message: "برای استفاده از این سرویس وارد حساب کاربری شوید." }, 401);
+      quotaUserId = user.id;
+      quotaReservation = await reserveDailyChat({ db: env.DB, userId: quotaUserId, limit: env.FREE_DAILY_CHAT_LIMIT });
+      if (!quotaReservation.allowed) {
+        return json(
+          { error: "DAILY_QUOTA_EXCEEDED", message: "سهمیه روزانه گفتگو به پایان رسیده است.", limit: quotaReservation.limit, resetAt: quotaReservation.resetAt },
+          429,
+          { "Retry-After": String(Math.max(1, quotaReservation.resetAt - Math.floor(Date.now() / 1000))) }
+        );
+      }
+    } catch {
+      return json({ error: "QUOTA_UNAVAILABLE", message: "سامانه سهمیه‌بندی موقتاً در دسترس نیست." }, 503);
+    }
+  }
+  const releaseQuota = async () => {
+    if (!quotaReservation?.allowed || !quotaUserId) return;
+    try { await releaseDailyChat({ db: env.DB, userId: quotaUserId }); } catch { /* generic provider error */ }
+    quotaReservation = null;
+  };
+
   const safeHistory = [];
   let historyChars = 0;
   for (const item of incoming.slice(-10)) {
@@ -138,17 +168,21 @@ export async function onRequestPost({ request, env }) {
     if (upstream.ok) data = await upstream.json();
   } catch {
     if (controller.signal.aborted) {
+      await releaseQuota();
       return json({ error: "UPSTREAM_TIMEOUT", message: "پاسخ سرویس هوش مصنوعی بیش از زمان مجاز طول کشید." }, 504);
     }
     if (upstream) {
-      return json({ error: "EMPTY_REPLY", message: "پاسخ معتبری از مدل دریافت نشد." }, 502);
+      await releaseQuota();
+    return json({ error: "EMPTY_REPLY", message: "پاسخ معتبری از مدل دریافت نشد." }, 502);
     }
+    await releaseQuota();
     return json({ error: "UPSTREAM_UNAVAILABLE", message: "ارتباط با سرویس هوش مصنوعی برقرار نشد." }, 502);
   } finally {
     clearTimeout(timeout);
   }
 
   if (!upstream.ok) {
+    await releaseQuota();
     return json({ error: "UPSTREAM_ERROR", message: "سرویس هوش مصنوعی موقتاً پاسخ‌گو نیست." }, 502);
   }
   const reply = data?.choices?.[0]?.message?.content;
