@@ -58,3 +58,28 @@ button:focus-visible,textarea:focus-visible{outline:2px solid #58d9bd;outline-of
 .public-ad-card a { white-space: nowrap; }
 
 .ads-analytics{margin-top:14px;padding-top:10px;border-top:1px solid #30445e}.ads-analytics h4{font-size:12px;margin:8px 0;color:#dce8f7}.ads-analytics>small{display:block;line-height:1.8;margin-top:8px}.ads-analytics-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.ads-analytics-grid>div{min-width:0;padding:7px;background:#0d1b2c;border-radius:7px}.ads-analytics-grid small{display:block;color:#91a6bf;font-size:9px}.ads-analytics-grid strong{display:block;margin-top:3px;font-size:11px;overflow-wrap:anywhere;color:#dce8f7}.ads-analytics-row>span{font-size:10px}
+
+
+/* Free promotional draw module */
+.draw-panel{margin:22px 0;padding:18px;background:#0d1b2c;border:1px solid #2b475e;border-radius:16px}
+.draw-panel-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.draw-eyebrow{font-size:9px;letter-spacing:2px;color:#58d9bd;font-weight:700}
+.draw-panel-head h2{font-size:17px;margin:5px 0}
+.draw-panel-head p,.draw-muted{font-size:11px;color:#91a6bf;line-height:1.9}
+.draw-panel-head button,.draw-enter,.draw-result{border:1px solid #3c637b;background:#183047;color:#dffbf4;border-radius:9px;padding:8px 11px;font:11px Vazirmatn;cursor:pointer}
+.draw-list{display:grid;gap:10px;margin-top:12px}
+.draw-card{padding:13px;background:#14243a;border:1px solid #30445e;border-radius:12px}
+.draw-card-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.draw-card-top b{font-size:13px}
+.draw-state{font-size:10px;color:#65e2c4;background:#0d1b2c;padding:4px 8px;border-radius:20px}
+.draw-card>p{font-size:11px;color:#a7b8cb;line-height:1.8}
+.draw-prize{display:grid;gap:4px;margin:10px 0;padding:10px;background:#0d1b2c;border-radius:9px}
+.draw-prize small,.draw-stats small{font-size:9px;color:#91a6bf}
+.draw-prize strong{font-size:12px;color:#65e2c4}
+.draw-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
+.draw-stats>div{display:grid;gap:3px;padding:8px;background:#0d1b2c;border-radius:8px}
+.draw-stats b{font-size:13px}
+.draw-dates{font-size:10px;color:#91a6bf}
+.draw-enter,.draw-result{margin-top:8px;width:100%;background:#1a665b;border-color:#2d9a85;color:#effffb}
+.draw-enter:disabled,.draw-result:disabled,.draw-panel-head button:disabled{opacity:.5}
+@media(max-width:430px){.draw-panel{padding:13px}.draw-panel-head{align-items:flex-start}.draw-stats{gap:5px}.draw-stats>div{padding:6px}.draw-stats b{font-size:11px}}
