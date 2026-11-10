@@ -295,7 +295,7 @@ export function initAccountPanel(app) {
           const submit = form.querySelector("button[type=submit]");
           submit.disabled = true;
           try {
-            const r = await fetch("/api/projects", { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title: form.title.value, description: form.description.value }) });
+            const r = await fetch("/api/projects", { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title: form.elements.namedItem('title').value, description: form.elements.namedItem('description').value }) });
             const d = await r.json().catch(() => ({}));
             if (!r.ok) throw new Error(d.message || "ساخت پروژه انجام نشد.");
             form.reset();
