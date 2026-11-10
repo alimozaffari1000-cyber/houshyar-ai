@@ -1,3 +1,4 @@
+import { checkAuthRateLimit } from "../_lib/auth-rate-limit.js";
 import { createPasswordRecord, createSession, normalizeEmail, validEmail, sessionCookie, originAllowed } from "../_lib/auth.js";
 const json = (body, status = 200, headers = {}) => new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff", ...headers } });
 export async function onRequestPost({ request, env }) {
@@ -13,6 +14,18 @@ export async function onRequestPost({ request, env }) {
   let body; try { body = JSON.parse(raw); } catch { return json({ error: "INVALID_JSON" }, 400); }
   if (!body || typeof body !== "object" || Array.isArray(body)) return json({ error: "INVALID_BODY" }, 400);
   const email = normalizeEmail(body?.email);
+  try {
+    const rate = await checkAuthRateLimit({
+      db: env.DB,
+      action: "register",
+      email,
+      clientIp: request.headers.get("cf-connecting-ip") || "unknown",
+      limit: Number(env.AUTH_REGISTER_LIMIT) || 5
+    });
+    if (!rate.allowed) return json({ error: "AUTH_RATE_LIMITED", message: "تلاش‌های زیادی انجام شده است؛ کمی بعد دوباره تلاش کنید." }, 429, { "Retry-After": String(rate.retryAfter) });
+  } catch {
+    return json({ error: "AUTH_RATE_LIMIT_UNAVAILABLE", message: "کنترل امنیتی ورود موقتاً در دسترس نیست." }, 503);
+  }
   const password = typeof body?.password === "string" ? body.password : "";
   if (!validEmail(email)) return json({ error: "INVALID_EMAIL", message: "ایمیل معتبر وارد کنید." }, 400);
   if (password.length < 12 || password.length > 128) return json({ error: "WEAK_PASSWORD", message: "رمز عبور باید حداقل ۱۲ و حداکثر ۱۲۸ نویسه باشد." }, 400);
