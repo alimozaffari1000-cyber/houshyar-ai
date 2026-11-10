@@ -4,6 +4,13 @@ const app = document.querySelector('#app');
 const state = { messages: [], busy: false, draft: '' };
 const escapeHTML = (value='') => String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
+const scrollChat = () => {
+  const chat = app.querySelector('.chat');
+  if (!chat) return;
+  const prefersReducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
+  chat.scrollIntoView({ behavior: prefersReducedMotion ? 'auto' : 'smooth', block: 'end' });
+};
+
 function render() {
   app.innerHTML = `
     <header class="top"><div class="brand"><span class="logo">هـ</span><div><strong>هوش‌یار</strong><small>دستیار هوشمند چندمنظوره</small></div></div><span class="status"><i></i> نسخه آزمایشی</span></header>
@@ -30,7 +37,7 @@ async function submitMessage(event) {
   if(!text || state.busy) return;
   state.draft='';
   state.messages.push({role:'user',text});
-  state.busy=true; render();
+  state.busy=true; render(); scrollChat();
   try {
     const endpoint=import.meta.env.VITE_AI_ENDPOINT || '/api/chat';
     const response=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:text,history:state.messages.slice(-12)})});
@@ -39,7 +46,7 @@ async function submitMessage(event) {
     state.messages.push({role:'assistant',text:data.reply || data.message || 'پاسخ خالی از سرویس دریافت شد.'});
   } catch(error) {
     state.messages.push({role:'assistant',text:error.message || 'فعلاً امکان دریافت پاسخ وجود ندارد. لطفاً بعداً دوباره تلاش کن.'});
-  } finally { state.busy=false; render(); }
+  } finally { state.busy=false; render(); scrollChat(); }
 }
 
 render();
