@@ -19,5 +19,6 @@ test('reward ledger is append-only and has no mutable status column', async () =
   assert.match(sql, /trg_ad_reward_ledger_no_update/);
   assert.match(sql, /trg_ad_reward_ledger_no_delete/);
   assert.doesNotMatch(sql, /idx_ad_reward_ledger_status_created/);
-  const ledger = sql.split('CREATE TABLE IF NOT EXISTS ad_reward_ledger')[1]?.split(');')[0] || '';\n  assert.doesNotMatch(ledger, /\\bstatus\\s+TEXT\\b/i);
+  const ledger = sql.split('CREATE TABLE IF NOT EXISTS ad_reward_ledger')[1]?.split(');')[0] || '';
+  assert.equal(ledger.includes('status TEXT'), false);
 });
