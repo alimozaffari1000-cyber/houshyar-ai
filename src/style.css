@@ -56,3 +56,5 @@ button:focus-visible,textarea:focus-visible{outline:2px solid #58d9bd;outline-of
 .public-ad-card strong { display: block; }
 .public-ad-card p { margin: .25rem 0 0; color: var(--muted, #687080); font-size: .9rem; }
 .public-ad-card a { white-space: nowrap; }
+
+.ads-analytics{margin-top:14px;padding-top:10px;border-top:1px solid #30445e}.ads-analytics h4{font-size:12px;margin:8px 0;color:#dce8f7}.ads-analytics>small{display:block;line-height:1.8;margin-top:8px}.ads-analytics-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.ads-analytics-grid>div{min-width:0;padding:7px;background:#0d1b2c;border-radius:7px}.ads-analytics-grid small{display:block;color:#91a6bf;font-size:9px}.ads-analytics-grid strong{display:block;margin-top:3px;font-size:11px;overflow-wrap:anywhere;color:#dce8f7}.ads-analytics-row>span{font-size:10px}
