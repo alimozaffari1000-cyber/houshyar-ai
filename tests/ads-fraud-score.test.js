@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { scoreAdEvent } from "../src/ads/fraud-score.js";
+import { scoreAdEvent } from "../functions/api/_lib/ads-fraud.js";
 
 test("normal impression and click start with conservative review score", () => {
   assert.deepEqual(scoreAdEvent({ eventType: "impression" }), { riskScore: 20, reasons: [] });
