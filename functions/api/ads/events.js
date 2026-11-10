@@ -1,3 +1,4 @@
+import { scoreAdEvent } from "../../ads/fraud-score.js";
 import { requireAdsUser, adJson, readAdsJson, checkAdsRateLimit } from "../_lib/ads.js";
 
 export async function onRequestPost({ request, env }) {
@@ -28,17 +29,18 @@ export async function onRequestPost({ request, env }) {
     const priorImpression = eventType !== "click" ? { n: 1 } : await env.DB.prepare(
       "SELECT COUNT(*) AS n FROM ad_events WHERE campaign_id = ? AND user_id = ? AND event_type = 'impression' AND validation_status = 'valid' AND occurred_at >= ?"
     ).bind(campaignId, auth.user.id, now - 86400).first();
-    let riskScore = 20;
-    const reasons = [];
-    if (Number(recent?.n || 0) >= 5) { riskScore += 45; reasons.push("repeated_same_type_events_10m"); }
-    if (eventType === "click" && Number(priorImpression?.n || 0) === 0) { riskScore += 35; reasons.push("click_without_valid_impression"); }
-    riskScore = Math.min(100, riskScore);
+    const risk = scoreAdEvent({
+      eventType,
+      recentSameTypeCount: Number(recent?.n || 0),
+      hasValidImpression: Number(priorImpression?.n || 0) > 0
+    });
+    const riskScore = risk.riskScore;
     const dedupeKey = campaignId + ":" + eventType + ":" + eventKey;
     const eventId = crypto.randomUUID();
     const inserted = await env.DB.prepare(
       "INSERT OR IGNORE INTO ad_events (id, campaign_id, user_id, event_type, dedupe_key, validation_status, risk_score, fraud_reason, occurred_at) " +
       "VALUES (?, ?, ?, ?, ?, 'review', ?, ?, ?)"
-    ).bind(eventId, campaignId, auth.user.id, eventType, dedupeKey, riskScore, reasons.join(",") || null, now).run();
+    ).bind(eventId, campaignId, auth.user.id, eventType, dedupeKey, riskScore, risk.reasons.join(",") || null, now).run();
     return adJson({
       accepted: true,
       duplicate: !inserted.meta?.changes,
