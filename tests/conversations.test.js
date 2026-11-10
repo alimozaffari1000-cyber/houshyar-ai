@@ -62,3 +62,25 @@ test("conversation mutations reject requests without same-origin header", async 
   const response = await createConversation({ request: new Request("https://example.test/api/conversations", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ messages }) }), env: {} });
   assert.equal(response.status, 403);
 });
+
+test("conversation lookup always scopes by both conversation and owner", async () => {
+  let query = "";
+  let values = [];
+  const { ownedConversation } = await import("../functions/api/conversations/_lib.js");
+  const db = {
+    prepare(sql) {
+      query = sql;
+      return { bind(...args) { values = args; return { first: async () => ({ id: validId, title: "private" }) }; } };
+    }
+  };
+  const row = await ownedConversation(db, "account-A", validId);
+  assert.equal(row.id, validId);
+  assert.match(query, /WHERE id = \? AND user_id = \?/);
+  assert.deepEqual(values, [validId, "account-A"]);
+});
+
+test("conversation history payload is bounded for multilingual content", () => {
+  const { normalizeMessages } = await import("../functions/api/conversations/_lib.js");
+  const tooLarge = [{ role: "user", text: "م".repeat(6000) }, { role: "assistant", text: "پ".repeat(6000) }, ...Array(14).fill({ role: "user", text: "ز".repeat(6000) })];
+  assert.equal(normalizeMessages(tooLarge), null);
+});
