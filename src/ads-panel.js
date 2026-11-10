@@ -27,6 +27,7 @@ export function initAdsPanel(container, user) {
       <p class="account-muted">ارسال فرم به معنی فعال‌شدن تبلیغ یا پرداخت وجه نیست. هر کمپین باید ابتدا توسط مدیر تأیید شود.</p>
     </form>
     <div class="ads-campaigns"><h4>کمپین‌های من</h4><div id="ads-campaign-list" class="account-muted">هنوز بارگذاری نشده است.</div></div>
+    <div class="ads-analytics"><h4>گزارش عملکرد و درآمد</h4><div id="ads-analytics-list" class="account-muted">گزارش هنوز بارگذاری نشده است.</div><small class="account-muted">درآمد فقط از تسویه‌های تأییدشده محاسبه می‌شود؛ سهم ۵٪ نمایشی است و هنوز پرداخت نشده است.</small></div>
     <div id="ads-review" hidden><h4>صف بررسی مدیر</h4><div id="ads-review-list"></div></div>`;
   container.append(root);
 
@@ -61,7 +62,40 @@ export function initAdsPanel(container, user) {
       ? campaigns.campaigns.map(item => `<article class="ads-campaign-row"><b>${safe(item.title)}</b><span>${safe(item.status)}</span><small>${safe(item.pricing_model)} · ${safe(item.currency_code)} ${safe(item.budget_minor)}</small></article>`).join("")
       : "هنوز کمپینی ثبت نشده است.";
     setStatus("اطلاعات بازار تبلیغات بروزرسانی شد. تبلیغ و پاداش واقعی فقط پس از فعال‌سازی رسمی امکان‌پذیر است.");
+    await loadAnalytics();
     if (user?.role === "admin") await loadReview();
+  }
+
+  async function loadAnalytics() {
+    const list = root.querySelector("#ads-analytics-list");
+    list.textContent = "در حال دریافت گزارش…";
+    try {
+      const data = await request("/api/ads/analytics");
+      const rows = Array.isArray(data.campaigns) ? data.campaigns : [];
+      if (!rows.length) {
+        list.textContent = "هنوز دادهٔ عملکرد یا تسویهٔ تأییدشده‌ای برای نمایش وجود ندارد.";
+        return;
+      }
+      list.innerHTML = rows.map(item => `
+        <article class="ads-campaign-row ads-analytics-row">
+          <b>${safe(item.title)}</b>
+          <span>${safe(item.status)}</span>
+          <div class="ads-analytics-grid">
+            <div><small>نمایش معتبر</small><strong>${Number(item.valid_impressions || 0).toLocaleString("fa-IR")}</strong></div>
+            <div><small>کلیک معتبر</small><strong>${Number(item.valid_clicks || 0).toLocaleString("fa-IR")}</strong></div>
+            <div><small>نرخ کلیک</small><strong>${Number(item.ctr_percent || 0).toLocaleString("fa-IR")}%</strong></div>
+            <div><small>رویداد در بررسی</small><strong>${Number(item.pending_events || 0).toLocaleString("fa-IR")}</strong></div>
+            <div><small>رویداد ردشده</small><strong>${Number(item.rejected_events || 0).toLocaleString("fa-IR")}</strong></div>
+            <div><small>تسویه خالص تأییدشده</small><strong>${Number(item.net_settled_minor || 0).toLocaleString("fa-IR")} ${safe(item.currency_code)} (واحد خرد)</strong></div>
+            <div><small>سهم نظری ۵٪</small><strong>${Number(item.reward_pool_minor || 0).toLocaleString("fa-IR")} (واحد خرد)</strong></div>
+          </div>
+        </article>`).join("");
+      if (data.rewardsIssued !== false) {
+        list.insertAdjacentHTML("beforeend", '<p class="account-muted">وضعیت پرداخت پاداش از API تأیید نشده است.</p>');
+      }
+    } catch (error) {
+      list.textContent = error.message || "گزارش عملکرد فعلاً در دسترس نیست.";
+    }
   }
 
   async function loadReview() {
