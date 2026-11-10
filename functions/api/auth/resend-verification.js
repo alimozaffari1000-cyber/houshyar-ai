@@ -1,9 +1,10 @@
 import { normalizeEmail, validEmail, originAllowed } from "../_lib/auth.js";
-import { authEmailLink, sendAuthEmail, createAuthToken, hashAuthToken } from "../_lib/auth-email.js";
+import { authEmailLink, authEmailConfig, sendAuthEmail, createAuthToken, hashAuthToken } from "../_lib/auth-email.js";
 import { authJson, readAuthBody, enforceAuthRateLimit } from "../_lib/auth-flow.js";
 export async function onRequestPost({ request, env }) {
   if (env.AUTH_ENABLED !== "true" || !env.DB) return authJson({ error: "AUTH_NOT_CONFIGURED" }, 503);
   if (!originAllowed(request)) return authJson({ error: "ORIGIN_NOT_ALLOWED" }, 403);
+  if (!authEmailConfig(env)) return authJson({ error: "AUTH_EMAIL_NOT_CONFIGURED" }, 503);
   const parsed = await readAuthBody(request);
   if (parsed.error) return authJson({ error: parsed.error }, parsed.status);
   const email = normalizeEmail(parsed.body.email);
@@ -19,7 +20,7 @@ export async function onRequestPost({ request, env }) {
     try {
       const link = authEmailLink(env, "verify_email", token);
       await sendAuthEmail(env, { to: email, subject: "پیوند جدید تأیید ایمیل هوش‌یار", text: "برای تأیید ایمیل خود این پیوند را باز کنید:\n" + link + "\nاعتبار: ۲۴ ساعت." });
-    } catch { return authJson({ error: "AUTH_EMAIL_DELIVERY_FAILED" }, 503); }
+    } catch { /* Keep the public response identical for unknown and pending addresses. */ }
   }
   return authJson({ accepted: true, message: "اگر حساب تأییدنشده‌ای با این ایمیل وجود داشته باشد، پیوند ارسال می‌شود." }, 202);
 }
