@@ -12,15 +12,21 @@ export async function onRequestPost({ request, env }) {
   if (!validId(eventId) || !["valid", "rejected", "review"].includes(decision) ||
       typeof reason !== "string" || reason.length > 500) return adJson({ error: "INVALID_EVENT_REVIEW" }, 400);
   const now = Math.floor(Date.now() / 1000);
+  const auditId = crypto.randomUUID();
   try {
-    const result = await env.DB.prepare(
-      "UPDATE ad_events SET validation_status = ?, validated_by = ?, validation_reason = ?, validated_at = ? " +
-      "WHERE id = ? AND validation_status IN ('pending', 'review')"
-    ).bind(decision, auth.user.id, reason.trim() || null, now, eventId).run();
-    if (!result.meta?.changes) return adJson({ error: "EVENT_NOT_REVIEWABLE" }, 409);
-    await env.DB.prepare(
-      "INSERT INTO audit_events (id, actor_user_id, event_type, target_type, target_id, metadata_json, created_at) VALUES (?, ?, 'ad_event_reviewed', 'ad_event', ?, ?, ?)"
-    ).bind(crypto.randomUUID(), auth.user.id, eventId, JSON.stringify({ decision, reason: reason.trim().slice(0, 500) }), now).run();
+    const results = await env.DB.batch([
+      env.DB.prepare(
+        "UPDATE ad_events SET validation_status = ?, validated_by = ?, validation_reason = ?, validated_at = ? " +
+        "WHERE id = ? AND validation_status IN ('pending', 'review')"
+      ).bind(decision, auth.user.id, reason.trim() || null, now, eventId),
+      env.DB.prepare(
+        "INSERT INTO audit_events (id, actor_user_id, event_type, target_type, target_id, metadata_json, created_at) " +
+        "SELECT ?, ?, 'ad_event_reviewed', 'ad_event', ?, ?, ? WHERE EXISTS (" +
+        "SELECT 1 FROM ad_events WHERE id = ? AND validation_status = ? AND validated_by = ? AND validated_at = ?)"
+      ).bind(auditId, auth.user.id, eventId, JSON.stringify({ decision, reason: reason.trim().slice(0, 500) }), now, eventId, decision, auth.user.id, now)
+    ]);
+    if (!results[0]?.meta?.changes) return adJson({ error: "EVENT_NOT_REVIEWABLE" }, 409);
+    if (!results[1]?.meta?.changes) return adJson({ error: "EVENT_AUDIT_FAILED" }, 503);
     return adJson({ reviewed: true, eventId, validationStatus: decision, rewardIssued: false });
   } catch { return adJson({ error: "EVENT_REVIEW_FAILED" }, 503); }
 }
