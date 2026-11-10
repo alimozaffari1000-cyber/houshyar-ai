@@ -1,12 +1,15 @@
+import { checkChatRateLimit } from "./_lib/chat-rate-limit.js";
+
 const MAX_BODY_BYTES = 32 * 1024;
 const UPSTREAM_TIMEOUT_MS = 20_000;
 
-const json = (body, status = 200) => new Response(JSON.stringify(body), {
+const json = (body, status = 200, extraHeaders = {}) => new Response(JSON.stringify(body), {
   status,
   headers: {
     "Content-Type": "application/json; charset=utf-8",
     "Cache-Control": "no-store",
-    "X-Content-Type-Options": "nosniff"
+    "X-Content-Type-Options": "nosniff",
+    ...extraHeaders
   }
 });
 
@@ -71,6 +74,30 @@ export async function onRequestPost({ request, env }) {
   const latest = typeof body.message === "string" ? body.message.trim() : "";
   if (!latest) return json({ error: "MESSAGE_REQUIRED", message: "متن پیام خالی است." }, 400);
   if (latest.length > 6000) return json({ error: "MESSAGE_TOO_LONG", message: "پیام بیش از حد طولانی است." }, 413);
+
+  // Enable only after the D1 migration and DB binding have been configured.
+  if (env.CHAT_RATE_LIMIT_ENABLED === "true") {
+    if (!env.DB) {
+      return json({ error: "RATE_LIMIT_NOT_CONFIGURED", message: "کنترل امنیتی سرویس هنوز آماده نیست." }, 503);
+    }
+    try {
+      const rate = await checkChatRateLimit({
+        db: env.DB,
+        clientIp: request.headers.get("cf-connecting-ip") || "unknown",
+        limit: Number(env.CHAT_RATE_LIMIT_PER_MINUTE) || 20
+      });
+      if (!rate.allowed) {
+        return json(
+          { error: "RATE_LIMITED", message: "تعداد درخواست‌ها بیش از حد مجاز است. کمی بعد دوباره تلاش کنید." },
+          429,
+          { "Retry-After": String(rate.retryAfter) }
+        );
+      }
+    } catch {
+      // Fail closed: do not spend provider credits if the enabled limiter fails.
+      return json({ error: "RATE_LIMIT_UNAVAILABLE", message: "کنترل امنیتی موقتاً در دسترس نیست." }, 503);
+    }
+  }
 
   const safeHistory = [];
   let historyChars = 0;
