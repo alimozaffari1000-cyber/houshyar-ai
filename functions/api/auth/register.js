@@ -1,11 +1,11 @@
 import { normalizeEmail, validEmail, createPasswordRecord, originAllowed } from "../_lib/auth.js";
-import { authEmailLink, sendAuthEmail, createAuthToken, hashAuthToken } from "../_lib/auth-email.js";
+import { authEmailLink, authEmailConfig, sendAuthEmail, createAuthToken, hashAuthToken } from "../_lib/auth-email.js";
 import { authJson, readAuthBody, enforceAuthRateLimit } from "../_lib/auth-flow.js";
 export async function onRequestPost({ request, env }) {
   if (env.AUTH_ENABLED !== "true") return authJson({ error: "AUTH_NOT_CONFIGURED" }, 503);
   if (!env.DB) return authJson({ error: "DATABASE_NOT_CONFIGURED" }, 503);
   if (!originAllowed(request)) return authJson({ error: "ORIGIN_NOT_ALLOWED" }, 403);
-  if (!env.EMAIL_API_URL || !env.EMAIL_API_KEY || !env.EMAIL_FROM || !env.APP_BASE_URL) return authJson({ error: "AUTH_EMAIL_NOT_CONFIGURED" }, 503);
+  if (!authEmailConfig(env)) return authJson({ error: "AUTH_EMAIL_NOT_CONFIGURED" }, 503);
   const parsed = await readAuthBody(request);
   if (parsed.error) return authJson({ error: parsed.error }, parsed.status);
   const email = normalizeEmail(parsed.body.email);
