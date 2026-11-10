@@ -36,3 +36,12 @@ button:focus-visible,textarea:focus-visible{outline:2px solid #58d9bd;outline-of
 [dir="ltr"] .input-hint{text-align:left}
 [dir="ltr"] .msg p{text-align:left}
 @media(max-width:520px){.locale-select{max-width:88px;padding:6px 4px;font-size:10px}.top-actions{gap:7px}}
+
+.ads-marketplace{margin-top:18px;padding:15px;background:#0d1b2c;border:1px solid #2b475e;border-radius:14px}
+.ads-panel-head{display:flex;align-items:center;justify-content:space-between;gap:10px}.ads-panel-head strong{font-size:14px}.ads-panel-head p{font-size:10px;color:#91a6bf;margin:5px 0}
+.ads-panel-head button,.ads-referral button,.ads-campaign-row button{border:1px solid #3c526d;background:#13243a;color:#dce8f7;border-radius:8px;padding:7px 10px;font:11px Vazirmatn}
+.ads-stats{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:12px 0}.ads-stats>div{display:grid;gap:5px;padding:11px;background:#14243a;border:1px solid #30445e;border-radius:10px}.ads-stats small{font-size:10px;color:#91a6bf}.ads-stats strong{font-size:18px;color:#65e2c4}
+.ads-referral{padding:11px;background:#14243a;border:1px solid #30445e;border-radius:10px;font-size:11px}.ads-referral>div{display:flex;justify-content:space-between;align-items:center;margin-top:8px}.ads-referral code{font-size:13px;letter-spacing:1px;color:#65e2c4}
+#ads-campaign-form{margin-top:15px;padding-top:12px;border-top:1px solid #30445e}#ads-campaign-form h4,.ads-campaigns h4,#ads-review h4{font-size:12px;margin:8px 0;color:#dce8f7}
+#ads-campaign-form label{display:grid;gap:6px;margin:10px 0;color:#c6d4e5;font-size:11px}#ads-campaign-form input,#ads-campaign-form textarea,#ads-campaign-form select{width:100%;background:#0d192a;border:1px solid #3b5069;border-radius:8px;padding:9px;color:#fff;font:12px Vazirmatn}
+.ads-campaign-row{display:grid;gap:6px;padding:10px;margin:8px 0;background:#14243a;border:1px solid #30445e;border-radius:9px;font-size:11px}.ads-campaign-row span,.ads-campaign-row small{color:#91a6bf}.ads-campaign-row p{overflow-wrap:anywhere;color:#91a6bf}.ads-campaign-row button{margin-left:5px}
