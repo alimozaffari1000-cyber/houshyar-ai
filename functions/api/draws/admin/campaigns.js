@@ -42,7 +42,7 @@ export async function onRequestPost({ request, env }) {
       !/^[A-Z0-9_-]{2,16}$/.test(jurisdiction) || !/^[A-Z]{3}$/.test(currency) ||
       !Number.isInteger(maxEntries) || maxEntries < 1 || maxEntries > 1000000 ||
       !Number.isInteger(entriesPerUser) || entriesPerUser !== 1 ||
-      !validDate(startsAt) || !validDate(endsAt) || !validDate(drawAt) ||
+      !validDate(startsAt) || !validDate(endsAt) || !validDate(drawAt) || !endsAt || !drawAt ||
       (startsAt && endsAt && endsAt <= startsAt) || (endsAt && drawAt && drawAt < endsAt)) {
     return adJson({ error: "INVALID_DRAW_CAMPAIGN" }, 400);
   }
