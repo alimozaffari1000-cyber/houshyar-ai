@@ -11,7 +11,7 @@ export function normalizeEligibleEntries(entries) {
     seen.add(entry.id);
     eligible.push({ id: entry.id, ticketCode: String(entry.ticket_code || "") });
   }
-  eligible.sort((a, b) => a.id.localeCompare(b.id));
+  eligible.sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
   return eligible;
 }
 
