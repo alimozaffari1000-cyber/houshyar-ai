@@ -25,11 +25,27 @@ export async function readConversationBody(request) {
   if (!type.toLowerCase().includes("application/json")) return { error: json({ error: "UNSUPPORTED_MEDIA_TYPE" }, 415) };
   const declared = Number(request.headers.get("content-length"));
   if (Number.isFinite(declared) && declared > 512 * 1024) return { error: json({ error: "BODY_TOO_LARGE" }, 413) };
-  let raw;
-  try { raw = await request.text(); } catch { return { error: json({ error: "INVALID_JSON" }, 400) }; }
-  if (new TextEncoder().encode(raw).byteLength > 512 * 1024) return { error: json({ error: "BODY_TOO_LARGE" }, 413) };
+  if (!request.body) return { error: json({ error: "INVALID_JSON" }, 400) };
+  const reader = request.body.getReader();
+  const chunks = [];
+  let total = 0;
   try {
-    const body = JSON.parse(raw);
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      total += value.byteLength;
+      if (total > 512 * 1024) {
+        await reader.cancel();
+        return { error: json({ error: "BODY_TOO_LARGE" }, 413) };
+      }
+      chunks.push(value);
+    }
+  } catch { return { error: json({ error: "INVALID_JSON" }, 400) }; }
+  const bytes = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.byteLength; }
+  try {
+    const body = JSON.parse(new TextDecoder().decode(bytes));
     if (!body || typeof body !== "object" || Array.isArray(body)) return { error: json({ error: "INVALID_BODY" }, 400) };
     return { body };
   } catch { return { error: json({ error: "INVALID_JSON" }, 400) }; }
