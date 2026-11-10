@@ -47,3 +47,12 @@ button:focus-visible,textarea:focus-visible{outline:2px solid #58d9bd;outline-of
 .ads-campaign-row{display:grid;gap:6px;padding:10px;margin:8px 0;background:#14243a;border:1px solid #30445e;border-radius:9px;font-size:11px}.ads-campaign-row span,.ads-campaign-row small{color:#91a6bf}.ads-campaign-row p{overflow-wrap:anywhere;color:#91a6bf}.ads-campaign-row button{margin-left:5px}
 
 .ads-referral-entry{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end;margin-top:9px}.ads-referral-entry label{display:grid;gap:5px;font-size:10px;color:#c6d4e5}.ads-referral-entry input{min-width:0;background:#0d192a;border:1px solid #3b5069;border-radius:8px;padding:8px;color:#fff;font:12px Vazirmatn}.ads-referral-entry button{border:1px solid #3c526d;background:#13243a;color:#dce8f7;border-radius:8px;padding:8px 10px;font:11px Vazirmatn}@media(max-width:380px){.ads-referral-entry{grid-template-columns:1fr}}
+
+
+/* Clearly separated, optional public advertising placement. */
+.public-ad-placement { margin: 1.25rem 0; padding: .85rem; border: 1px solid var(--border, #d8dce3); border-radius: 14px; }
+.public-ad-label { margin: 0 0 .55rem; font-size: .75rem; color: var(--muted, #687080); }
+.public-ad-card { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.public-ad-card strong { display: block; }
+.public-ad-card p { margin: .25rem 0 0; color: var(--muted, #687080); font-size: .9rem; }
+.public-ad-card a { white-space: nowrap; }
