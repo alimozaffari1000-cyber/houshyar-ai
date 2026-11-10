@@ -22,6 +22,7 @@
 ## نقشه‌راه و مستندات
 
 - [نقشه‌راه جامع محصول](docs/MASTER-ROADMAP-FA.md)
+- [معماری یکپارچه پرداخت](docs/PAYMENT-ARCHITECTURE-FA.md)
 - [معماری تیم ایجنت‌ها](docs/AGENT-ARCHITECTURE-FA.md)
 - [گیت‌های انتشار امن](docs/PRODUCTION-RELEASE-GATES-FA.md)
 - [راهنمای تأیید ایمیل و بازیابی رمز](docs/AUTH-EMAIL-RECOVERY-FA.md)
