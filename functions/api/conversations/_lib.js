@@ -11,9 +11,13 @@ export const json = (body, status = 200) => new Response(JSON.stringify(body), {
 
 export async function requireUser(request, env) {
   if (env.AUTH_ENABLED !== "true" || !env.DB) return { error: json({ error: "HISTORY_NOT_CONFIGURED", message: "ذخیره تاریخچه هنوز در این محیط راه‌اندازی نشده است." }, 503) };
-  const user = await getSessionUser(env.DB, request);
-  if (!user) return { error: json({ error: "AUTH_REQUIRED", message: "برای ذخیره و مشاهده تاریخچه گفتگوها وارد حساب شوید." }, 401) };
-  return { user };
+  try {
+    const user = await getSessionUser(env.DB, request);
+    if (!user) return { error: json({ error: "AUTH_REQUIRED", message: "برای ذخیره و مشاهده تاریخچه گفتگوها وارد حساب شوید." }, 401) };
+    return { user };
+  } catch {
+    return { error: json({ error: "HISTORY_AUTH_UNAVAILABLE", message: "بررسی نشست کاربری موقتاً ممکن نیست." }, 503) };
+  }
 }
 
 export async function readConversationBody(request) {
