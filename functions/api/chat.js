@@ -141,8 +141,9 @@ export async function onRequestPost({ request, env }) {
     historyChars += content.length;
   }
 
+  const selectedAgent = routeAgentRequest(latest);
   const messages = [
-    { role: "system", content: "تو هوش‌یار، یک دستیار فارسی دقیق، کاربردی و چندمنظوره هستی. پاسخ‌ها را به زبان کاربر، روشن و مرحله‌ای ارائه کن. اطلاعات نامطمئن را قطعی جلوه نده. برای موضوعات پزشکی، مالی و حقوقی محدودیت‌ها و ریسک‌ها را روشن کن." },
+    { role: "system", content: "تو هوش‌یار، یک دستیار چندمنظوره و چندزبانه دقیق و کاربردی هستی. پاسخ را به زبان کاربر، روشن و مرحله‌ای ارائه کن. اطلاعات نامطمئن را قطعی جلوه نده. برای موضوعات پزشکی، مالی و حقوقی محدودیت‌ها و ریسک‌ها را روشن کن. هرگز ادعا نکن جستجوی زنده، اقدام بیرونی، اجرای کد یا دسترسی به ابزار انجام داده‌ای مگر واقعاً انجام شده باشد.\n\nنقش تخصصی این درخواست: " + selectedAgent.instruction },
     ...safeHistory,
   ];
   if (messages[messages.length - 1]?.role !== "user" || messages[messages.length - 1]?.content !== latest) {
@@ -190,7 +191,7 @@ export async function onRequestPost({ request, env }) {
     await releaseQuota();
     return json({ error: "EMPTY_REPLY", message: "پاسخ معتبری از مدل دریافت نشد." }, 502);
   }
-  return json({ reply: reply.trim() });
+  return json({ reply: reply.trim(), agent: { id: selectedAgent.id, label: selectedAgent.label, labelEn: selectedAgent.labelEn } });
 }
 
 export async function onRequestGet() {
