@@ -23,3 +23,11 @@ test('پیش‌نویس پیام هنگام انتظار برای پاسخ حف�
   assert.ok(js.includes("prompt.addEventListener('input',()=>{state.draft=prompt.value;});"));
   assert.ok(js.includes("state.draft='';\n  state.messages.push"));
 });
+
+
+test('scrolling chat respects the reduced-motion accessibility preference', async () => {
+  const js=await readFile(new URL('../src/main.js',import.meta.url),'utf8');
+  assert.match(js,/prefers-reduced-motion/);
+  assert.match(js,/behavior: prefersReducedMotion \? 'auto' : 'smooth'/);
+  assert.ok(js.includes('scrollChat();'));
+});
