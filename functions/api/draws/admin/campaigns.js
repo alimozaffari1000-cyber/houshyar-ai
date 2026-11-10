@@ -1,5 +1,23 @@
 import { requireDrawUser, checkDrawRate, adJson, readAdsJson } from "../../_lib/draws.js";
 
+export async function onRequestGet({ request, env }) {
+  const auth = await requireDrawUser({ request, env });
+  if (auth.response) return auth.response;
+  if (auth.user.role !== "admin") return adJson({ error: "ADMIN_REQUIRED" }, 403);
+  try {
+    const rows = await env.DB.prepare(
+      "SELECT c.id, c.title, c.description, c.prize_description, c.status, c.jurisdiction_code, c.starts_at, c.ends_at, c.draw_at, c.max_entries, " +
+      "COUNT(CASE WHEN e.entry_status = 'eligible' THEN 1 END) AS eligible_entries, " +
+      "COUNT(DISTINCT CASE WHEN e.entry_status = 'eligible' THEN e.user_id END) AS participants, " +
+      "(SELECT v.verification_status FROM draw_results r LEFT JOIN draw_result_verifications v ON v.result_id = r.id WHERE r.campaign_id = c.id ORDER BY v.checked_at DESC LIMIT 1) AS verification_status " +
+      "FROM draw_campaigns c LEFT JOIN draw_entries e ON e.campaign_id = c.id GROUP BY c.id ORDER BY c.created_at DESC LIMIT 100"
+    ).all();
+    return adJson({ campaigns: rows.results || [], paidEntryEnabled: false });
+  } catch { return adJson({ error: "DRAW_ADMIN_LIST_UNAVAILABLE" }, 503); }
+}
+
+
+
 export async function onRequestPost({ request, env }) {
   const auth = await requireDrawUser({ request, env, write: true });
   if (auth.response) return auth.response;
