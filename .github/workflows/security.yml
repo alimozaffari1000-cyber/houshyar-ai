@@ -1,7 +1,7 @@
 name: Houshyar Security Watch
 on:
   push:
-    branches: [main]
+    branches: [main, "feature/**"]
   pull_request:
   schedule:
     - cron: "30 5 * * 1"
