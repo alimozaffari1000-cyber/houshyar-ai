@@ -6,7 +6,7 @@ import { initDrawPanel } from './draw-panel.js';
 import { translate as t, getLocale, setLocale, localeOptions } from './i18n.js';
 
 const app = document.querySelector('#app');
-const state = { messages: [], busy: false, draft: '', conversationId: null, historyNotice: '' };
+const state = { messages: [], busy: false, draft: '', conversationId: null, projectId: null, projectTitle: '', historyNotice: '' };
 const escapeHTML = (value='') => String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const scrollChat = () => {
   const chat = app.querySelector('.chat');
@@ -44,7 +44,7 @@ function render() {
     </section>
     <div id="home-ad-slot"></div>
     <div id="draw-panel-mount"></div>
-    <div class="chat-tools"><span>${t('chat',locale)}</span><button id="clear-chat" type="button" ${state.messages.length || state.draft ? '' : 'disabled'}>${t('clear',locale)}</button></div><p id="history-status" class="history-status" role="status" aria-live="polite">${escapeHTML(state.historyNotice)}</p>
+    <div class="chat-tools"><span>${t('chat',locale)}${state.projectId ? ' · پروژه: ' + escapeHTML(state.projectTitle || "انتخاب‌شده") : ''}</span><button id="clear-chat" type="button" ${state.messages.length || state.draft ? '' : 'disabled'}>${t('clear',locale)}</button></div><p id="history-status" class="history-status" role="status" aria-live="polite">${escapeHTML(state.historyNotice)}</p>
     <section class="chat" aria-live="polite" aria-label="پیام‌های گفتگو">${state.messages.map((m,i)=>`<article class="msg ${m.role}"><div class="msg-head"><b>${m.role==='user'?'شما':'هوش‌یار'}</b>${m.agent?'<small class="agent-label"> · '+escapeHTML(m.agent.label)+'</small>':''}${m.role==='assistant'?'<button type="button" class="copy-reply" data-index="'+i+'" aria-label="کپی پاسخ">کپی</button>':''}</div><p>${escapeHTML(m.text)}</p></article>`).join('')}${state.busy?'<article class="msg assistant" role="status"><b>هوش‌یار</b><p>در حال آماده‌سازی پاسخ…</p></article>':''}</section>
     <form id="chat-form"><textarea id="prompt" aria-label="پیام شما" rows="1" maxlength="6000" placeholder="${t('placeholder',locale)}" required>${escapeHTML(state.draft)}</textarea><button id="send" type="submit" ${state.busy?'disabled':''}>${t('send',locale)}</button></form>
     <p class="input-hint">${t('hint',locale)}</p>
@@ -70,7 +70,7 @@ function render() {
   prompt.addEventListener('keydown',event=>{if(event.key==='Enter'&&!event.shiftKey&&!event.isComposing){event.preventDefault();app.querySelector('#chat-form').requestSubmit();}});
   resize();
   app.querySelector('#chat-form').addEventListener('submit',submitMessage);
-  app.querySelector('#clear-chat').addEventListener('click',()=>{if(state.busy)return;state.messages=[];state.draft='';state.conversationId=null;state.historyNotice='گفتگوی تازه شروع شد؛ برای ذخیره تاریخچه باید وارد حساب شوید.';render();});
+  app.querySelector('#clear-chat').addEventListener('click',()=>{if(state.busy)return;state.messages=[];state.draft='';state.conversationId=null;state.projectId=null;state.projectTitle='';state.historyNotice='گفتگوی تازه شروع شد؛ برای ذخیره تاریخچه باید وارد حساب شوید.';render();});
   app.querySelectorAll('.copy-reply').forEach(button=>button.addEventListener('click',async()=>{const reply=state.messages[Number(button.dataset.index)]?.text;if(!reply)return;try{await navigator.clipboard.writeText(reply);button.textContent='کپی شد';}catch{button.textContent='کپی نشد';}}));
 }
 
@@ -83,7 +83,7 @@ async function persistConversation() {
       method: isNew ? 'POST' : 'PUT',
       credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages: state.messages.map(item => ({ role: item.role, text: item.text })) })
+      body: JSON.stringify({ messages: state.messages.map(item => ({ role: item.role, text: item.text })), project_id: state.projectId })
     });
     const data = await response.json().catch(() => ({}));
     if (!response.ok && !isNew && response.status === 404) {
@@ -108,6 +108,8 @@ async function persistConversation() {
 window.addEventListener('houshyar:conversation-deleted', event => {
   if (state.conversationId !== event.detail?.id) return;
   state.conversationId = null;
+  state.projectId = null;
+  state.projectTitle = '';
   state.historyNotice = 'گفتگو حذف شد؛ ادامه آن در صورت ارسال پیام به‌عنوان گفتگوی تازه ذخیره می‌شود.';
 });
 
@@ -115,10 +117,42 @@ window.addEventListener('houshyar:new-conversation', () => {
   if (state.busy) return;
   state.messages = [];
   state.conversationId = null;
+  state.projectId = null;
+  state.projectTitle = '';
   state.draft = '';
   state.historyNotice = 'گفتگوی تازه آماده است.';
   render();
   app.querySelector('#prompt')?.focus();
+});
+
+
+window.addEventListener('houshyar:project-selected', async event => {
+  const project = event.detail;
+  if (!project?.id) return;
+  state.projectId = project.id;
+  state.projectTitle = project.title || 'پروژه انتخاب‌شده';
+  state.historyNotice = 'پروژه «' + state.projectTitle + '» برای گفتگوی جاری انتخاب شد.';
+  if (state.conversationId) {
+    try {
+      const response = await fetch('/api/conversations/' + encodeURIComponent(state.conversationId), {
+        method: 'PUT', credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ project_id: state.projectId })
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.message || 'اتصال گفتگو به پروژه انجام نشد.');
+      state.historyNotice = 'گفتگو به پروژه «' + state.projectTitle + '» متصل شد.';
+    } catch (error) { state.historyNotice = error.message; }
+  }
+  render();
+});
+
+window.addEventListener('houshyar:project-deleted', event => {
+  if (state.projectId !== event.detail?.id) return;
+  state.projectId = null;
+  state.projectTitle = '';
+  state.historyNotice = 'پروژه حذف شد؛ گفتگوهای قبلی بدون حذف شدن از پروژه جدا شدند.';
+  render();
 });
 
 window.addEventListener('houshyar:load-conversation', event => {
@@ -126,6 +160,8 @@ window.addEventListener('houshyar:load-conversation', event => {
   if (!conversation || !Array.isArray(conversation.messages)) return;
   state.messages = conversation.messages.map(item => ({ role: item.role, text: item.content, agent: null }));
   state.conversationId = conversation.id || null;
+  state.projectId = conversation.project_id || null;
+  state.projectTitle = state.projectId ? 'پروژه انتخاب‌شده' : '';
   state.draft = '';
   state.historyNotice = 'گفتگوی ذخیره‌شده بارگذاری شد.';
   render();
