@@ -21,6 +21,8 @@
 
 ## نقشه‌راه و مستندات
 
+- [نقشه تجربه مشتری و کاتالوگ خدمات](docs/CUSTOMER-JOURNEY-FA.md)
+
 - [نقشه‌راه جامع محصول](docs/MASTER-ROADMAP-FA.md)
 - [معماری یکپارچه پرداخت](docs/PAYMENT-ARCHITECTURE-FA.md)
 - [معماری تیم ایجنت‌ها](docs/AGENT-ARCHITECTURE-FA.md)
