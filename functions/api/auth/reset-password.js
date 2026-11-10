@@ -17,8 +17,10 @@ export async function onRequestPost({ request, env }) {
   const consumed = await env.DB.prepare("UPDATE password_reset_tokens SET consumed_at = ? WHERE token_hash = ? AND consumed_at IS NULL AND expires_at > ? RETURNING user_id").bind(now, tokenHash, now).first();
   if (!consumed?.user_id) return authJson({ error: "INVALID_OR_EXPIRED_TOKEN", message: "پیوند بازیابی نامعتبر یا منقضی شده است." }, 400);
   const record = await createPasswordRecord(password);
-  const updated = await env.DB.prepare("UPDATE users SET password_hash = ?, password_salt = ?, password_iterations = ?, updated_at = ? WHERE id = ? AND status = 'active' RETURNING id").bind(record.hash, record.salt, record.iterations, now, consumed.user_id).first();
-  if (!updated) return authJson({ error: "PASSWORD_RESET_FAILED" }, 400);
-  await env.DB.prepare("UPDATE sessions SET revoked_at = ? WHERE user_id = ? AND revoked_at IS NULL").bind(now, consumed.user_id).run();
+  const results = await env.DB.batch([
+    env.DB.prepare("UPDATE users SET password_hash = ?, password_salt = ?, password_iterations = ?, updated_at = ? WHERE id = ? AND status = 'active'").bind(record.hash, record.salt, record.iterations, now, consumed.user_id),
+    env.DB.prepare("UPDATE sessions SET revoked_at = ? WHERE user_id = ? AND revoked_at IS NULL").bind(now, consumed.user_id)
+  ]);
+  if (!results?.[0]?.meta || results[0].meta.changes !== 1) return authJson({ error: "PASSWORD_RESET_FAILED" }, 400);
   return authJson({ passwordReset: true, sessionsRevoked: true });
 }
