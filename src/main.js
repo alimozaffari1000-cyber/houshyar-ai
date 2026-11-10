@@ -86,6 +86,10 @@ async function persistConversation() {
       body: JSON.stringify({ messages: state.messages.map(item => ({ role: item.role, text: item.text })) })
     });
     const data = await response.json().catch(() => ({}));
+    if (!response.ok && !isNew && response.status === 404) {
+      state.conversationId = null;
+      return persistConversation();
+    }
     if (!response.ok) {
       state.historyNotice = data.error === 'AUTH_REQUIRED'
         ? 'برای ذخیره و بازیابی گفتگوها وارد حساب کاربری شوید.'
@@ -100,6 +104,12 @@ async function persistConversation() {
     state.historyNotice = 'ارتباط با سامانه ذخیره تاریخچه برقرار نشد؛ گفتگو فعلاً فقط در همین صفحه باقی می‌ماند.';
   }
 }
+
+window.addEventListener('houshyar:conversation-deleted', event => {
+  if (state.conversationId !== event.detail?.id) return;
+  state.conversationId = null;
+  state.historyNotice = 'گفتگو حذف شد؛ ادامه آن در صورت ارسال پیام به‌عنوان گفتگوی تازه ذخیره می‌شود.';
+});
 
 window.addEventListener('houshyar:new-conversation', () => {
   if (state.busy) return;
