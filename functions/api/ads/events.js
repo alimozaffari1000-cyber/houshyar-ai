@@ -35,8 +35,6 @@ export async function onRequestPost({ request, env }) {
       hasValidImpression: Number(priorImpression?.n || 0) > 0
     });
     const riskScore = risk.riskScore;
-    const dedupeKey = campaignId + ":" + eventType + ":" + eventKey;
-    const eventId = crypto.randomUUID();
     const inserted = await env.DB.prepare(
       "INSERT OR IGNORE INTO ad_events (id, campaign_id, user_id, event_type, dedupe_key, validation_status, risk_score, fraud_reason, occurred_at) " +
       "VALUES (?, ?, ?, ?, ?, 'review', ?, ?, ?)"
