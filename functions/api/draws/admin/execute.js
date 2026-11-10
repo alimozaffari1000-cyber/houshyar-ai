@@ -61,8 +61,8 @@ export async function onRequestPost({ request, env }) {
     const statements = [
       env.DB.prepare("UPDATE draw_campaigns SET status = 'drawn', updated_at = ? WHERE id = ? AND status = 'open'").bind(nowPublished, campaignId),
       env.DB.prepare(
-        "INSERT INTO draw_results (id, campaign_id, winning_entry_id, algorithm_version, entropy_commitment, entropy_reveal, selected_at, published_at, verification_status) " +
-        "SELECT ?, ?, ?, 'houshyar-draw-sha256-counter-rejection-v1', ?, ?, ?, ?, 'pending' " +
+        "INSERT INTO draw_results (id, campaign_id, winning_entry_id, algorithm_version, entropy_commitment, entropy_reveal, selected_at, published_at, verification_status, eligible_entry_count, eligible_entries_sha256) " +
+        "SELECT ?, ?, ?, 'houshyar-draw-sha256-counter-rejection-v1', ?, ?, ?, ?, 'pending', ?, ? " +
         "WHERE EXISTS (SELECT 1 FROM draw_campaigns WHERE id = ? AND status = 'drawn') " +
         "AND NOT EXISTS (SELECT 1 FROM draw_results WHERE campaign_id = ?)"
       ).bind(resultId, campaignId, winner.id, commitment, hex(seed), nowPublished, nowPublished, entries.length, snapshotHash, campaignId, campaignId),
