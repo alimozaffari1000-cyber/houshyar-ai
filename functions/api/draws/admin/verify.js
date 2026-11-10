@@ -32,7 +32,7 @@ export async function onRequestPost({ request, env }) {
   if (!/^[0-9a-f-]{36}$/i.test(campaignId)) return adJson({ error: "INVALID_CAMPAIGN_ID" }, 400);
   try {
     const result = await env.DB.prepare(
-      "SELECT id, winning_entry_id, entropy_commitment, entropy_reveal, algorithm_version FROM draw_results WHERE campaign_id = ?"
+      "SELECT id, winning_entry_id, entropy_commitment, entropy_reveal, algorithm_version, eligible_entry_count, eligible_entries_sha256 FROM draw_results WHERE campaign_id = ?"
     ).bind(campaignId).first();
     if (!result) return adJson({ error: "DRAW_RESULT_NOT_FOUND" }, 404);
     if (result.algorithm_version !== "houshyar-draw-sha256-counter-rejection-v1") return adJson({ error: "UNSUPPORTED_DRAW_ALGORITHM" }, 409);
@@ -52,7 +52,9 @@ export async function onRequestPost({ request, env }) {
       eligibleEntryCount: entries.length,
       eligibleEntriesSha256: snapshotHash
     };
-    const verified = checks.commitmentMatches && checks.winnerMatches;
+    checks.entryCountMatches = entries.length === Number(result.eligible_entry_count);
+    checks.snapshotMatches = snapshotHash === result.eligible_entries_sha256;
+    const verified = checks.commitmentMatches && checks.winnerMatches && checks.entryCountMatches && checks.snapshotMatches;
     await env.DB.prepare(
       "INSERT INTO draw_result_verifications (id, campaign_id, result_id, verification_status, checked_by, verification_details_json, checked_at) VALUES (?, ?, ?, ?, ?, ?, ?)"
     ).bind(crypto.randomUUID(), campaignId, result.id, verified ? "verified" : "failed", auth.user.id, JSON.stringify(checks), new Date().toISOString()).run();
