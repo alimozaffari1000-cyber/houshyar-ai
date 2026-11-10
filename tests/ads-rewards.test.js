@@ -27,7 +27,14 @@ test('distributes pool proportionally and deterministically', () => {
   assert.equal(first.reduce((sum, item) => sum + item.rewardUnits, 0), 10);
 });
 
-test('uses exact integer arithmetic near safe-integer limits', () => {\n  const maximum = Number.MAX_SAFE_INTEGER;\n  assert.equal(calculateRewardPool(maximum, 500), Number((BigInt(maximum) * 500n) / 10_000n));\n  const shares = distributeRewardPool(maximum, [{ userId: 'a', weight: maximum }, { userId: 'b', weight: maximum - 1 }]);\n  assert.equal(shares.reduce((sum, item) => sum + item.rewardUnits, 0), maximum);\n});\n\ntest('handles empty and zero pools', () => {
+test('uses exact integer arithmetic near safe-integer limits', () => {
+  const maximum = Number.MAX_SAFE_INTEGER;
+  assert.equal(calculateRewardPool(maximum, 500), Number((BigInt(maximum) * 500n) / 10_000n));
+  const shares = distributeRewardPool(maximum, [{ userId: 'a', weight: maximum }, { userId: 'b', weight: maximum - 1 }]);
+  assert.equal(shares.reduce((sum, item) => sum + item.rewardUnits, 0), maximum);
+});
+
+test('handles empty and zero pools', () => {
   assert.deepEqual(distributeRewardPool(10, []), []);
   assert.deepEqual(distributeRewardPool(0, [{ userId: 'u1', weight: 1 }]), [{ userId: 'u1', rewardUnits: 0 }]);
 });
