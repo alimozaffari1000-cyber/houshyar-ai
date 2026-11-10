@@ -84,6 +84,113 @@ async function loadConversationHistory(content, status, panel) {
   }
 }
 
+
+async function loadProjects(content, status, panel) {
+  const list = content.querySelector("#project-list");
+  if (!list) return;
+  list.textContent = "در حال دریافت پروژه‌ها…";
+  try {
+    const response = await fetch("/api/projects", { credentials: "same-origin", cache: "no-store" });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.message || (data.error === "PROJECTS_NOT_CONFIGURED" ? "فضای پروژه‌ها هنوز روی سرور فعال نشده است." : "دریافت پروژه‌ها انجام نشد."));
+    const projects = Array.isArray(data.projects) ? data.projects : [];
+    list.replaceChildren();
+    if (!projects.length) {
+      const empty = document.createElement("p");
+      empty.className = "history-empty";
+      empty.textContent = "هنوز پروژه‌ای نساخته‌اید. یک پروژه بسازید تا گفتگوهای مرتبط را در یک فضای مستقل نگه دارید.";
+      list.append(empty);
+      return;
+    }
+    for (const project of projects) {
+      const row = document.createElement("article");
+      row.className = "project-row";
+      const info = document.createElement("div");
+      info.className = "project-info";
+      const title = document.createElement("strong");
+      title.textContent = project.title;
+      const description = document.createElement("p");
+      description.textContent = project.description || "بدون توضیحات";
+      const meta = document.createElement("small");
+      meta.textContent = (Number(project.conversation_count) || 0) + " گفتگوی مرتبط";
+      info.append(title, description, meta);
+      const actions = document.createElement("div");
+      actions.className = "project-actions";
+      const choose = document.createElement("button");
+      choose.type = "button"; choose.textContent = "انتخاب برای گفتگو";
+      choose.addEventListener("click", () => {
+        panel.hidden = true;
+        window.dispatchEvent(new CustomEvent("houshyar:project-selected", { detail: { id: project.id, title: project.title } }));
+      });
+      const open = document.createElement("button");
+      open.type = "button"; open.textContent = "گفتگوهای پروژه";
+      open.addEventListener("click", async () => {
+        open.disabled = true;
+        try {
+          const r = await fetch("/api/projects/" + encodeURIComponent(project.id), { credentials: "same-origin", cache: "no-store" });
+          const d = await r.json().catch(() => ({}));
+          if (!r.ok) throw new Error(d.message || "بارگذاری پروژه انجام نشد.");
+          let detail = row.querySelector(".project-conversations");
+          if (!detail) { detail = document.createElement("div"); detail.className = "project-conversations"; row.append(detail); }
+          detail.replaceChildren();
+          if (!d.conversations?.length) {
+            const empty = document.createElement("p"); empty.textContent = "هنوز گفتگویی به این پروژه متصل نیست."; detail.append(empty);
+          } else {
+            for (const conversation of d.conversations) {
+              const item = document.createElement("button");
+              item.type = "button";
+              item.className = "project-conversation-link";
+              item.textContent = conversation.title || "گفتگوی بدون عنوان";
+              item.addEventListener("click", async () => {
+                item.disabled = true;
+                try {
+                  const result = await fetch("/api/conversations/" + encodeURIComponent(conversation.id), { credentials: "same-origin", cache: "no-store" });
+                  const saved = await result.json().catch(() => ({}));
+                  if (!result.ok || !saved.conversation) throw new Error(saved.message || "بارگذاری گفتگو انجام نشد.");
+                  panel.hidden = true;
+                  window.dispatchEvent(new CustomEvent("houshyar:load-conversation", { detail: saved.conversation }));
+                } catch (error) { status.textContent = error.message; item.disabled = false; }
+              });
+              detail.append(item);
+            }
+          }
+        } catch (error) { status.textContent = error.message; }
+        finally { open.disabled = false; }
+      });
+      const rename = document.createElement("button");
+      rename.type = "button"; rename.textContent = "تغییر نام";
+      rename.addEventListener("click", async () => {
+        const next = window.prompt("نام جدید پروژه:", project.title);
+        if (next === null || !next.trim()) return;
+        rename.disabled = true;
+        try {
+          const r = await fetch("/api/projects/" + encodeURIComponent(project.id), { method: "PUT", credentials: "same-origin", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title: next.trim(), description: project.description || "" }) });
+          const d = await r.json().catch(() => ({}));
+          if (!r.ok) throw new Error(d.message || "تغییر نام پروژه انجام نشد.");
+          await loadProjects(content, status, panel);
+        } catch (error) { status.textContent = error.message; rename.disabled = false; }
+      });
+      const remove = document.createElement("button");
+      remove.type = "button"; remove.textContent = "حذف";
+      remove.addEventListener("click", async () => {
+        if (!window.confirm("پروژه حذف شود؟ گفتگوهای آن باقی می‌مانند و از پروژه جدا می‌شوند.")) return;
+        remove.disabled = true;
+        try {
+          const r = await fetch("/api/projects/" + encodeURIComponent(project.id), { method: "DELETE", credentials: "same-origin" });
+          const d = await r.json().catch(() => ({}));
+          if (!r.ok) throw new Error(d.message || "حذف پروژه انجام نشد.");
+          window.dispatchEvent(new CustomEvent("houshyar:project-deleted", { detail: { id: project.id } }));
+          await loadProjects(content, status, panel);
+          await loadConversationHistory(content, status, panel);
+        } catch (error) { status.textContent = error.message; remove.disabled = false; }
+      });
+      actions.append(choose, open, rename, remove);
+      row.append(info, actions);
+      list.append(row);
+    }
+  } catch (error) { list.textContent = error.message || "پروژه‌ها در دسترس نیستند."; }
+}
+
 export function initAccountPanel(app) {
   const button = app.querySelector("#account-open");
   if (!button || app.querySelector("#account-panel")) return;
@@ -155,7 +262,15 @@ export function initAccountPanel(app) {
             <div class="dashboard-info"><b>تاریخچه گفتگوها</b><p>گفتگوهای ذخیره‌شده فقط برای حساب فعلی قابل مشاهده‌اند. امکان بازکردن، تغییر عنوان و حذف هر گفتگو وجود دارد.</p></div>
             <div class="history-toolbar"><button type="button" id="history-refresh">به‌روزرسانی فهرست</button><button type="button" id="history-new">شروع گفتگوی تازه</button></div>
             <div id="conversation-history" class="conversation-history" aria-live="polite">در حال دریافت تاریخچه…</div>
-            <div class="dashboard-info"><b>پروژه‌های ذخیره‌شده</b><p>فضای مستقل پروژه‌ها و ذخیره فایل‌ها در مرحله بعدی توسعه قرار دارد.</p></div>
+            <section class="projects-manager" aria-labelledby="projects-heading">
+              <div class="dashboard-section-head"><strong id="projects-heading">پروژه‌های من</strong><small>گفتگوهای مرتبط را در یک فضای کاری نگه دارید. حداکثر ۵۰ پروژه برای هر حساب.</small></div>
+              <form id="project-create-form" class="project-create-form">
+                <label>نام پروژه<input name="title" maxlength="80" required placeholder="مثلاً توسعه فروشگاه اینترنتی"></label>
+                <label>توضیحات (اختیاری)<textarea name="description" maxlength="500" rows="2" placeholder="هدف یا توضیح کوتاه پروژه"></textarea></label>
+                <button type="submit">ساخت پروژه</button>
+              </form>
+              <div id="project-list" class="project-list" aria-live="polite">برای دیدن پروژه‌ها، فهرست را باز کنید.</div>
+            </section>
           </section>
           <section class="dashboard-view" data-dashboard-view="plan" hidden>
             <div class="dashboard-info"><b>طرح فعلی</b><p>وضعیت طرح اشتراکی هنوز به سامانه صورتحساب متصل نشده است؛ هیچ اشتراک پولی فعالی از این صفحه اعلام نمی‌شود.</p></div>
@@ -171,9 +286,24 @@ export function initAccountPanel(app) {
         content.querySelectorAll("[data-dashboard-tab]").forEach(tab => tab.addEventListener("click", () => {
           content.querySelectorAll("[data-dashboard-tab]").forEach(item => item.classList.toggle("active", item === tab));
           content.querySelectorAll("[data-dashboard-view]").forEach(view => { view.hidden = view.dataset.dashboardView !== tab.dataset.dashboardTab; });
-          if (tab.dataset.dashboardTab === "activity") loadConversationHistory(content, status, panel);
+          if (tab.dataset.dashboardTab === "activity") { loadConversationHistory(content, status, panel); loadProjects(content, status, panel); }
         }));
         content.querySelector("#history-refresh").addEventListener("click", () => loadConversationHistory(content, status, panel));
+        content.querySelector("#project-create-form").addEventListener("submit", async event => {
+          event.preventDefault();
+          const form = event.currentTarget;
+          const submit = form.querySelector("button[type=submit]");
+          submit.disabled = true;
+          try {
+            const r = await fetch("/api/projects", { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title: form.title.value, description: form.description.value }) });
+            const d = await r.json().catch(() => ({}));
+            if (!r.ok) throw new Error(d.message || "ساخت پروژه انجام نشد.");
+            form.reset();
+            status.textContent = "پروژه ساخته شد.";
+            await loadProjects(content, status, panel);
+          } catch (error) { status.textContent = error.message; }
+          finally { submit.disabled = false; }
+        });
         content.querySelector("#history-new").addEventListener("click", () => {
           panel.hidden = true;
           window.dispatchEvent(new CustomEvent("houshyar:new-conversation"));
