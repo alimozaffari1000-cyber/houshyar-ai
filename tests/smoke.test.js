@@ -20,7 +20,7 @@ test('پیش‌نویس پیام هنگام انتظار برای پاسخ حف�
   const js=await readFile(new URL('../src/main.js',import.meta.url),'utf8');
   assert.ok(js.includes("draft: ''"));
   assert.ok(js.includes('${escapeHTML(state.draft)}'));
-  assert.ok(js.includes("prompt.addEventListener('input',()=>{state.draft=prompt.value;});"));
+  assert.ok(js.includes("prompt.addEventListener('input',()=>{state.draft=prompt.value;resize();});"));
   assert.ok(js.includes("state.draft='';\n  state.messages.push"));
 });
 

@@ -4,7 +4,9 @@ Houshyar is a Persian-first, right-to-left multi-purpose AI assistant built with
 
 ## Current implementation
 
-- Responsive Persian RTL chat interface.
+- Responsive Persian RTL chat interface with keyboard-first send, clear-chat control, and copy-reply action.
+- Conversation is held in page memory only; it is not persisted by the current frontend.
+- Persian privacy notice draft: [PRIVACY-FA-DRAFT.md](PRIVACY-FA-DRAFT.md).
 - Server-side Groq chat integration at `/api/chat`.
 - Conversation history filtering and length limits.
 - Request-body cap and upstream timeout (see the API implementation).
@@ -40,4 +42,4 @@ See [Cloudflare setup instructions in Persian](CLOUDFLARE-SETUP-FA.md). Configur
 
 This repository is an early-stage prototype, not a fully production-hardened public service. The chat endpoint currently has no user authentication or per-user quota/rate limit. Before opening it to the public, configure server-side abuse prevention, request rate limiting, cost controls, monitoring, and an appropriate privacy policy. Authentication, billing, user accounts, persistent chat history, and database isolation are not implemented.
 
-The automated checks are not a penetration test and do not certify the deployed Cloudflare environment.
+The automated checks are not a penetration test and do not certify the deployed Cloudflare environment. The privacy document is a technical draft, not a legally reviewed privacy policy.

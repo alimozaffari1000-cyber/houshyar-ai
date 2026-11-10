@@ -52,6 +52,10 @@ async function readJsonLimited(request) {
 
 export async function onRequestPost({ request, env }) {
   if (!env.GROQ_API_KEY) return json({ error: "AI_NOT_CONFIGURED", message: "سرویس هوش مصنوعی هنوز تنظیم نشده است." }, 503);
+  const contentType = request.headers.get("content-type") || "";
+  if (!contentType.toLowerCase().includes("application/json")) {
+    return json({ error: "UNSUPPORTED_MEDIA_TYPE", message: "نوع محتوای درخواست باید JSON باشد." }, 415);
+  }
 
   const parsed = await readJsonLimited(request);
   if (parsed.error === "BODY_TOO_LARGE") {
