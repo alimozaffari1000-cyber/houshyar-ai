@@ -1,6 +1,6 @@
 export function initAuthFlows(app) {
   if (app.querySelector("#auth-flow-overlay")) return;
-  const params = new URLSearchParams(window.location.search);
+  const params = new URLSearchParams(window.location.hash.replace(/^#/, ""));
   const verifyToken = params.get("verify_email");
   const resetToken = params.get("reset_password");
   if (!verifyToken && !resetToken) return;
@@ -18,9 +18,8 @@ export function initAuthFlows(app) {
   status.textContent = mode === "verify" ? "برای فعال‌سازی حساب، دکمه زیر را بزنید." : "رمز عبور جدیدی با حداقل ۱۲ نویسه انتخاب کنید.";
   const cleanUrl = () => {
     const clean = new URL(window.location.href);
-    clean.searchParams.delete("verify_email");
-    clean.searchParams.delete("reset_password");
-    window.history.replaceState({}, "", clean.pathname + clean.search + clean.hash);
+    clean.hash = "";
+    window.history.replaceState({}, "", clean.pathname + clean.search);
   };
   if (mode === "verify") {
     const button = document.createElement("button");
