@@ -39,3 +39,16 @@ npx wrangler d1 migrations apply houshyar-ai-db --local
 ## وضعیت فعلی
 
 این migration فقط ساختار را می‌سازد. تا زمان پیاده‌سازی و تست endpointها، جدول‌ها به‌تنهایی احراز هویت یا rate limiting را فعال نمی‌کنند. اتصال واقعی D1 و اجرای migration از داخل حساب Cloudflare مالک پروژه انجام می‌شود؛ هیچ کلید یا دسترسی محرمانه‌ای در Git قرار ندهید.
+
+
+## تاریخچه گفتگو — migration شماره ۰۰۱۱
+
+پس از بررسی migrationهای قبلی و در محیط staging، migration زیر را اعمال کنید:
+
+```bash
+npx wrangler d1 migrations apply houshyar-ai-db --remote
+```
+
+این دستور تمام migrationهای ثبت‌نشده را به ترتیب اجرا می‌کند؛ پیش از اجرا، نام دیتابیس و محیط مقصد را بررسی کنید. migration `0011_conversation_history.sql` جدول `conversations` و indexهای کاربر/آخرین فعالیت را ایجاد می‌کند. متن پیام‌ها در ستون JSON ذخیره می‌شود و هر query خواندن/تغییر/حذف باید هم‌زمان شناسه گفتگو و شناسه کاربر نشست را محدود کند.
+
+**هشدار:** این migration در شاخه توسعه ثبت شده اما از اینجا روی دیتابیس واقعی اجرا نشده است. تا اتصال D1، اجرای migration و تست staging، تاریخچه برای کاربران فعال نیست.
