@@ -56,6 +56,14 @@ function render() {
   initAdPlacement(app.querySelector('#home-ad-slot'));
   initDrawPanel(app);
   app.querySelectorAll('[data-prompt]').forEach(b=>b.addEventListener('click',()=>{const input=app.querySelector('#prompt');state.draft=b.dataset.prompt;input.value=state.draft;input.focus();}));
+  const serviceSearch=app.querySelector('#service-search');
+  serviceSearch?.addEventListener('input',()=>{
+    const query=serviceSearch.value.trim().toLocaleLowerCase();
+    app.querySelectorAll('.service-card').forEach(card=>{
+      const searchable=(card.dataset.title+' '+card.textContent).toLocaleLowerCase();
+      card.hidden=Boolean(query && !searchable.includes(query));
+    });
+  });
   const prompt=app.querySelector('#prompt');
   const resize=()=>{prompt.style.height='auto';prompt.style.height=Math.min(prompt.scrollHeight,160)+'px';};
   prompt.addEventListener('input',()=>{state.draft=prompt.value;resize();});
