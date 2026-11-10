@@ -30,7 +30,7 @@ export async function onRequestPut({ request, env, params }) {
     const messages = parsed.body.messages === undefined ? null : normalizeMessages(parsed.body.messages);
     if (parsed.body.messages !== undefined && !messages) return json({ error: "INVALID_MESSAGES" }, 400);
     const title = parsed.body.title === undefined ? existing.title : normalizeTitle(parsed.body.title, messages || JSON.parse(existing.messages_json));
-    const projectId = parsed.body.project_id === undefined ? existing.project_id : parsed.body.project_id;
+    const projectId = parsed.body.project_id === undefined ? existing.project_id : (parsed.body.project_id === "" ? null : parsed.body.project_id);
     if (!await validOwnedProject(env.DB, auth.user.id, projectId)) return json({ error: "PROJECT_NOT_FOUND", message: "پروژه انتخاب‌شده وجود ندارد یا متعلق به این حساب نیست." }, 404);
     const now = Math.floor(Date.now() / 1000);
     if (messages || parsed.body.project_id !== undefined) {
