@@ -35,7 +35,8 @@ CREATE TABLE IF NOT EXISTS draw_entries (
   entry_status TEXT NOT NULL DEFAULT 'eligible'
     CHECK (entry_status IN ('eligible', 'void')),
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  UNIQUE (campaign_id, user_id, id),
+  UNIQUE (campaign_id, user_id),
+  UNIQUE (campaign_id, id),
   UNIQUE (campaign_id, ticket_code)
 );
 
@@ -47,7 +48,8 @@ CREATE INDEX IF NOT EXISTS idx_draw_entries_user_created
 CREATE TABLE IF NOT EXISTS draw_results (
   id TEXT PRIMARY KEY,
   campaign_id TEXT NOT NULL UNIQUE REFERENCES draw_campaigns(id) ON DELETE RESTRICT,
-  winning_entry_id TEXT NOT NULL REFERENCES draw_entries(id) ON DELETE RESTRICT,
+  winning_entry_id TEXT NOT NULL,
+  FOREIGN KEY (campaign_id, winning_entry_id) REFERENCES draw_entries(campaign_id, id) ON DELETE RESTRICT,
   algorithm_version TEXT NOT NULL,
   entropy_commitment TEXT NOT NULL,
   entropy_reveal TEXT,
