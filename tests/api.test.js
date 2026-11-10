@@ -12,6 +12,20 @@ test('health endpoint reports API status', async () => {
   assert.equal((await response.json()).status, 'ready');
 });
 
+
+test('rejects non-JSON content types', async () => {
+  const response = await onRequestPost({
+    request: new Request('https://example.test/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ message: 'سلام' })
+    }),
+    env: { GROQ_API_KEY: 'test' }
+  });
+  assert.equal(response.status, 415);
+  assert.equal((await response.json()).error, 'UNSUPPORTED_MEDIA_TYPE');
+});
+
 test('rejects malformed JSON', async () => {
   const response = await onRequestPost({
     request: new Request('https://example.test/api/chat', { method: 'POST', body: '{bad json' }),
