@@ -1,4 +1,4 @@
-import { listPaymentMethods } from "../../../src/payments/catalog.js";
+import { listPaymentMethods, listBillingOptions } from "../../../src/payments/catalog.js";
 
 const json = (body, status = 200) => new Response(JSON.stringify(body), {
   status,
@@ -14,15 +14,16 @@ export async function onRequestGet() {
     service: "Houshyar payment methods",
     mode: "catalog_only",
     livePaymentsEnabled: false,
-    methods: listPaymentMethods()
+    methods: listPaymentMethods(),
+    billingOptions: listBillingOptions()
   });
 }
 
-// Intentionally fail closed until a reviewed processor, invoice persistence,
+// Intentionally fail closed until reviewed processors, invoice persistence,
 // webhook verification, and idempotent entitlement grants are implemented.
 export async function onRequestPost() {
   return json({
     error: "PAYMENTS_NOT_CONFIGURED",
-    message: "پرداخت رمزارزی هنوز فعال نشده است؛ هیچ آدرسی برای واریز ارسال نکنید."
+    message: "پرداخت هوش‌یار هنوز فعال نشده است؛ هیچ وجهی ارسال نکنید."
   }, 503);
 }

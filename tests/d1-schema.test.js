@@ -31,3 +31,21 @@ test('D1 setup guide clearly states migration does not activate auth or rate lim
   assert.match(doc, /به‌تنهایی احراز هویت یا rate limiting را فعال نمی‌کنند/);
   assert.match(doc, /binding/);
 });
+
+test('conversation history is isolated by user and indexed by recent activity', async () => {
+  const sql = await readFile(new URL('../migrations/0011_conversation_history.sql', import.meta.url), 'utf8');
+  assert.match(sql, /user_id TEXT NOT NULL REFERENCES users\(id\) ON DELETE CASCADE/);
+  assert.match(sql, /messages_json TEXT NOT NULL/);
+  assert.match(sql, /message_count INTEGER NOT NULL/);
+  assert.match(sql, /idx_conversations_user_updated/);
+  assert.match(sql, /ON conversations\(user_id, updated_at DESC\)/);
+});
+
+test('project schema isolates ownership and keeps conversations when a project is deleted', async () => {
+  const sql = await readFile(new URL('../migrations/0012_user_projects.sql', import.meta.url), 'utf8');
+  assert.match(sql, /CREATE TABLE IF NOT EXISTS projects/);
+  assert.match(sql, /user_id TEXT NOT NULL REFERENCES users\(id\) ON DELETE CASCADE/);
+  assert.match(sql, /ALTER TABLE conversations[\s\S]*ADD COLUMN project_id TEXT REFERENCES projects\(id\) ON DELETE SET NULL/);
+  assert.match(sql, /idx_projects_user_updated/);
+  assert.match(sql, /idx_conversations_project_updated/);
+});
