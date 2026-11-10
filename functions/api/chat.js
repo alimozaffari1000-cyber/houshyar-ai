@@ -173,7 +173,7 @@ export async function onRequestPost({ request, env }) {
     }
     if (upstream) {
       await releaseQuota();
-    return json({ error: "EMPTY_REPLY", message: "پاسخ معتبری از مدل دریافت نشد." }, 502);
+      return json({ error: "EMPTY_REPLY", message: "پاسخ معتبری از مدل دریافت نشد." }, 502);
     }
     await releaseQuota();
     return json({ error: "UPSTREAM_UNAVAILABLE", message: "ارتباط با سرویس هوش مصنوعی برقرار نشد." }, 502);
@@ -187,6 +187,7 @@ export async function onRequestPost({ request, env }) {
   }
   const reply = data?.choices?.[0]?.message?.content;
   if (typeof reply !== "string" || !reply.trim()) {
+    await releaseQuota();
     return json({ error: "EMPTY_REPLY", message: "پاسخ معتبری از مدل دریافت نشد." }, 502);
   }
   return json({ reply: reply.trim() });
