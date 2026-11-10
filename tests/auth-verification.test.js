@@ -10,7 +10,7 @@ test("email verification activates the account and consumes its token atomically
   });
   const db = {
     prepare(sql) {
-      return { sql, bind(...values) { return { sql, values }; } };
+      return { sql, bind(...values) { return { sql, values, async first() { return { request_count: 1 }; } }; } };
     },
     async batch(statements) {
       assert.equal(statements.length, 2);
