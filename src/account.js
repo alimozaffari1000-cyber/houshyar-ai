@@ -71,6 +71,7 @@ async function loadConversationHistory(content, status, panel) {
           const result = await fetch("/api/conversations/" + encodeURIComponent(item.id), { method: "DELETE", credentials: "same-origin" });
           const detail = await result.json().catch(() => ({}));
           if (!result.ok) throw new Error(detail.message || "حذف گفتگو انجام نشد.");
+          window.dispatchEvent(new CustomEvent("houshyar:conversation-deleted", { detail: { id: item.id } }));
           await loadConversationHistory(content, status, panel);
         } catch (error) { status.textContent = error.message; remove.disabled = false; }
       });
