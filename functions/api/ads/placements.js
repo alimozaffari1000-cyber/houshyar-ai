@@ -14,8 +14,8 @@ export async function onRequestGet({ request, env }) {
     if (!slotRow) return adJson({ ads: [], enabled: true });
     const now = Math.floor(Date.now() / 1000);
     const rows = await env.DB.prepare(
-      "SELECT id, title, creative_payload, destination_url FROM ad_campaigns " +
-      "WHERE status = 'approved' AND budget_minor > 0 " +
+      "SELECT id, title, creative_payload, destination_url, pricing_model FROM ad_campaigns " +
+      "WHERE status = 'approved' AND (budget_minor > 0 OR pricing_model = 'barter') " +
       "AND (starts_at IS NULL OR starts_at <= ?) AND (ends_at IS NULL OR ends_at > ?) " +
       "ORDER BY created_at DESC LIMIT ?"
     ).bind(now, now, Math.max(1, Math.min(5, Number(slotRow.max_items) || 1))).all();
@@ -25,7 +25,15 @@ export async function onRequestGet({ request, env }) {
       let creative = {};
       try { creative = JSON.parse(row.creative_payload || "{}"); } catch { return []; }
       const description = typeof creative.description === "string" ? creative.description.slice(0, 500) : "";
-      return [{ id: row.id, title: row.title, description, destinationUrl, label: "تبلیغ" }];
+      const isBarter = row.pricing_model === "barter";
+      return [{
+        id: row.id,
+        title: row.title,
+        description,
+        destinationUrl,
+        pricingModel: isBarter ? "barter" : row.pricing_model,
+        label: isBarter ? "تبادل تبلیغاتی" : "تبلیغ حمایت‌شده"
+      }];
     });
     return adJson({ ads, enabled: true, slot });
   } catch { return adJson({ error: "AD_DELIVERY_UNAVAILABLE" }, 503); }
