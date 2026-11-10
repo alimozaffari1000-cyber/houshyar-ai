@@ -3,7 +3,6 @@ import './style.css';
 const app = document.querySelector('#app');
 const state = { messages: [], busy: false, draft: '' };
 const escapeHTML = (value='') => String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const scrollChat = () => app.querySelector('.chat')?.scrollIntoView({ behavior: 'smooth', block: 'end' });
 
 const scrollChat = () => {
   const chat = app.querySelector('.chat');
