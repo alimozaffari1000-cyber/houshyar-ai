@@ -23,11 +23,8 @@ CREATE TABLE IF NOT EXISTS ad_campaigns (
   updated_at INTEGER NOT NULL,
   CHECK (ends_at IS NULL OR starts_at IS NULL OR ends_at > starts_at)
 );
-
-CREATE INDEX IF NOT EXISTS idx_ad_campaigns_status_schedule
-  ON ad_campaigns(status, starts_at, ends_at);
-CREATE INDEX IF NOT EXISTS idx_ad_campaigns_advertiser_created
-  ON ad_campaigns(advertiser_user_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_ad_campaigns_status_schedule ON ad_campaigns(status, starts_at, ends_at);
+CREATE INDEX IF NOT EXISTS idx_ad_campaigns_advertiser_created ON ad_campaigns(advertiser_user_id, created_at);
 
 CREATE TABLE IF NOT EXISTS ad_events (
   id TEXT PRIMARY KEY,
@@ -41,17 +38,20 @@ CREATE TABLE IF NOT EXISTS ad_events (
   occurred_at INTEGER NOT NULL,
   validated_at INTEGER
 );
+CREATE INDEX IF NOT EXISTS idx_ad_events_campaign_type_time ON ad_events(campaign_id, event_type, occurred_at);
+CREATE INDEX IF NOT EXISTS idx_ad_events_user_time ON ad_events(user_id, occurred_at);
 
-CREATE INDEX IF NOT EXISTS idx_ad_events_campaign_type_time
-  ON ad_events(campaign_id, event_type, occurred_at);
-CREATE INDEX IF NOT EXISTS idx_ad_events_user_time
-  ON ad_events(user_id, occurred_at);
+CREATE TABLE IF NOT EXISTS ad_referral_codes (
+  code TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL UNIQUE REFERENCES users(id) ON DELETE RESTRICT,
+  created_at INTEGER NOT NULL
+);
 
 CREATE TABLE IF NOT EXISTS referral_attributions (
   id TEXT PRIMARY KEY,
   referrer_user_id TEXT NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
   referred_user_id TEXT NOT NULL UNIQUE REFERENCES users(id) ON DELETE RESTRICT,
-  referral_code TEXT NOT NULL,
+  referral_code TEXT NOT NULL REFERENCES ad_referral_codes(code) ON DELETE RESTRICT,
   attributed_at INTEGER NOT NULL,
   conversion_at INTEGER,
   status TEXT NOT NULL DEFAULT 'attributed'
@@ -59,9 +59,7 @@ CREATE TABLE IF NOT EXISTS referral_attributions (
   UNIQUE(referrer_user_id, referred_user_id),
   CHECK (referrer_user_id <> referred_user_id)
 );
-
-CREATE INDEX IF NOT EXISTS idx_referrals_referrer_status
-  ON referral_attributions(referrer_user_id, status, attributed_at);
+CREATE INDEX IF NOT EXISTS idx_referrals_referrer_status ON referral_attributions(referrer_user_id, status, attributed_at);
 
 -- Positive and negative service-credit entries; corrections are appended, never edited.
 CREATE TABLE IF NOT EXISTS ad_reward_ledger (
@@ -75,20 +73,8 @@ CREATE TABLE IF NOT EXISTS ad_reward_ledger (
   idempotency_key TEXT NOT NULL UNIQUE,
   created_at INTEGER NOT NULL
 );
-
-CREATE INDEX IF NOT EXISTS idx_ad_reward_ledger_user_created
-  ON ad_reward_ledger(user_id, created_at);
-CREATE INDEX IF NOT EXISTS idx_ad_reward_ledger_status_created
-  ON ad_reward_ledger(status, created_at);
-
-CREATE TRIGGER IF NOT EXISTS trg_ad_reward_ledger_no_update
-BEFORE UPDATE ON ad_reward_ledger
-BEGIN
-  SELECT RAISE(ABORT, 'AD_REWARD_LEDGER_IMMUTABLE');
-END;
-
-CREATE TRIGGER IF NOT EXISTS trg_ad_reward_ledger_no_delete
-BEFORE DELETE ON ad_reward_ledger
-BEGIN
-  SELECT RAISE(ABORT, 'AD_REWARD_LEDGER_IMMUTABLE');
-END;
+CREATE INDEX IF NOT EXISTS idx_ad_reward_ledger_user_created ON ad_reward_ledger(user_id, created_at);
+CREATE TRIGGER IF NOT EXISTS trg_ad_reward_ledger_no_update BEFORE UPDATE ON ad_reward_ledger
+BEGIN SELECT RAISE(ABORT, 'AD_REWARD_LEDGER_IMMUTABLE'); END;
+CREATE TRIGGER IF NOT EXISTS trg_ad_reward_ledger_no_delete BEFORE DELETE ON ad_reward_ledger
+BEGIN SELECT RAISE(ABORT, 'AD_REWARD_LEDGER_IMMUTABLE'); END;
