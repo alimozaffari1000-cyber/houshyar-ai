@@ -83,3 +83,17 @@ button:focus-visible,textarea:focus-visible{outline:2px solid #58d9bd;outline-of
 .draw-enter,.draw-result{margin-top:8px;width:100%;background:#1a665b;border-color:#2d9a85;color:#effffb}
 .draw-enter:disabled,.draw-result:disabled,.draw-panel-head button:disabled{opacity:.5}
 @media(max-width:430px){.draw-panel{padding:13px}.draw-panel-head{align-items:flex-start}.draw-stats{gap:5px}.draw-stats>div{padding:6px}.draw-stats b{font-size:11px}}
+
+
+.draw-admin{margin-top:16px;padding-top:14px;border-top:1px solid #30445e}
+.draw-admin-head{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.draw-admin h3{font-size:13px;margin:4px 0}
+.draw-admin h4{font-size:11px;margin:10px 0;color:#dce8f7}
+.draw-admin-head button,.draw-admin-actions button{background:#13243a;border:1px solid #3c526d;color:#dce8f7;border-radius:8px;padding:7px 9px;font:10px Vazirmatn;cursor:pointer}
+#draw-admin-create{display:grid;gap:7px;padding:12px;background:#0d1b2c;border:1px solid #30445e;border-radius:10px}
+#draw-admin-create label{display:grid;gap:5px;font-size:10px;color:#c6d4e5}
+#draw-admin-create input,#draw-admin-create textarea{width:100%;min-width:0;background:#091625;border:1px solid #3b5069;border-radius:8px;padding:8px;color:#fff;font:11px Vazirmatn}
+.draw-admin-row{display:grid;gap:6px;margin-top:9px;padding:10px;background:#0d1b2c;border:1px solid #30445e;border-radius:9px;font-size:11px}
+.draw-admin-row>span,.draw-admin-row small{font-size:10px;color:#91a6bf}
+.draw-admin-actions{display:flex;flex-wrap:wrap;gap:6px}
+.draw-admin-actions button{flex:1}
