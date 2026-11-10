@@ -49,14 +49,14 @@ CREATE TABLE IF NOT EXISTS draw_results (
   id TEXT PRIMARY KEY,
   campaign_id TEXT NOT NULL UNIQUE REFERENCES draw_campaigns(id) ON DELETE RESTRICT,
   winning_entry_id TEXT NOT NULL,
-  FOREIGN KEY (campaign_id, winning_entry_id) REFERENCES draw_entries(campaign_id, id) ON DELETE RESTRICT,
   algorithm_version TEXT NOT NULL,
   entropy_commitment TEXT NOT NULL,
   entropy_reveal TEXT,
   selected_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   published_at TEXT,
   verification_status TEXT NOT NULL DEFAULT 'pending'
-    CHECK (verification_status IN ('pending', 'verified', 'failed'))
+    CHECK (verification_status IN ('pending', 'verified', 'failed')),
+  FOREIGN KEY (campaign_id, winning_entry_id) REFERENCES draw_entries(campaign_id, id) ON DELETE RESTRICT
 );
 
 CREATE TABLE IF NOT EXISTS draw_audit_events (
