@@ -181,25 +181,29 @@ export async function onRequestPost({ request, env }) {
 
     try {
       const coordinated = await coordinateAgentRequest({ message: latest, execute: executeSpecialist });
-      if (!coordinated.reply) {
-        await releaseQuota();
-        return json({
-          error: coordinated.reason || "COORDINATION_FAILED",
-          message: "هماهنگی متخصصان کامل نشد؛ دوباره تلاش کنید.",
-          failures: coordinated.failures || []
-        }, 502);
-      }
-      return json({
-        reply: coordinated.reply,
-        agent: { id: "coordinator", label: "هماهنگ‌کننده هوش‌یار", labelEn: "Houshyar coordinator" },
-        coordination: {
-          status: coordinated.reason,
-          specialistSteps: coordinated.steps,
-          failedSteps: coordinated.failures || [],
-          maxSpecialists: 2,
-          externalTools: false
+      if (coordinated.reason === "NO_MULTI_SPECIALIST_PLAN") {
+        // Keep ordinary requests on the existing single-model path below.
+      } else {
+        if (!coordinated.reply) {
+          await releaseQuota();
+          return json({
+            error: coordinated.reason || "COORDINATION_FAILED",
+            message: "هماهنگی متخصصان کامل نشد؛ دوباره تلاش کنید.",
+            failures: coordinated.failures || []
+          }, 502);
         }
-      });
+        return json({
+          reply: coordinated.reply,
+          agent: { id: "coordinator", label: "هماهنگ‌کننده هوش‌یار", labelEn: "Houshyar coordinator" },
+          coordination: {
+            status: coordinated.reason,
+            specialistSteps: coordinated.steps,
+            failedSteps: coordinated.failures || [],
+            maxSpecialists: 2,
+            externalTools: false
+          }
+        });
+      }
     } catch {
       await releaseQuota();
       return json({ error: "COORDINATION_FAILED", message: "اجرای هماهنگی متخصصان ناموفق بود." }, 502);
