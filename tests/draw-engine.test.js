@@ -43,7 +43,7 @@ test("winner selection fails closed without secure random source or eligible ent
 test("draw migration permanently disables paid entry and protects results and audit records", () => {
   const sql = readFileSync("migrations/0008_promotional_draws.sql", "utf8");
   assert.match(sql, /paid_entry_enabled INTEGER NOT NULL DEFAULT 0 CHECK \(paid_entry_enabled = 0\)/);
-  assert.match(sql, /UNIQUE \\(campaign_id, user_id\\)/);
+  assert.ok(sql.includes("UNIQUE (campaign_id, user_id)"));
   assert.match(sql, /UNIQUE \(campaign_id, ticket_code\)/);
   assert.match(sql, /campaign_id TEXT NOT NULL UNIQUE/);
   assert.match(sql, /trg_draw_results_no_update/);
