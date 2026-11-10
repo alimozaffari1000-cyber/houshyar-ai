@@ -4,6 +4,13 @@ const app = document.querySelector('#app');
 const state = { messages: [], busy: false, draft: '' };
 const escapeHTML = (value='') => String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
+const scrollChat = () => {
+  const chat = app.querySelector('.chat');
+  if (!chat) return;
+  const prefersReducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
+  chat.scrollIntoView({ behavior: prefersReducedMotion ? 'auto' : 'smooth', block: 'end' });
+};
+
 function render() {
   app.innerHTML = `
     <header class="top"><div class="brand"><span class="logo">هـ</span><div><strong>هوش‌یار</strong><small>دستیار هوشمند چندمنظوره</small></div></div><span class="status"><i></i> نسخه آزمایشی</span></header>
