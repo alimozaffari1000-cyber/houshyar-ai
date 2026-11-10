@@ -48,10 +48,10 @@ export async function onRequestPut({ request, env, params }) {
 
 export async function onRequestDelete({ request, env, params }) {
   if (!originAllowed(request)) return json({ error: "ORIGIN_NOT_ALLOWED" }, 403);
-  const auth = await requireUser(request, env);
-  if (auth.error) return auth.error;
   const id = params?.id;
   if (!validConversationId(id)) return json({ error: "NOT_FOUND" }, 404);
+  const auth = await requireUser(request, env);
+  if (auth.error) return auth.error;
   try {
     const result = await env.DB.prepare("DELETE FROM conversations WHERE id = ? AND user_id = ?").bind(id, auth.user.id).run();
     if (!result.meta?.changes) return json({ error: "NOT_FOUND" }, 404);
