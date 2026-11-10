@@ -21,7 +21,9 @@ test('پیش‌نویس پیام هنگام انتظار برای پاسخ حف�
   assert.ok(js.includes("draft: ''"));
   assert.ok(js.includes('${escapeHTML(state.draft)}'));
   assert.ok(js.includes("prompt.addEventListener('input',()=>{state.draft=prompt.value;resize();});"));
-  assert.ok(js.includes("state.draft='';\n  state.messages.push"));
+  assert.ok(js.includes("state.draft='';\n  if (state.messages.length > 78) state.messages.splice(0, 2);\n  state.messages.push"));
+  assert.match(js,/await persistConversation\(\)/);
+  assert.match(js,/houshyar:load-conversation/);
 });
 
 
