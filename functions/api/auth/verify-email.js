@@ -12,8 +12,21 @@ export async function onRequestPost({ request, env }) {
   if (limited) return limited;
   const now = Math.floor(Date.now() / 1000);
   const tokenHash = await hashAuthToken(token);
-  const user = await env.DB.prepare("UPDATE users SET status = 'active', updated_at = ? WHERE id = (SELECT user_id FROM email_verification_tokens WHERE token_hash = ? AND consumed_at IS NULL AND expires_at > ?) AND status = 'pending' RETURNING id").bind(now, tokenHash, now).first();
-  if (!user) return authJson({ error: "INVALID_OR_EXPIRED_TOKEN", message: "پیوند تأیید نامعتبر یا منقضی شده است." }, 400);
-  await env.DB.prepare("UPDATE email_verification_tokens SET consumed_at = ? WHERE token_hash = ? AND consumed_at IS NULL").bind(now, tokenHash).run();
+  // Activate the pending account and consume its one-time token atomically.
+  const results = await env.DB.batch([
+    env.DB.prepare(
+      "UPDATE users SET status = 'active', updated_at = ? WHERE id = " +
+      "(SELECT user_id FROM email_verification_tokens WHERE token_hash = ? AND consumed_at IS NULL AND expires_at > ?) " +
+      "AND status = 'pending'"
+    ).bind(now, tokenHash, now),
+    env.DB.prepare(
+      "UPDATE email_verification_tokens SET consumed_at = ? WHERE token_hash = ? " +
+      "AND consumed_at IS NULL AND expires_at > ? " +
+      "AND EXISTS (SELECT 1 FROM users WHERE users.id = email_verification_tokens.user_id AND users.status = 'active')"
+    ).bind(now, tokenHash, now)
+  ]);
+  if (results?.[0]?.meta?.changes !== 1 || results?.[1]?.meta?.changes !== 1) {
+    return authJson({ error: "INVALID_OR_EXPIRED_TOKEN", message: "پیوند تأیید نامعتبر یا منقضی شده است." }, 400);
+  }
   return authJson({ verified: true });
 }
