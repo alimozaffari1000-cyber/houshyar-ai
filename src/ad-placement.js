@@ -10,9 +10,9 @@ export async function initAdPlacement(container, slot = "home_below_welcome") {
     const section = document.createElement("section");
     section.className = "public-ad-placement";
     section.setAttribute("aria-label", "تبلیغات");
-    section.innerHTML = '<p class="public-ad-label">تبلیغ</p>' + data.ads.map(ad => `
+    section.innerHTML = '<p class="public-ad-label">تبلیغات</p>' + data.ads.map(ad => `
       <article class="public-ad-card">
-        <div><strong>${escape(ad.title)}</strong><p>${escape(ad.description)}</p></div>
+        <div><small class="public-ad-kind">${escape(ad.label || "تبلیغ")}</small><strong>${escape(ad.title)}</strong><p>${escape(ad.description)}</p></div>
         <a href="${escape(ad.destinationUrl)}" target="_blank" rel="noopener noreferrer sponsored">مشاهده</a>
       </article>`).join("");
     container.append(section);
