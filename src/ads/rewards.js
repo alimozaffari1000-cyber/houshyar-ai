@@ -16,7 +16,7 @@ export function calculateRewardPool(netRevenueUnits, rateBps = DEFAULT_REWARD_RA
   if (!Number.isSafeInteger(rateBps) || rateBps < 0 || rateBps > BASIS_POINTS) {
     throw new RangeError('rateBps must be an integer between 0 and 10000');
   }
-  return Math.floor((netRevenueUnits * rateBps) / BASIS_POINTS);
+  return Number((BigInt(netRevenueUnits) * BigInt(rateBps)) / BigInt(BASIS_POINTS));
 }
 
 /**
@@ -37,19 +37,19 @@ export function distributeRewardPool(poolUnits, participants) {
     return { userId, weight };
   });
 
-  const totalWeight = eligible.reduce((sum, item) => sum + item.weight, 0);
-  if (!Number.isSafeInteger(totalWeight)) throw new RangeError('total weight exceeds safe integer range');
+  const totalWeight = eligible.reduce((sum, item) => sum + BigInt(item.weight), 0n);
   if (eligible.length === 0 || poolUnits === 0) {
     return eligible.map(({ userId }) => ({ userId, rewardUnits: 0 }));
   }
 
   const shares = eligible.map(({ userId, weight }) => {
-    const exact = (poolUnits * weight) / totalWeight;
-    const base = Math.floor(exact);
-    return { userId, rewardUnits: base, remainder: exact - base };
+    const numerator = BigInt(poolUnits) * BigInt(weight);
+    const base = numerator / totalWeight;
+    const remainder = numerator % totalWeight;
+    return { userId, rewardUnits: Number(base), remainder };
   });
-  let remaining = poolUnits - shares.reduce((sum, item) => sum + item.rewardUnits, 0);
-  const ranked = [...shares].sort((a, b) => b.remainder - a.remainder || a.userId.localeCompare(b.userId));
+  const remaining = poolUnits - shares.reduce((sum, item) => sum + item.rewardUnits, 0);
+  const ranked = [...shares].sort((a, b) => (a.remainder === b.remainder ? a.userId.localeCompare(b.userId) : a.remainder > b.remainder ? -1 : 1));
   for (let index = 0; index < remaining; index += 1) ranked[index].rewardUnits += 1;
 
   return shares
