@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import {
   listPaymentMethods, listBillingOptions, getPaymentMethod, getBillingOption
 } from "../src/payments/catalog.js";
@@ -86,4 +87,15 @@ test("payment mutation endpoint fails closed until a processor is configured", a
   const response = await onRequestPost();
   assert.equal(response.status, 503);
   assert.equal((await response.json()).error, "PAYMENTS_NOT_CONFIGURED");
+});
+
+
+test("payment migration deduplicates provider events and protects the wallet ledger", () => {
+  const migration = readFileSync("migrations/0004_payment_ledger.sql", "utf8");
+  assert.match(migration, /UNIQUE\(provider_id, provider_event_id\)/);
+  assert.match(migration, /UNIQUE\(provider_id, provider_invoice_id\)/);
+  assert.match(migration, /UNIQUE\(provider_id, provider_subscription_id\)/);
+  assert.match(migration, /CREATE TRIGGER IF NOT EXISTS trg_wallet_ledger_no_update/);
+  assert.match(migration, /CREATE TRIGGER IF NOT EXISTS trg_wallet_ledger_no_delete/);
+  assert.match(migration, /WALLET_LEDGER_IMMUTABLE/);
 });
