@@ -1,4 +1,5 @@
 const WINDOW_SECONDS = 900;
+const ACTION_LIMITS = { register: 5, login: 10, verify: 10, resend: 3, "password-reset": 3, "reset-confirm": 5 };
 async function hash(value) {
   const bytes = new TextEncoder().encode(value);
   const result = await crypto.subtle.digest("SHA-256", bytes);
@@ -6,8 +7,9 @@ async function hash(value) {
 }
 export async function checkAuthRateLimit({ db, action, email, clientIp, now = Math.floor(Date.now() / 1000), limit }) {
   if (!db || typeof db.prepare !== "function") throw new Error("AUTH_RATE_LIMIT_STORAGE_UNAVAILABLE");
-  const safeAction = action === "register" ? "register" : "login";
-  const safeLimit = Number.isInteger(limit) ? Math.max(1, Math.min(30, limit)) : (safeAction === "register" ? 5 : 10);
+  const safeAction = Object.hasOwn(ACTION_LIMITS, action) ? action : "login";
+  const configured = Number.isInteger(limit) ? limit : ACTION_LIMITS[safeAction];
+  const safeLimit = Math.max(1, Math.min(30, configured));
   const windowStart = Math.floor(now / WINDOW_SECONDS) * WINDOW_SECONDS;
   const ipHash = await hash(String(clientIp || "unknown"));
   const emailHash = await hash(String(email || "").trim().toLowerCase());
