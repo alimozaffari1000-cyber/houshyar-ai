@@ -48,4 +48,9 @@ test("draw migration permanently disables paid entry and protects results and au
   assert.match(sql, /campaign_id TEXT NOT NULL UNIQUE/);
   assert.match(sql, /trg_draw_results_no_update/);
   assert.match(sql, /trg_draw_audit_no_delete/);
+  const verification = readFileSync("migrations/0009_draw_verification_ledger.sql", "utf8");
+  const snapshot = readFileSync("migrations/0010_draw_snapshot_integrity.sql", "utf8");
+  assert.match(verification, /draw_result_verifications/);
+  assert.match(verification, /trg_draw_verifications_no_update/);
+  assert.match(snapshot, /eligible_entries_sha256/);
 });
