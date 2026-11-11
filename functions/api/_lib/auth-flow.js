@@ -3,8 +3,12 @@ export const authJson = (body, status = 200, headers = {}) => new Response(JSON.
   status,
   headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff", ...headers }
 });
+export function isJsonContentType(value) {
+  if (typeof value !== "string") return false;
+  return value.split(";", 1)[0].trim().toLowerCase() === "application/json";
+}
 export async function readAuthBody(request) {
-  if (!(request.headers.get("content-type") || "").toLowerCase().includes("application/json")) return { error: "UNSUPPORTED_MEDIA_TYPE", status: 415 };
+  if (!isJsonContentType(request.headers.get("content-type"))) return { error: "UNSUPPORTED_MEDIA_TYPE", status: 415 };
   const length = Number(request.headers.get("content-length"));
   if (Number.isFinite(length) && length > 8192) return { error: "BODY_TOO_LARGE", status: 413 };
   let raw;
