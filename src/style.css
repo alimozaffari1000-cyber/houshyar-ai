@@ -20,3 +20,19 @@ main{max-width:850px;margin:0 auto;padding:65px 22px 30px}.welcome{text-align:ce
 button:focus-visible,textarea:focus-visible{outline:2px solid #58d9bd;outline-offset:3px}
 #send:hover:not(:disabled){filter:brightness(1.08)}
 @media(max-width:420px){#chat-form{gap:6px;padding:7px}#send{padding:0 13px}.msg{padding:12px}}
+
+.top-actions{display:flex;align-items:center;gap:16px}.account-open{background:#183047;border:1px solid #3c637b;border-radius:10px;color:#dffbf4;padding:8px 13px;font:12px Vazirmatn;cursor:pointer}
+.account-panel{position:fixed;inset:0;z-index:20;background:#020812cc;display:grid;place-items:center;padding:18px}.account-panel[hidden]{display:none}.account-card{width:min(100%,430px);background:#14243a;border:1px solid #3a526d;border-radius:18px;padding:20px;box-shadow:0 20px 80px #0009}.account-head{display:flex;justify-content:space-between;align-items:center}.account-head strong{font-size:16px}.account-head button{background:transparent;border:1px solid #425872;color:#e8f2fc;border-radius:8px;padding:6px 10px}.account-card label{display:grid;gap:6px;margin:13px 0;color:#c6d4e5;font-size:12px}.account-card input{width:100%;background:#0d192a;border:1px solid #3b5069;border-radius:9px;padding:11px;color:#fff;font:13px Vazirmatn}.account-submit{width:100%;margin-top:12px;padding:11px;border:0;border-radius:10px;background:#55d5b5;color:#09201e;font:700 13px Vazirmatn}.account-submit:disabled{opacity:.5}.account-tabs{display:flex;gap:8px;margin:12px 0}.account-tabs button{flex:1;padding:8px;border:1px solid #3c526d;border-radius:9px;background:#0e1b2d;color:#c6d4e5;font:12px Vazirmatn}.account-tabs button.active{border-color:#55d5b5;color:#65e2c4}.account-muted{font-size:11px;line-height:1.9;color:#91a6bf}.account-email{direction:ltr;text-align:right;color:#d8e9f8}.quota-box{display:grid;gap:6px;background:#0d1b2c;border:1px solid #2b475e;border-radius:12px;padding:13px}.quota-box strong{font-size:22px;color:#65e2c4}.quota-box small{font-size:10px;color:#9bb0c7;line-height:1.8}
+@media(max-width:420px){.top-actions{gap:8px}.account-open{padding:7px 9px;font-size:10px}.status{font-size:9px}}
+
+.account-actions{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+.account-actions button{flex:1;min-width:130px;background:#0e1b2d;border:1px solid #3c526d;border-radius:9px;color:#c6d4e5;padding:9px;font:11px Vazirmatn;cursor:pointer}
+.auth-flow-overlay{z-index:30}
+.auth-flow-overlay .account-card{max-width:460px}
+
+.locale-select{max-width:112px;background:#13243a;border:1px solid #3c526d;border-radius:9px;color:#dce8f7;padding:7px 8px;font:11px Vazirmatn;cursor:pointer}
+.agent-label{font-size:10px;color:#91a9c4;font-weight:400}
+[dir="ltr"] .suggestions button{text-align:left}
+[dir="ltr"] .input-hint{text-align:left}
+[dir="ltr"] .msg p{text-align:left}
+@media(max-width:520px){.locale-select{max-width:88px;padding:6px 4px;font-size:10px}.top-actions{gap:7px}}
