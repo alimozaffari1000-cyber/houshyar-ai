@@ -14,12 +14,12 @@ export async function reserveDailyChat({ db, userId, limit, now = Math.floor(Dat
     "ON CONFLICT(user_id, usage_date) DO UPDATE SET request_count = request_count + 1, updated_at = excluded.updated_at " +
     "WHERE daily_usage.request_count < ? RETURNING request_count"
   ).bind(userId, day, now, quota).first();
-  return { allowed: Boolean(result), used: result?.request_count ?? quota, limit: quota, resetAt };
+  return { allowed: Boolean(result), used: result?.request_count ?? quota, limit: quota, resetAt, usageDate: day };
 }
-export async function releaseDailyChat({ db, userId, now = Math.floor(Date.now() / 1000) }) {
+export async function releaseDailyChat({ db, userId, usageDate = new Date().toISOString().slice(0, 10), now = Math.floor(Date.now() / 1000) }) {
   if (!db || !userId) return;
-  const day = new Date(now * 1000).toISOString().slice(0, 10);
+  if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(usageDate)) throw new Error("INVALID_USAGE_DATE");
   await db.prepare(
     "UPDATE daily_usage SET request_count = CASE WHEN request_count > 0 THEN request_count - 1 ELSE 0 END, updated_at = ? WHERE user_id = ? AND usage_date = ?"
-  ).bind(now, userId, day).run();
+  ).bind(now, userId, usageDate).run();
 }
