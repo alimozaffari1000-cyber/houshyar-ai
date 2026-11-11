@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { onRequestPost as verifyEmail } from "../functions/api/auth/verify-email.js";
+import { isJsonContentType, readAuthBody } from "../functions/api/_lib/auth-flow.js";
 
 function makeRateLimitedDb(batchResult) {
   return {
@@ -38,4 +39,22 @@ test("email verification rejects a token when activation or consumption did not 
   const response = await verifyEmail({ request, env: { AUTH_ENABLED: "true", DB: db } });
   assert.equal(response.status, 400);
   assert.equal((await response.json()).error, "INVALID_OR_EXPIRED_TOKEN");
+});
+
+
+test("auth JSON media type accepts parameters but rejects JSON-like suffixes", () => {
+  assert.equal(isJsonContentType("application/json"), true);
+  assert.equal(isJsonContentType("Application/JSON; charset=utf-8"), true);
+  assert.equal(isJsonContentType("application/jsonp"), false);
+  assert.equal(isJsonContentType("text/application/json"), false);
+  assert.equal(isJsonContentType(null), false);
+});
+
+test("auth body parser rejects unsupported JSON-like media types", async () => {
+  const request = new Request("https://houshyar.example.test/api/auth/verify-email", {
+    method: "POST",
+    headers: { "content-type": "application/jsonp" },
+    body: JSON.stringify({ token: "x".repeat(48) })
+  });
+  assert.deepEqual(await readAuthBody(request), { error: "UNSUPPORTED_MEDIA_TYPE", status: 415 });
 });
