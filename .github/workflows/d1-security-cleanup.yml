@@ -13,20 +13,29 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - name: Verify Cloudflare credentials are configured
+      - name: Check Cloudflare credentials
+        id: credentials
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
-          test -n "$CLOUDFLARE_API_TOKEN" || { echo "::error::Configure CLOUDFLARE_API_TOKEN in GitHub Actions secrets."; exit 1; }
-          test -n "$CLOUDFLARE_ACCOUNT_ID" || { echo "::error::Configure CLOUDFLARE_ACCOUNT_ID in GitHub Actions secrets."; exit 1; }
-      - uses: actions/checkout@v4
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "::notice::D1 cleanup skipped; Cloudflare credentials are not configured."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/checkout@v6
+        if: steps.credentials.outputs.ready == 'true'
         with:
           persist-credentials: false
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
+        if: steps.credentials.outputs.ready == 'true'
         with:
-          node-version: 20
+          node-version: 24
+          package-manager-cache: false
       - name: Clean expired authentication data in production D1
+        if: steps.credentials.outputs.ready == 'true'
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
