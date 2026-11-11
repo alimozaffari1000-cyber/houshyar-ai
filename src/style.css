@@ -29,3 +29,10 @@ button:focus-visible,textarea:focus-visible{outline:2px solid #58d9bd;outline-of
 .account-actions button{flex:1;min-width:130px;background:#0e1b2d;border:1px solid #3c526d;border-radius:9px;color:#c6d4e5;padding:9px;font:11px Vazirmatn;cursor:pointer}
 .auth-flow-overlay{z-index:30}
 .auth-flow-overlay .account-card{max-width:460px}
+
+.locale-select{max-width:112px;background:#13243a;border:1px solid #3c526d;border-radius:9px;color:#dce8f7;padding:7px 8px;font:11px Vazirmatn;cursor:pointer}
+.agent-label{font-size:10px;color:#91a9c4;font-weight:400}
+[dir="ltr"] .suggestions button{text-align:left}
+[dir="ltr"] .input-hint{text-align:left}
+[dir="ltr"] .msg p{text-align:left}
+@media(max-width:520px){.locale-select{max-width:88px;padding:6px 4px;font-size:10px}.top-actions{gap:7px}}
