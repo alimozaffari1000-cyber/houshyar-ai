@@ -104,6 +104,7 @@ export async function onRequestPost({ request, env }) {
 
   let quotaReservation = null;
   let quotaUserId = null;
+  let quotaUsageDate = null;
   if (env.CHAT_QUOTA_ENABLED === "true") {
     if (env.AUTH_ENABLED !== "true" || !env.DB) {
       return json({ error: "QUOTA_NOT_CONFIGURED", message: "سهمیه کاربری هنوز راه‌اندازی نشده است." }, 503);
@@ -113,6 +114,7 @@ export async function onRequestPost({ request, env }) {
       if (!user) return json({ error: "AUTH_REQUIRED", message: "برای استفاده از این سرویس وارد حساب کاربری شوید." }, 401);
       quotaUserId = user.id;
       quotaReservation = await reserveDailyChat({ db: env.DB, userId: quotaUserId, limit: env.FREE_DAILY_CHAT_LIMIT });
+      quotaUsageDate = quotaReservation.usageDate;
       if (!quotaReservation.allowed) {
         return json(
           { error: "DAILY_QUOTA_EXCEEDED", message: "سهمیه روزانه گفتگو به پایان رسیده است.", limit: quotaReservation.limit, resetAt: quotaReservation.resetAt },
@@ -126,7 +128,7 @@ export async function onRequestPost({ request, env }) {
   }
   const releaseQuota = async () => {
     if (!quotaReservation?.allowed || !quotaUserId) return;
-    try { await releaseDailyChat({ db: env.DB, userId: quotaUserId }); } catch { /* generic provider error */ }
+    try { await releaseDailyChat({ db: env.DB, userId: quotaUserId, usageDate: quotaUsageDate }); } catch { /* generic provider error */ }
     quotaReservation = null;
   };
 
