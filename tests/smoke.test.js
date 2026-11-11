@@ -34,6 +34,7 @@ test('scrolling chat respects the reduced-motion accessibility preference', asyn
 
 test('سند اصلی زبان فارسی و جهت راست‌به‌چپ را اعلام می‌کند', async () => {
   const html=await readFile(new URL('../index.html',import.meta.url),'utf8');
-  assert.match(html,/<html\\b[^>]*\\blang=["']fa["']/i);
-  assert.match(html,/<html\\b[^>]*\\bdir=["']rtl["']/i);
+  const htmlTag=html.split('\n').find(line=>line.includes('<html')) || '';
+  assert.ok(htmlTag.includes('lang="fa"'));
+  assert.ok(htmlTag.includes('dir="rtl"'));
 });
