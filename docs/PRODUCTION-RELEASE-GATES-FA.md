@@ -27,6 +27,7 @@
 - [ ] قبل از migration از داده‌های موجود backup تهیه شود.
 - [ ] migrationهای 0001، 0002 و 0003 به‌ترتیب در staging اجرا و نتیجه بررسی شوند.
 - [ ] پس از تأیید staging، migrationها با backup معتبر روی production اعمال شوند.
+- [ ] برای workflow پاک‌سازی D1، سه GitHub secret با نام‌های CLOUDFLARE_API_TOKEN، CLOUDFLARE_ACCOUNT_ID و CLOUDFLARE_D1_DATABASE_NAME فقط پس از تأیید مقصد و سطح دسترسی تنظیم شوند.
 - [ ] پاک‌سازی دوره‌ای D1 با حداقل سطح دسترسی و در محیط آزمایشی بررسی شود.
 
 ## ۴. ایمیل و فعال‌سازی حساب
