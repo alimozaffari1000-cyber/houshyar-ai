@@ -1,30 +1,45 @@
 # Houshyar AI
 
-Houshyar is a Persian-first, right-to-left multi-purpose AI assistant built with Vite and Cloudflare Pages Functions.
+هوش‌یار یک دستیار هوش مصنوعی چندمنظوره، فارسی‌محور و راست‌به‌چپ است که با Vite و Cloudflare Pages Functions ساخته می‌شود.
 
-## Current implementation
+## وضعیت پروژه
 
-- Responsive Persian RTL chat interface with keyboard-first send, clear-chat control, and copy-reply action.
-- Conversation is held in page memory only; it is not persisted by the current frontend.
-- Persian privacy notice draft: [PRIVACY-FA-DRAFT.md](PRIVACY-FA-DRAFT.md).
-- Server-side Groq chat integration at `/api/chat`.
-- Conversation history filtering and length limits.
-- Request-body cap and upstream timeout (see the API implementation).
-- Automated Node.js tests, build checks, security checks, and quality checks.
+این مخزن چند شاخه و Pull Request توسعه‌ای دارد. قابلیت موجود در یک شاخه یا PR تا زمان ادغام، پیکربندی محیط و تست production، قابلیت فعال عمومی محسوب نمی‌شود.
 
-## Requirements
+- **شاخه اصلی `main`:** نمونه اولیه چت فارسی با اتصال سمت سرور به Groq.
+- **شاخه توسعه حساب و امنیت:** PRهای #20 تا #25 شامل پایه D1، محدودیت نرخ، احراز هویت، سهمیه روزانه، تأیید ایمیل و بازیابی رمز هستند؛ هنوز باید به‌ترتیب وابستگی بازبینی و ادغام شوند.
+- **پرداخت رمزارزی:** PR #15 کاتالوگ و API فقط‌خواندنی روش‌های پرداخت را اضافه می‌کند؛ پرداخت واقعی عمداً غیرفعال است.
+- **ایجنت‌ها:** معماری عامل‌های پژوهش، تحلیل، سازنده، QA و نگهبان امنیت طراحی شده؛ این سند به معنی فعال بودن یک تیم خودمختار کامل نیست.
 
-- Node.js 20 or newer.
-- A Groq API key configured only as a server-side Cloudflare secret named `GROQ_API_KEY`.
+## قابلیت‌های نمونه اولیه
 
-## Local development
+- رابط واکنش‌گرای فارسی RTL.
+- ارسال با صفحه‌کلید، پاک‌کردن گفتگو و کپی پاسخ.
+- اتصال سمت سرور به Groq از مسیر `/api/chat`.
+- محدودسازی طول پیام و تاریخچه، اندازه بدنه درخواست و timeout.
+- تست‌های Node.js، بررسی ساختار، امنیت و کیفیت.
+
+## نقشه‌راه و مستندات
+
+- [نقشه‌راه جامع محصول](docs/MASTER-ROADMAP-FA.md)
+- [معماری تیم ایجنت‌ها](docs/AGENT-ARCHITECTURE-FA.md)
+- [گیت‌های انتشار امن](docs/PRODUCTION-RELEASE-GATES-FA.md)
+- [راهنمای تأیید ایمیل و بازیابی رمز](docs/AUTH-EMAIL-RECOVERY-FA.md)
+- [پاک‌سازی زمان‌بندی‌شده D1](docs/D1-CLEANUP-FA.md)
+
+## نیازمندی‌ها
+
+- Node.js نسخه ۲۰ یا بالاتر.
+- کلید Groq که فقط به‌صورت secret سمت سرور Cloudflare با نام `GROQ_API_KEY` تنظیم شده باشد.
+
+## توسعه محلی
 
 ```bash
 npm install
 npm run dev
 ```
 
-## Validation
+## اعتبارسنجی
 
 ```bash
 npm run qa
@@ -34,12 +49,14 @@ npm run build
 npm run quality:check
 ```
 
-## Deployment
+## استقرار
 
-See [Cloudflare setup instructions in Persian](CLOUDFLARE-SETUP-FA.md). Configure the Pages build command as `npm run build` and the output directory as `dist`. Never place provider credentials in browser-visible `VITE_*` variables or commit secrets.
+دستور build در Cloudflare Pages برابر `npm run build` و پوشه خروجی `dist` است. برای قابلیت‌های حساب کاربری، D1 با binding دقیق `DB` و migrationهای 0001 تا 0003 لازم است. برای تأیید ایمیل، سرویس HTTPS سازگار و secrets مستندشده در راهنمای احراز هویت نیز لازم‌اند.
 
-## Production readiness
+هرگز کلید provider، ایمیل یا Cloudflare را در کد مرورگر، متغیرهای `VITE_*` یا مخزن Git قرار ندهید.
 
-This repository is an early-stage prototype, not a fully production-hardened public service. The chat endpoint currently has no user authentication or per-user quota/rate limit. Before opening it to the public, configure server-side abuse prevention, request rate limiting, cost controls, monitoring, and an appropriate privacy policy. Authentication, billing, user accounts, persistent chat history, and database isolation are not implemented.
+## وضعیت آمادگی production
 
-The automated checks are not a penetration test and do not certify the deployed Cloudflare environment. The privacy document is a technical draft, not a legally reviewed privacy policy.
+این پروژه هنوز برای عرضه عمومی تأیید نشده است. احراز هویت و سهمیه در شاخه‌های توسعه opt-in هستند و بدون D1، migration، secrets، سرویس ایمیل و تست end-to-end نباید فعال شوند. درگاه رمزارزی نیز عملیاتی نیست. سابقه گفتگوی پایدار، پنل مدیریت کامل، پرداخت واقعی، مانیتورینگ عملیاتی و بازبینی حقوقی سیاست حریم خصوصی هنوز به تکمیل نیاز دارند.
+
+تست‌های خودکار جایگزین تست نفوذ، بازبینی امنیت محیط واقعی یا تأیید حقوقی نیستند. انتشار عمومی فقط پس از عبور از گیت‌های مستندشده و بررسی انسانی مجاز است.

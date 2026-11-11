@@ -51,7 +51,7 @@ export function initAccountPanel(app) {
           <label>رمز عبور<input name="password" type="password" autocomplete="current-password" minlength="12" maxlength="128" required></label>
           <button type="submit" class="account-submit">ورود</button>
         </form>
-        <p class="account-muted">رمز عبور باید حداقل ۱۲ نویسه باشد. ثبت‌نام فقط پس از فعال‌شدن امن سرور در دسترس خواهد بود.</p>`;
+        <div class="account-actions"><button type="button" id="account-forgot">فراموشی رمز عبور</button><button type="button" id="account-resend">ارسال دوباره ایمیل تأیید</button></div><p class="account-muted">رمز عبور باید حداقل ۱۲ نویسه باشد. حساب جدید پس از تأیید ایمیل فعال می‌شود.</p>`;
       let mode = "login";
       content.querySelectorAll("[data-mode]").forEach(tab => tab.addEventListener("click", () => {
         mode = tab.dataset.mode;
@@ -60,6 +60,27 @@ export function initAccountPanel(app) {
         pass.autocomplete = mode === "login" ? "current-password" : "new-password";
         content.querySelector(".account-submit").textContent = mode === "login" ? "ورود" : "ایجاد حساب";
       }));
+      const emailInput = content.querySelector('[name="email"]');
+      content.querySelector("#account-forgot")?.addEventListener("click", async () => {
+        if (!emailInput.value.trim()) { status.textContent = "ابتدا ایمیل خود را وارد کنید."; emailInput.focus(); return; }
+        status.textContent = "در حال ارسال درخواست بازیابی…";
+        try {
+          const r = await fetch("/api/auth/request-password-reset", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: emailInput.value }) });
+          const d = await r.json().catch(() => ({}));
+          if (!r.ok) throw new Error(d.message || "درخواست بازیابی انجام نشد.");
+          status.textContent = d.message || "اگر حساب فعالی با این ایمیل وجود داشته باشد، دستور بازیابی ارسال می‌شود.";
+        } catch (error) { status.textContent = error.message; }
+      });
+      content.querySelector("#account-resend")?.addEventListener("click", async () => {
+        if (!emailInput.value.trim()) { status.textContent = "ابتدا ایمیل خود را وارد کنید."; emailInput.focus(); return; }
+        status.textContent = "در حال ارسال ایمیل تأیید…";
+        try {
+          const r = await fetch("/api/auth/resend-verification", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: emailInput.value }) });
+          const d = await r.json().catch(() => ({}));
+          if (!r.ok) throw new Error(d.message || "ارسال ایمیل انجام نشد.");
+          status.textContent = d.message || "اگر حساب تأییدنشده‌ای با این ایمیل وجود داشته باشد، پیوند ارسال می‌شود.";
+        } catch (error) { status.textContent = error.message; }
+      });
       content.querySelector("#account-form").addEventListener("submit", async event => {
         event.preventDefault();
         const form = event.currentTarget;
@@ -74,7 +95,11 @@ export function initAccountPanel(app) {
           });
           const result = await response.json().catch(() => ({}));
           if (!response.ok) throw new Error(result.message || (result.error === "AUTH_NOT_CONFIGURED" ? "حساب کاربری هنوز فعال نشده است." : "ورود یا ثبت‌نام انجام نشد."));
-          status.textContent = mode === "login" ? "ورود موفق بود." : "حساب ایجاد شد.";
+          if (mode === "register") {
+            status.textContent = "درخواست ثبت‌نام ثبت شد. صندوق ورودی و پوشه هرزنامه را برای تأیید ایمیل بررسی کنید.";
+            return;
+          }
+          status.textContent = "ورود موفق بود.";
           button.click();
         } catch (error) { status.textContent = error.message; }
         finally { submit.disabled = false; form.password.value = ""; }
