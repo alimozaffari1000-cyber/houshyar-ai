@@ -40,7 +40,7 @@ test('source declares chat scrolling only once', async () => {
 
 test('سند اصلی زبان فارسی و جهت راست‌به‌چپ را اعلام می‌کند', async () => {
   const html=await readFile(new URL('../index.html',import.meta.url),'utf8');
-  const htmlTag=html.split('\\n').find(line=>line.includes('<html')) || '';
+  const htmlTag=html.match(/<html\\b[^>]*>/i)?.[0] || '';
   assert.ok(htmlTag.includes('lang="fa"'));
   assert.ok(htmlTag.includes('dir="rtl"'));
 });
