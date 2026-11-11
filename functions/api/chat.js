@@ -1,12 +1,18 @@
+import { checkChatRateLimit } from "./_lib/chat-rate-limit.js";
+import { getSessionUser } from "./_lib/auth.js";
+import { reserveDailyChat, releaseDailyChat } from "./_lib/daily-quota.js";
+import { routeAgentRequest } from "./_lib/agent-router.js";
+
 const MAX_BODY_BYTES = 32 * 1024;
 const UPSTREAM_TIMEOUT_MS = 20_000;
 
-const json = (body, status = 200) => new Response(JSON.stringify(body), {
+const json = (body, status = 200, extraHeaders = {}) => new Response(JSON.stringify(body), {
   status,
   headers: {
     "Content-Type": "application/json; charset=utf-8",
     "Cache-Control": "no-store",
-    "X-Content-Type-Options": "nosniff"
+    "X-Content-Type-Options": "nosniff",
+    ...extraHeaders
   }
 });
 
@@ -72,6 +78,60 @@ export async function onRequestPost({ request, env }) {
   if (!latest) return json({ error: "MESSAGE_REQUIRED", message: "متن پیام خالی است." }, 400);
   if (latest.length > 6000) return json({ error: "MESSAGE_TOO_LONG", message: "پیام بیش از حد طولانی است." }, 413);
 
+  // Enable only after the D1 migration and DB binding have been configured.
+  if (env.CHAT_RATE_LIMIT_ENABLED === "true") {
+    if (!env.DB) {
+      return json({ error: "RATE_LIMIT_NOT_CONFIGURED", message: "کنترل امنیتی سرویس هنوز آماده نیست." }, 503);
+    }
+    try {
+      const rate = await checkChatRateLimit({
+        db: env.DB,
+        clientIp: request.headers.get("cf-connecting-ip") || "unknown",
+        limit: Number(env.CHAT_RATE_LIMIT_PER_MINUTE) || 20
+      });
+      if (!rate.allowed) {
+        return json(
+          { error: "RATE_LIMITED", message: "تعداد درخواست‌ها بیش از حد مجاز است. کمی بعد دوباره تلاش کنید." },
+          429,
+          { "Retry-After": String(rate.retryAfter) }
+        );
+      }
+    } catch {
+      // Fail closed: do not spend provider credits if the enabled limiter fails.
+      return json({ error: "RATE_LIMIT_UNAVAILABLE", message: "کنترل امنیتی موقتاً در دسترس نیست." }, 503);
+    }
+  }
+
+  let quotaReservation = null;
+  let quotaUserId = null;
+  let quotaUsageDate = null;
+  if (env.CHAT_QUOTA_ENABLED === "true") {
+    if (env.AUTH_ENABLED !== "true" || !env.DB) {
+      return json({ error: "QUOTA_NOT_CONFIGURED", message: "سهمیه کاربری هنوز راه‌اندازی نشده است." }, 503);
+    }
+    try {
+      const user = await getSessionUser(env.DB, request);
+      if (!user) return json({ error: "AUTH_REQUIRED", message: "برای استفاده از این سرویس وارد حساب کاربری شوید." }, 401);
+      quotaUserId = user.id;
+      quotaReservation = await reserveDailyChat({ db: env.DB, userId: quotaUserId, limit: env.FREE_DAILY_CHAT_LIMIT });
+      quotaUsageDate = quotaReservation.usageDate;
+      if (!quotaReservation.allowed) {
+        return json(
+          { error: "DAILY_QUOTA_EXCEEDED", message: "سهمیه روزانه گفتگو به پایان رسیده است.", limit: quotaReservation.limit, resetAt: quotaReservation.resetAt },
+          429,
+          { "Retry-After": String(Math.max(1, quotaReservation.resetAt - Math.floor(Date.now() / 1000))) }
+        );
+      }
+    } catch {
+      return json({ error: "QUOTA_UNAVAILABLE", message: "سامانه سهمیه‌بندی موقتاً در دسترس نیست." }, 503);
+    }
+  }
+  const releaseQuota = async () => {
+    if (!quotaReservation?.allowed || !quotaUserId) return;
+    try { await releaseDailyChat({ db: env.DB, userId: quotaUserId, usageDate: quotaUsageDate }); } catch { /* generic provider error */ }
+    quotaReservation = null;
+  };
+
   const safeHistory = [];
   let historyChars = 0;
   for (const item of incoming.slice(-10)) {
@@ -84,8 +144,9 @@ export async function onRequestPost({ request, env }) {
     historyChars += content.length;
   }
 
+  const selectedAgent = routeAgentRequest(latest);
   const messages = [
-    { role: "system", content: "تو هوش‌یار، یک دستیار فارسی دقیق، کاربردی و چندمنظوره هستی. پاسخ‌ها را به زبان کاربر، روشن و مرحله‌ای ارائه کن. اطلاعات نامطمئن را قطعی جلوه نده. برای موضوعات پزشکی، مالی و حقوقی محدودیت‌ها و ریسک‌ها را روشن کن." },
+    { role: "system", content: "تو هوش‌یار، یک دستیار چندمنظوره و چندزبانه دقیق و کاربردی هستی. پاسخ را به زبان کاربر، روشن و مرحله‌ای ارائه کن. اطلاعات نامطمئن را قطعی جلوه نده. برای موضوعات پزشکی، مالی و حقوقی محدودیت‌ها و ریسک‌ها را روشن کن. هرگز ادعا نکن جستجوی زنده، اقدام بیرونی، اجرای کد یا دسترسی به ابزار انجام داده‌ای مگر واقعاً انجام شده باشد.\n\nنقش تخصصی این درخواست: " + selectedAgent.instruction },
     ...safeHistory,
   ];
   if (messages[messages.length - 1]?.role !== "user" || messages[messages.length - 1]?.content !== latest) {
@@ -111,24 +172,29 @@ export async function onRequestPost({ request, env }) {
     if (upstream.ok) data = await upstream.json();
   } catch {
     if (controller.signal.aborted) {
+      await releaseQuota();
       return json({ error: "UPSTREAM_TIMEOUT", message: "پاسخ سرویس هوش مصنوعی بیش از زمان مجاز طول کشید." }, 504);
     }
     if (upstream) {
+      await releaseQuota();
       return json({ error: "EMPTY_REPLY", message: "پاسخ معتبری از مدل دریافت نشد." }, 502);
     }
+    await releaseQuota();
     return json({ error: "UPSTREAM_UNAVAILABLE", message: "ارتباط با سرویس هوش مصنوعی برقرار نشد." }, 502);
   } finally {
     clearTimeout(timeout);
   }
 
   if (!upstream.ok) {
+    await releaseQuota();
     return json({ error: "UPSTREAM_ERROR", message: "سرویس هوش مصنوعی موقتاً پاسخ‌گو نیست." }, 502);
   }
   const reply = data?.choices?.[0]?.message?.content;
   if (typeof reply !== "string" || !reply.trim()) {
+    await releaseQuota();
     return json({ error: "EMPTY_REPLY", message: "پاسخ معتبری از مدل دریافت نشد." }, 502);
   }
-  return json({ reply: reply.trim() });
+  return json({ reply: reply.trim(), agent: { id: selectedAgent.id, label: selectedAgent.label, labelEn: selectedAgent.labelEn } });
 }
 
 export async function onRequestGet() {

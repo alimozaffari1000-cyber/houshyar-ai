@@ -39,7 +39,7 @@ test('rejects JSON-like but unsupported media types', async () => {
   assert.equal((await response.json()).error, 'UNSUPPORTED_MEDIA_TYPE');
 });
 
-test('accepts application/json with charset parameter', async () => {
+test('accepts application/json with a charset parameter', async () => {
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async () => new Response(JSON.stringify({ choices: [{ message: { content: 'پاسخ' } }] }), { status: 200 });
   try {
@@ -53,7 +53,9 @@ test('accepts application/json with charset parameter', async () => {
     });
     assert.equal(response.status, 200);
     assert.equal((await response.json()).reply, 'پاسخ');
-  } finally { globalThis.fetch = originalFetch; }
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
 });
 
 test('rejects malformed JSON', async () => {
