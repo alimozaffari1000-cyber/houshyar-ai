@@ -18,7 +18,7 @@ export async function reserveDailyChat({ db, userId, limit, now = Math.floor(Dat
 }
 export async function releaseDailyChat({ db, userId, usageDate = new Date().toISOString().slice(0, 10), now = Math.floor(Date.now() / 1000) }) {
   if (!db || !userId) return;
-  if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(usageDate)) throw new Error("INVALID_USAGE_DATE");
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(usageDate)) throw new Error("INVALID_USAGE_DATE");
   await db.prepare(
     "UPDATE daily_usage SET request_count = CASE WHEN request_count > 0 THEN request_count - 1 ELSE 0 END, updated_at = ? WHERE user_id = ? AND usage_date = ?"
   ).bind(now, userId, usageDate).run();
