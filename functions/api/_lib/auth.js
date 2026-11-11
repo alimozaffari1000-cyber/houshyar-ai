@@ -33,5 +33,5 @@ export async function getSessionUser(db, request, now = Math.floor(Date.now() / 
   const tokenHash = await digest(token);
   return db.prepare("SELECT users.id, users.email_normalized AS email, users.role FROM sessions JOIN users ON users.id = sessions.user_id WHERE sessions.token_hash = ? AND sessions.revoked_at IS NULL AND sessions.expires_at > ? AND users.status = 'active' LIMIT 1").bind(tokenHash, now).first();
 }
-export function originAllowed(request) { const origin = request.headers.get("origin"); if (!origin) return true; try { return new URL(origin).origin === new URL(request.url).origin; } catch { return false; } }
+export function originAllowed(request) { const origin = request.headers.get("origin"); if (!origin) return false; try { return new URL(origin).origin === new URL(request.url).origin; } catch { return false; } }
 export const SESSION_MAX_AGE = SESSION_SECONDS;
