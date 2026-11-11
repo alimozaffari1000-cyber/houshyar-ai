@@ -31,7 +31,7 @@ test("email verification rejects a token when activation or consumption did not 
     body: JSON.stringify({ token: "z".repeat(48) })
   });
   const db = {
-    prepare(sql) { return { sql, bind(...values) { return { sql, values }; } }; },
+    prepare(sql) { return { sql, bind(...values) { return { sql, values, async first() { return { request_count: 1 }; } }; } }; },
     async batch() { return [{ meta: { changes: 0 } }, { meta: { changes: 0 } }]; }
   };
   const response = await verifyEmail({ request, env: { AUTH_ENABLED: "true", DB: db } });
