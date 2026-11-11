@@ -63,3 +63,19 @@ test("login remains disabled until explicitly configured", async () => {
   assert.equal(response.status, 503);
   assert.equal((await response.json()).error, "AUTH_NOT_CONFIGURED");
 });
+
+test("session lookup is scoped to one hashed session and an active owning account", async () => {
+  let sql = ""; let values = [];
+  const db = { prepare(query) { sql = query; return { bind(...args) { values = args; return { first: async () => ({ id: "user-1", email: "user@example.test", role: "user" }) }; } }; } };
+  const request = new Request("https://example.test/api/auth/me", { headers: { cookie: "houshyar_session=opaque-session-token" } });
+  const user = await getSessionUser(db, request, 1000);
+  assert.equal(user.id, "user-1");
+  assert.match(sql, /sessions\\.token_hash = \\?/);
+  assert.match(sql, /sessions\\.user_id/);
+  assert.match(sql, /sessions\\.revoked_at IS NULL/);
+  assert.match(sql, /sessions\\.expires_at > \\?/);
+  assert.match(sql, /users\\.status = 'active'/);
+  assert.equal(values.length, 2);
+  assert.notEqual(values[0], "opaque-session-token");
+  assert.equal(values[1], 1000);
+});
