@@ -15,7 +15,10 @@ export function validEmail(value) { return value.length <= 254 && /^[^\s@]+@[^\s
 export function parseCookie(request, name) { const cookie = request.headers.get("cookie") || ""; const entry = cookie.split(";").map(part => part.trim()).find(part => part.startsWith(name + "=")); return entry ? entry.slice(name.length + 1) : ""; }
 export function sessionCookie(token, maxAge = SESSION_SECONDS) { return "houshyar_session=" + token + "; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=" + maxAge; }
 export async function createPasswordRecord(password) { const salt = randomHex(16); return { salt, hash: await derivePassword(password, salt), iterations: ITERATIONS }; }
-export async function verifyPassword(password, salt, expectedHash, iterations = ITERATIONS) { const actual = await derivePassword(password, salt, iterations); return actual === expectedHash; }
+export async function verifyPassword(password, salt, expectedHash, iterations = ITERATIONS) { const actual = await derivePassword(password, salt, iterations); if (typeof expectedHash !== "string" || actual.length !== expectedHash.length) return false;
+  let difference = 0;
+  for (let index = 0; index < actual.length; index += 1) difference |= actual.charCodeAt(index) ^ expectedHash.charCodeAt(index);
+  return difference === 0; }
 export async function createSession(db, userId, now = Math.floor(Date.now() / 1000)) {
   const token = base64Url(crypto.getRandomValues(new Uint8Array(32)));
   const tokenHash = await digest(token);
@@ -30,5 +33,5 @@ export async function getSessionUser(db, request, now = Math.floor(Date.now() / 
   const tokenHash = await digest(token);
   return db.prepare("SELECT users.id, users.email_normalized AS email, users.role FROM sessions JOIN users ON users.id = sessions.user_id WHERE sessions.token_hash = ? AND sessions.revoked_at IS NULL AND sessions.expires_at > ? AND users.status = 'active' LIMIT 1").bind(tokenHash, now).first();
 }
-export function originAllowed(request) { const origin = request.headers.get("origin"); if (!origin) return true; try { return new URL(origin).origin === new URL(request.url).origin; } catch { return false; } }
+export function originAllowed(request) { const origin = request.headers.get("origin"); if (!origin) return false; try { return new URL(origin).origin === new URL(request.url).origin; } catch { return false; } }
 export const SESSION_MAX_AGE = SESSION_SECONDS;
