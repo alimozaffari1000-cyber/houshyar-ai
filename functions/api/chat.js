@@ -1,14 +1,56 @@
 const MAX_BODY_BYTES = 32 * 1024;
 const UPSTREAM_TIMEOUT_MS = 20_000;
+const CHAT_RATE_LIMIT = 12;
+const CHAT_RATE_WINDOW_MS = 60_000;
+const MAX_RATE_LIMIT_KEYS = 4_096;
 
-const json = (body, status = 200) => new Response(JSON.stringify(body), {
+// Best-effort per-isolate burst control. This is not a global quota or a
+// substitute for authenticated, durable per-user billing limits.
+const recentChatRequests = new Map();
+
+const json = (body, status = 200, extraHeaders = {}) => new Response(JSON.stringify(body), {
   status,
   headers: {
     "Content-Type": "application/json; charset=utf-8",
     "Cache-Control": "no-store",
-    "X-Content-Type-Options": "nosniff"
+    "X-Content-Type-Options": "nosniff",
+    ...extraHeaders
   }
 });
+
+function checkChatRateLimit(request) {
+  // Cloudflare supplies this header at the edge. Do not trust caller-controlled
+  // X-Forwarded-For as a substitute when running outside Cloudflare.
+  const clientIp = request.headers.get("cf-connecting-ip")?.trim();
+  if (!clientIp) return { limited: false };
+
+  const now = Date.now();
+  let entry = recentChatRequests.get(clientIp);
+  if (!entry || now - entry.startedAt >= CHAT_RATE_WINDOW_MS) {
+    entry = { startedAt: now, count: 0 };
+  }
+
+  if (entry.count >= CHAT_RATE_LIMIT) {
+    return {
+      limited: true,
+      retryAfter: Math.max(1, Math.ceil((entry.startedAt + CHAT_RATE_WINDOW_MS - now) / 1000))
+    };
+  }
+
+  entry.count += 1;
+  recentChatRequests.set(clientIp, entry);
+
+  if (recentChatRequests.size > MAX_RATE_LIMIT_KEYS) {
+    for (const [key, value] of recentChatRequests) {
+      if (now - value.startedAt >= CHAT_RATE_WINDOW_MS) recentChatRequests.delete(key);
+    }
+    while (recentChatRequests.size > MAX_RATE_LIMIT_KEYS) {
+      recentChatRequests.delete(recentChatRequests.keys().next().value);
+    }
+  }
+
+  return { limited: false };
+}
 
 async function readJsonLimited(request) {
   const declaredLength = Number(request.headers.get("content-length"));
@@ -55,6 +97,15 @@ export async function onRequestPost({ request, env }) {
   const contentType = (request.headers.get("content-type") || "").split(";", 1)[0].trim().toLowerCase();
   if (contentType !== "application/json") {
     return json({ error: "UNSUPPORTED_MEDIA_TYPE", message: "نوع محتوای درخواست باید JSON باشد." }, 415);
+  }
+
+  const rateLimit = checkChatRateLimit(request);
+  if (rateLimit.limited) {
+    return json(
+      { error: "RATE_LIMITED", message: "تعداد درخواست‌ها زیاد است؛ کمی بعد دوباره تلاش کن." },
+      429,
+      { "Retry-After": String(rateLimit.retryAfter) }
+    );
   }
 
   const parsed = await readJsonLimited(request);
