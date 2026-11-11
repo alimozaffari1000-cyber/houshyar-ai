@@ -13,12 +13,16 @@ test("D1 cleanup removes only expired or consumed authentication records", () =>
   assert.doesNotMatch(sql, /DELETE FROM (users|usage_events|audit_events)/);
 });
 
-test("scheduled cleanup uses remote D1 and requires server-side Cloudflare secrets", () => {
+test("scheduled cleanup requires explicit Cloudflare credentials and D1 target", () => {
   assert.match(workflow, /schedule:/);
   assert.match(workflow, /workflow_dispatch:/);
   assert.match(workflow, /secrets\.CLOUDFLARE_API_TOKEN/);
   assert.match(workflow, /secrets\.CLOUDFLARE_ACCOUNT_ID/);
-  assert.match(workflow, /d1 execute houshyar-ai-db --remote --file scripts\/d1-cleanup\.sql/);
+  assert.match(workflow, /secrets\.CLOUDFLARE_D1_DATABASE_NAME/);
+  assert.match(workflow, /-z "\$CLOUDFLARE_D1_DATABASE_NAME"/);
+  assert.match(workflow, /ready=false/);
+  assert.match(workflow, /d1 execute "\$CLOUDFLARE_D1_DATABASE_NAME" --remote --file scripts\/d1-cleanup\.sql/);
+  assert.doesNotMatch(workflow, /d1 execute houshyar-ai-db/);
 });
 
 test("identity schema permits pending accounts required by email verification", () => {
