@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS users (
   password_salt TEXT NOT NULL,
   password_iterations INTEGER NOT NULL DEFAULT 310000,
   status TEXT NOT NULL DEFAULT 'active'
-    CHECK (status IN ('active', 'suspended', 'deleted')),
+    CHECK (status IN ('pending', 'active', 'suspended', 'deleted')),
   role TEXT NOT NULL DEFAULT 'user'
     CHECK (role IN ('user', 'admin')),
   created_at INTEGER NOT NULL,
