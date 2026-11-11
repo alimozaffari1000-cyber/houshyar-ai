@@ -31,3 +31,16 @@ test('scrolling chat respects the reduced-motion accessibility preference', asyn
   assert.match(js,/behavior: prefersReducedMotion \? 'auto' : 'smooth'/);
   assert.ok(js.includes('scrollChat();'));
 });
+
+test('source declares chat scrolling only once', async () => {
+  const js=await readFile(new URL('../src/main.js',import.meta.url),'utf8');
+  const declarations=js.match(/const scrollChat =/g) || [];
+  assert.equal(declarations.length,1);
+});
+
+test('سند اصلی زبان فارسی و جهت راست‌به‌چپ را اعلام می‌کند', async () => {
+  const html=await readFile(new URL('../index.html',import.meta.url),'utf8');
+  const htmlTag=html.split('\\n').find(line=>line.includes('<html')) || '';
+  assert.ok(htmlTag.includes('lang="fa"'));
+  assert.ok(htmlTag.includes('dir="rtl"'));
+});
