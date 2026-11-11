@@ -56,6 +56,36 @@ test('accepts application/json with charset parameter', async () => {
   } finally { globalThis.fetch = originalFetch; }
 });
 
+test('limits chat bursts per Cloudflare client IP and returns retry guidance', async () => {
+  const originalFetch = globalThis.fetch;
+  let upstreamCalls = 0;
+  globalThis.fetch = async () => {
+    upstreamCalls += 1;
+    return new Response(JSON.stringify({ choices: [{ message: { content: 'پاسخ' } }] }), { status: 200 });
+  };
+  try {
+    const makeRequest = () => new Request('https://example.test/api/chat', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'cf-connecting-ip': '198.51.100.44'
+      },
+      body: JSON.stringify({ message: 'سلام' })
+    });
+
+    for (let i = 0; i < 12; i += 1) {
+      const response = await onRequestPost({ request: makeRequest(), env: { GROQ_API_KEY: 'test-key' } });
+      assert.equal(response.status, 200);
+    }
+
+    const limited = await onRequestPost({ request: makeRequest(), env: { GROQ_API_KEY: 'test-key' } });
+    assert.equal(limited.status, 429);
+    assert.equal((await limited.json()).error, 'RATE_LIMITED');
+    assert.equal(limited.headers.get('retry-after'), '60');
+    assert.equal(upstreamCalls, 12);
+  } finally { globalThis.fetch = originalFetch; }
+});
+
 test('rejects malformed JSON', async () => {
   const response = await onRequestPost({
     request: new Request('https://example.test/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{bad json' }),
