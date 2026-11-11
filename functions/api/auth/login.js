@@ -1,11 +1,12 @@
 import { checkAuthRateLimit } from "../_lib/auth-rate-limit.js";
+import { isJsonContentType } from "../_lib/auth-flow.js";
 import { createSession, normalizeEmail, validEmail, verifyPassword, sessionCookie, originAllowed } from "../_lib/auth.js";
 const json = (body, status = 200, headers = {}) => new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff", ...headers } });
 export async function onRequestPost({ request, env }) {
   if (env.AUTH_ENABLED !== "true") return json({ error: "AUTH_NOT_CONFIGURED" }, 503);
   if (!env.DB) return json({ error: "DATABASE_NOT_CONFIGURED" }, 503);
   if (!originAllowed(request)) return json({ error: "ORIGIN_NOT_ALLOWED" }, 403);
-  if (!(request.headers.get("content-type") || "").toLowerCase().includes("application/json")) return json({ error: "UNSUPPORTED_MEDIA_TYPE" }, 415);
+  if (!isJsonContentType(request.headers.get("content-type"))) return json({ error: "UNSUPPORTED_MEDIA_TYPE" }, 415);
   const declaredLength = Number(request.headers.get("content-length"));
   if (Number.isFinite(declaredLength) && declaredLength > 8192) return json({ error: "BODY_TOO_LARGE" }, 413);
   let raw;
