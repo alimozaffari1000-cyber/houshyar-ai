@@ -1,6 +1,7 @@
 import './style.css';
 import { initAccountPanel } from './account.js';
 import { initAuthFlows } from './auth-flows.js';
+import { translate as t, getLocale, setLocale, localeOptions } from './i18n.js';
 
 const app = document.querySelector('#app');
 const state = { messages: [], busy: false, draft: '' };
@@ -13,21 +14,24 @@ const scrollChat = () => {
 };
 
 function render() {
+  const locale = getLocale();
+  setLocale(locale);
   app.innerHTML = `
-    <header class="top"><div class="brand"><span class="logo">هـ</span><div><strong>هوش‌یار</strong><small>دستیار هوشمند چندمنظوره</small></div></div><div class="top-actions"><button id="account-open" type="button" class="account-open">حساب کاربری</button><span class="status"><i></i> نسخه آزمایشی</span></div></header>
-    <main><section class="welcome"><span class="eyebrow">HOUSHYAR AI</span><h1>سلام، چطور می‌توانم<br><em>کمکت کنم؟</em></h1><p>سؤال بپرس، ایده‌پردازی کن، متن بنویس یا برای کارهایت برنامه‌ریزی کن.</p></section>
+    <header class="top"><div class="brand"><span class="logo">هـ</span><div><strong>هوش‌یار</strong><small>${t('subtitle',locale)}</small></div></div><div class="top-actions"><select id="locale-select" class="locale-select" aria-label="زبان رابط">${localeOptions.map(item=>'<option value="'+item.code+'" '+(item.code===locale?'selected':'')+'>'+item.name+'</option>').join('')}</select><button id="account-open" type="button" class="account-open">${t('account',locale)}</button><span class="status"><i></i> ${t('beta',locale)}</span></div></header>
+    <main><section class="welcome"><span class="eyebrow">HOUSHYAR AI</span><h1>${t('greeting',locale)}<br><em>${t('help',locale)}</em></h1><p>${t('intro',locale)}</p></section>
     <section class="suggestions" aria-label="پیشنهادهای شروع گفتگو">
       <button type="button" data-prompt="برای کسب‌وکارم چند ایده درآمدزایی پیشنهاد بده">💡 ایده‌پردازی <small>راه‌حل و پیشنهاد</small></button>
       <button type="button" data-prompt="این هفته برای یادگیری یک مهارت برنامه بده">📚 یادگیری <small>برنامه و آموزش</small></button>
       <button type="button" data-prompt="یک متن معرفی حرفه‌ای برای من بنویس">✍️ تولید محتوا <small>نوشتن و ویرایش</small></button>
       <button type="button" data-prompt="برای انجام کارهایم یک برنامه مرحله‌ای بساز">🧭 برنامه‌ریزی <small>قدم‌به‌قدم</small></button>
     </section>
-    <div class="chat-tools"><span>گفتگو</span><button id="clear-chat" type="button" ${state.messages.length || state.draft ? '' : 'disabled'}>پاک‌کردن گفتگو</button></div>
-    <section class="chat" aria-live="polite" aria-label="پیام‌های گفتگو">${state.messages.map((m,i)=>`<article class="msg ${m.role}"><div class="msg-head"><b>${m.role==='user'?'شما':'هوش‌یار'}</b>${m.role==='assistant'?'<button type="button" class="copy-reply" data-index="'+i+'" aria-label="کپی پاسخ">کپی</button>':''}</div><p>${escapeHTML(m.text)}</p></article>`).join('')}${state.busy?'<article class="msg assistant" role="status"><b>هوش‌یار</b><p>در حال آماده‌سازی پاسخ…</p></article>':''}</section>
-    <form id="chat-form"><textarea id="prompt" aria-label="پیام شما" rows="1" maxlength="6000" placeholder="پیامت را اینجا بنویس…" required>${escapeHTML(state.draft)}</textarea><button id="send" type="submit" ${state.busy?'disabled':''}>ارسال ↑</button></form>
-    <p class="input-hint">Enter برای ارسال · Shift + Enter برای رفتن به خط بعد</p>
-    <p class="notice">نسخه آزمایشی: گفتگو فقط تا زمان باز بودن این صفحه در حافظه موقت مرورگر نگه داشته می‌شود. اطلاعات محرمانه، رمز عبور یا کلید بانکی ارسال نکن.</p></main>
+    <div class="chat-tools"><span>${t('chat',locale)}</span><button id="clear-chat" type="button" ${state.messages.length || state.draft ? '' : 'disabled'}>${t('clear',locale)}</button></div>
+    <section class="chat" aria-live="polite" aria-label="پیام‌های گفتگو">${state.messages.map((m,i)=>`<article class="msg ${m.role}"><div class="msg-head"><b>${m.role==='user'?'شما':'هوش‌یار'}</b>${m.agent?'<small class="agent-label"> · '+escapeHTML(m.agent.label)+'</small>':''}${m.role==='assistant'?'<button type="button" class="copy-reply" data-index="'+i+'" aria-label="کپی پاسخ">کپی</button>':''}</div><p>${escapeHTML(m.text)}</p></article>`).join('')}${state.busy?'<article class="msg assistant" role="status"><b>هوش‌یار</b><p>در حال آماده‌سازی پاسخ…</p></article>':''}</section>
+    <form id="chat-form"><textarea id="prompt" aria-label="پیام شما" rows="1" maxlength="6000" placeholder="${t('placeholder',locale)}" required>${escapeHTML(state.draft)}</textarea><button id="send" type="submit" ${state.busy?'disabled':''}>${t('send',locale)}</button></form>
+    <p class="input-hint">${t('hint',locale)}</p>
+    <p class="notice">${t('notice',locale)}</p></main>
     <footer>هوش‌یار AI · نسخه آزمایشی</footer>`;
+  app.querySelector('#locale-select').addEventListener('change', event => { setLocale(event.target.value); render(); });
   initAccountPanel(app);
   initAuthFlows(app);
   app.querySelectorAll('[data-prompt]').forEach(b=>b.addEventListener('click',()=>{const input=app.querySelector('#prompt');state.draft=b.dataset.prompt;input.value=state.draft;input.focus();}));
@@ -55,7 +59,7 @@ async function submitMessage(event) {
       const messages={AI_NOT_CONFIGURED:'سرویس هوش مصنوعی هنوز راه‌اندازی نشده است.',BODY_TOO_LARGE:'حجم درخواست بیش از حد مجاز است.',MESSAGE_TOO_LONG:'پیام بیش از حد طولانی است.',UPSTREAM_TIMEOUT:'پاسخ‌گویی بیش از حد طول کشید؛ دوباره تلاش کن.',UPSTREAM_ERROR:'سرویس هوش مصنوعی موقتاً پاسخ‌گو نیست.'};
       throw new Error(messages[data.error] || data.message || 'دریافت پاسخ ناموفق بود ('+response.status+').');
     }
-    state.messages.push({role:'assistant',text:data.reply || 'پاسخ خالی از سرویس دریافت شد.'});
+    state.messages.push({role:'assistant',text:data.reply || 'پاسخ خالی از سرویس دریافت شد.',agent:data.agent || null});
   } catch(error) {
     state.messages.push({role:'assistant',text:error.message || 'فعلاً امکان دریافت پاسخ وجود ندارد. لطفاً بعداً دوباره تلاش کن.'});
   } finally { state.busy=false; render(); scrollChat(); }
