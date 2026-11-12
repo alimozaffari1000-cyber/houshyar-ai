@@ -156,6 +156,40 @@ export async function onRequestPost({ request, env }) {
     messages.push({ role: "user", content: latest });
   }
 
+  if (body.compare === true) {
+    const compareModels = [env.GROQ_MODEL_COMPARE_A, env.GROQ_MODEL_COMPARE_B];
+    if (!compareModels[0] || !compareModels[1] || compareModels[0] === compareModels[1]) {
+      await releaseQuota();
+      return json({ error: "COMPARE_NOT_CONFIGURED", message: "برای مقایسه، دو مدل متفاوت را در تنظیمات سرور تعریف کنید." }, 503);
+    }
+    const runComparison = async (selectedModel) => {
+      const compareController = new AbortController();
+      const compareTimeout = setTimeout(() => compareController.abort("upstream_timeout"), UPSTREAM_TIMEOUT_MS);
+      try {
+        const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+          method: "POST",
+          headers: { "Authorization": `Bearer ${env.GROQ_API_KEY}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ model: selectedModel, messages, temperature: 0.5, max_tokens: 1200 }),
+          signal: compareController.signal
+        });
+        if (!response.ok) throw new Error("comparison_provider_error");
+        const result = await response.json();
+        const answer = result?.choices?.[0]?.message?.content;
+        if (typeof answer !== "string" || !answer.trim()) throw new Error("comparison_empty_reply");
+        return { model: selectedModel, reply: answer.trim(), usage: result?.usage ? { promptTokens: result.usage.prompt_tokens || 0, completionTokens: result.usage.completion_tokens || 0, totalTokens: result.usage.total_tokens || 0 } : null };
+      } finally { clearTimeout(compareTimeout); }
+    };
+    try {
+      const comparison = await Promise.all(compareModels.map(runComparison));
+      const usage = comparison.every(item => item.usage) ? comparison.reduce((sum, item) => ({ promptTokens: sum.promptTokens + item.usage.promptTokens, completionTokens: sum.completionTokens + item.usage.completionTokens, totalTokens: sum.totalTokens + item.usage.totalTokens }), { promptTokens: 0, completionTokens: 0, totalTokens: 0 }) : null;
+      const reply = comparison.map((item, index) => "مدل " + (index + 1) + " (" + item.model + ")\\n" + item.reply).join("\\n\\n━━━━━━━━━━━━━━━━━━━━\\n\\n");
+      return json({ reply, compare: true, comparison, usage, agent: { id: selectedAgent.id, label: selectedAgent.label, labelEn: selectedAgent.labelEn } });
+    } catch {
+      await releaseQuota();
+      return json({ error: "COMPARISON_FAILED", message: "مقایسه مدل‌ها کامل نشد. تنظیمات یا دسترسی مدل‌ها را بررسی کنید." }, 502);
+    }
+  }
+
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort("upstream_timeout"), UPSTREAM_TIMEOUT_MS);
   let upstream;
