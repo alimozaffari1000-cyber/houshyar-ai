@@ -41,7 +41,13 @@ test("account fallback strings exist for Persian and English", () => {
 });
 
 
-test("account interface uses a defined translation or fallback for every locale", () => {
+test("account interface strings are genuinely localized in every supported locale", () => {
  const keys=["quotaUsed","quotaReset","accountPanelLabel","accountClose","accountChecking","accountNotReady","accountSignedIn","quotaToday","quotaNotEnabled","logout","loggedOut","logoutFailed","accountSignInPrompt","login","register","email","password","forgotPassword","resendVerification","passwordMinimum","enterEmail","sendingReset","resetFailed","sendingVerification","verificationFailed","sendingRequest","loginFailed","loginSuccess","accountCheckFailed","accountSetupHint","createAccount","resetAccepted","verificationAccepted","registrationAccepted"];
- for (const locale of localeOptions.map(item => item.code)) for (const key of keys) assert.notEqual(translate(key,locale),key,locale+":"+key);
+ for (const locale of localeOptions.map(item => item.code)) {
+   for (const key of keys) {
+     const value=translate(key,locale);
+     assert.notEqual(value,key,locale+":"+key);
+     if (locale !== "fa" && locale !== "en") assert.notEqual(value,translate(key,"en"),locale+" fell back to English for "+key);
+   }
+ }
 });
