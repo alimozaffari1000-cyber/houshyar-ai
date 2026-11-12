@@ -113,6 +113,19 @@ test('forwards chat to Groq and returns the assistant reply', async () => {
   } finally { globalThis.fetch = originalFetch; }
 });
 
+test('selects a configured model profile from server-side settings', async () => {
+ const originalFetch=globalThis.fetch; let sent;
+ globalThis.fetch=async(_url,options)=>{sent=JSON.parse(options.body);return new Response(JSON.stringify({choices:[{message:{content:'پاسخ'}}],usage:{prompt_tokens:12,completion_tokens:8,total_tokens:20}}),{status:200});};
+ try { const response=await onRequestPost({request:request({message:'تحلیل کن',mode:'deep'}),env:{GROQ_API_KEY:'test-key',GROQ_MODEL:'base-model',GROQ_MODEL_DEEP:'reasoning-model'}}); const body=await response.json(); assert.equal(response.status,200);assert.equal(sent.model,'reasoning-model');assert.equal(body.mode,'deep');assert.equal(body.model,'reasoning-model');assert.equal(body.usage.totalTokens,20); }
+ finally {globalThis.fetch=originalFetch;}
+});
+
+test('unknown response modes safely fall back to the default model', async () => {
+ const originalFetch=globalThis.fetch;let sent;globalThis.fetch=async(_url,options)=>{sent=JSON.parse(options.body);return new Response(JSON.stringify({choices:[{message:{content:'پاسخ'}}]}),{status:200});};
+ try {const response=await onRequestPost({request:request({message:'سلام',mode:'untrusted-model-name'}),env:{GROQ_API_KEY:'test-key',GROQ_MODEL:'safe-default'}});const body=await response.json();assert.equal(response.status,200);assert.equal(sent.model,'safe-default');assert.equal(body.mode,'balanced');}
+ finally {globalThis.fetch=originalFetch;}
+});
+
 test('does not expose upstream provider errors to the browser', async () => {
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async () => new Response('private provider diagnostic', { status: 401 });
