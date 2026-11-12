@@ -67,7 +67,8 @@ test('workspace module is wired to the home screen and stores user data locally'
 test('response profile selector is wired to the chat request', async () => {
  const js=await readFile(new URL('../src/main.js',import.meta.url),'utf8');
  const api=await readFile(new URL('../functions/api/chat.js',import.meta.url),'utf8');
- assert.match(js,/id="response-mode"/); assert.match(js,/mode:state\.mode/);
+ assert.match(js,/id="response-mode"/); assert.match(js,/mode:learningMode/);
+ assert.match(js,/state\.mode === 'auto'/);
  assert.match(api,/GROQ_MODEL_FAST/); assert.match(api,/GROQ_MODEL_DEEP/); assert.match(api,/GROQ_MODEL_CREATIVE/);
 });
 
@@ -87,6 +88,10 @@ test('adaptive learning core uses explicit feedback and recommends a mode only a
  assert.equal(learning.classifyLearningTask('این کد JavaScript را debug کن'),'developer');
  assert.equal(learning.recommendLearningMode('کد JavaScript را debug کن',storage),'balanced');
  for(let i=0;i<2;i++) assert.equal(learning.recordLearningFeedback({responseId:'deep-'+i,category:'developer',mode:'deep',rating:1},storage),true);
+ // Two samples are not enough to cross the three-feedback minimum.
+ assert.equal(learning.recommendLearningMode('کد JavaScript را debug کن',storage),'balanced');
+ assert.equal(learning.recordLearningFeedback({responseId:'fast-1',category:'developer',mode:'fast',rating:0},storage),true);
+ // At three total samples, the mode with at least two samples and the better rate wins.
  assert.equal(learning.recommendLearningMode('کد JavaScript را debug کن',storage),'deep');
  assert.equal(learning.getLearningStats('developer',storage).positive,2);
  assert.equal(learning.recordLearningFeedback({responseId:'bad id',category:'developer',mode:'deep',rating:1},storage),false);
