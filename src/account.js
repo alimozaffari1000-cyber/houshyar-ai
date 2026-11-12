@@ -34,7 +34,11 @@ export function initAccountPanel(app) {
       if (!response.ok) throw new Error(t("accountCheckFailed",getLocale()));
       if (data.authenticated) {
         status.textContent = t("accountSignedIn",getLocale());
-        const q = data.quota?.enabled ? `<div class="quota-box"><b>${t("quotaToday",getLocale())}</b><strong>${safe(data.quota.remaining)} از ${safe(data.quota.limit)}</strong><small>مصرف‌شده: ${safe(data.quota.used)} · بازنشانی: ${new Date(data.quota.resetAt * 1000).toLocaleString("fa-IR")}</small></div>` : `<p class="account-muted">${t("quotaNotEnabled",getLocale())}</p>`;
+        const locale = getLocale();
+        const number = value => new Intl.NumberFormat(locale).format(Number(value));
+        const resetAt = Number(data.quota.resetAt);
+        const resetDate = Number.isFinite(resetAt) && resetAt > 0 ? new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short" }).format(new Date(resetAt * 1000)) : "—";
+        const q = data.quota?.enabled ? `<div class="quota-box"><b>${t("quotaToday",locale)}</b><strong>${number(data.quota.remaining)} / ${number(data.quota.limit)}</strong><small>${t("quotaUsed",locale)}: ${number(data.quota.used)} · ${t("quotaReset",locale)}: ${resetDate}</small></div>` : `<p class="account-muted">${t("quotaNotEnabled",getLocale())}</p>`;
         content.innerHTML = `<p class="account-email"></p>${q}<button type="button" id="account-logout" class="account-submit">${t("logout",getLocale())}</button>`;
         content.querySelector(".account-email").textContent = data.user.email;
         content.querySelector("#account-logout").addEventListener("click", async () => {
