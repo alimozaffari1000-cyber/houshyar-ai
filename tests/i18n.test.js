@@ -51,3 +51,15 @@ test("account interface strings are genuinely localized in every supported local
    }
  }
 });
+
+
+test("workflow toolbox labels and prompts are translated in every supported locale", () => {
+ const keys=["toolboxTitle","toolboxDesc","toolResearch","toolResearchPrompt","toolBusiness","toolBusinessPrompt","toolCoding","toolCodingPrompt","toolTranslate","toolTranslatePrompt","toolImage","toolImagePrompt","toolStudy","toolStudyPrompt"];
+ for (const locale of localeOptions.map(item=>item.code)) {
+   for (const key of keys) {
+     const value=translate(key,locale);
+     assert.notEqual(value,key,locale+":"+key);
+     if (locale!=="fa" && locale!=="en") assert.notEqual(value,translate(key,"en"),locale+" fell back to English for "+key);
+   }
+ }
+});
