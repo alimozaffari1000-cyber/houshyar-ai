@@ -6,10 +6,22 @@ const request = (body) => new Request('https://example.test/api/chat', {
   method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
 });
 
-test('health endpoint reports API status', async () => {
-  const response = await onRequestGet();
+test('health endpoint reports missing provider configuration without exposing secrets', async () => {
+  const response = await onRequestGet({ env: {} });
+  assert.equal(response.status, 503);
+  const body = await response.json();
+  assert.equal(body.status, 'configuration_required');
+  assert.equal(body.aiConfigured, false);
+  assert.equal(JSON.stringify(body).includes('test'), false);
+});
+
+test('health endpoint reports ready when provider configuration exists', async () => {
+  const response = await onRequestGet({ env: { GROQ_API_KEY: 'private-test-key' } });
   assert.equal(response.status, 200);
-  assert.equal((await response.json()).status, 'ready');
+  const body = await response.json();
+  assert.equal(body.status, 'ready');
+  assert.equal(body.aiConfigured, true);
+  assert.equal(JSON.stringify(body).includes('private-test-key'), false);
 });
 
 
