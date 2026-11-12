@@ -1,16 +1,8 @@
 name: Houshyar Android Build
 
 on:
+  # Android builds are intentionally manual until the web product is stable.
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths:
-      - 'src/**'
-      - 'public/**'
-      - 'index.html'
-      - 'package.json'
-      - 'capacitor.config.ts'
-      - '.github/workflows/android-build.yml'
 
 permissions:
   contents: read
