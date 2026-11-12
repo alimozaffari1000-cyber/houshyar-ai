@@ -21,7 +21,10 @@ test('پیش‌نویس پیام هنگام انتظار برای پاسخ حف�
   assert.ok(js.includes("draft: ''"));
   assert.ok(js.includes('${escapeHTML(state.draft)}'));
   assert.ok(js.includes("prompt.addEventListener('input',()=>{state.draft=prompt.value;resize();});"));
-  assert.ok(js.includes("state.draft='';\n  state.messages.push"));
+  const clearDraftIndex = js.indexOf("state.draft='';");
+  const chooseModeIndex = js.indexOf("const learningMode = state.mode === 'auto' ? recommendLearningMode(text) : state.mode;");
+  const pushMessageIndex = js.indexOf("state.messages.push({role:'user',text});");
+  assert.ok(clearDraftIndex >= 0 && chooseModeIndex > clearDraftIndex && pushMessageIndex > chooseModeIndex);
 });
 
 
