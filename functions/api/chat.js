@@ -144,6 +144,9 @@ export async function onRequestPost({ request, env }) {
     historyChars += content.length;
   }
 
+  const requestedMode = ["fast", "balanced", "deep", "creative"].includes(body.mode) ? body.mode : "balanced";
+  const modelByMode = { fast: env.GROQ_MODEL_FAST, balanced: env.GROQ_MODEL, deep: env.GROQ_MODEL_DEEP, creative: env.GROQ_MODEL_CREATIVE };
+  const model = modelByMode[requestedMode] || env.GROQ_MODEL || "llama-3.3-70b-versatile";
   const selectedAgent = routeAgentRequest(latest);
   const messages = [
     { role: "system", content: "تو هوش‌یار، یک دستیار چندمنظوره و چندزبانه دقیق و کاربردی هستی. پاسخ را به زبان کاربر، روشن و مرحله‌ای ارائه کن. اطلاعات نامطمئن را قطعی جلوه نده. برای موضوعات پزشکی، مالی و حقوقی محدودیت‌ها و ریسک‌ها را روشن کن. هرگز ادعا نکن جستجوی زنده، اقدام بیرونی، اجرای کد یا دسترسی به ابزار انجام داده‌ای مگر واقعاً انجام شده باشد.\n\nنقش تخصصی این درخواست: " + selectedAgent.instruction },
@@ -162,7 +165,7 @@ export async function onRequestPost({ request, env }) {
       method: "POST",
       headers: { "Authorization": `Bearer ${env.GROQ_API_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: env.GROQ_MODEL || "llama-3.3-70b-versatile",
+        model,
         messages,
         temperature: 0.5,
         max_tokens: 1200
@@ -194,7 +197,7 @@ export async function onRequestPost({ request, env }) {
     await releaseQuota();
     return json({ error: "EMPTY_REPLY", message: "پاسخ معتبری از مدل دریافت نشد." }, 502);
   }
-  return json({ reply: reply.trim(), agent: { id: selectedAgent.id, label: selectedAgent.label, labelEn: selectedAgent.labelEn } });
+  return json({ reply: reply.trim(), mode: requestedMode, model, usage: data?.usage ? { promptTokens: data.usage.prompt_tokens || 0, completionTokens: data.usage.completion_tokens || 0, totalTokens: data.usage.total_tokens || 0 } : null, agent: { id: selectedAgent.id, label: selectedAgent.label, labelEn: selectedAgent.labelEn } });
 }
 
 export async function onRequestGet({ env } = {}) {
