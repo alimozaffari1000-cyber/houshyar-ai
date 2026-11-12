@@ -1,5 +1,22 @@
 import { translate as t, getLocale } from "./i18n.js";
 const safe = (value) => String(value ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
+const authErrorKey = (code, fallback) => ({
+  AUTH_NOT_CONFIGURED: "accountNotReady",
+  DATABASE_NOT_CONFIGURED: "accountNotReady",
+  AUTH_EMAIL_NOT_CONFIGURED: "accountNotReady",
+  INVALID_CREDENTIALS: "loginFailed",
+  INVALID_EMAIL: "enterEmail",
+  WEAK_PASSWORD: "passwordMinimum",
+  AUTH_RATE_LIMITED: "errorGeneric",
+  AUTH_RATE_LIMIT_UNAVAILABLE: "errorGeneric",
+  ORIGIN_NOT_ALLOWED: "errorGeneric",
+  UNSUPPORTED_MEDIA_TYPE: "errorGeneric",
+  BODY_TOO_LARGE: "errorBodyTooLarge",
+  REGISTRATION_UNAVAILABLE: "errorGeneric",
+  INVALID_JSON: "errorGeneric",
+  INVALID_BODY: "errorGeneric"
+}[code] || fallback);
+
 export function initAccountPanel(app) {
   const button = app.querySelector("#account-open");
   if (!button || app.querySelector("#account-panel")) return;
@@ -72,8 +89,8 @@ export function initAccountPanel(app) {
         try {
           const r = await fetch("/api/auth/request-password-reset", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: emailInput.value }) });
           const d = await r.json().catch(() => ({}));
-          if (!r.ok) throw new Error(d.message || t("resetFailed",getLocale()));
-          status.textContent = d.message || t("resetAccepted",getLocale());
+          if (!r.ok) throw new Error(t(authErrorKey(d.error, "resetFailed"),getLocale()));
+          status.textContent = t("resetAccepted",getLocale());
         } catch (error) { status.textContent = error.message; }
       });
       content.querySelector("#account-resend")?.addEventListener("click", async () => {
@@ -82,8 +99,8 @@ export function initAccountPanel(app) {
         try {
           const r = await fetch("/api/auth/resend-verification", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: emailInput.value }) });
           const d = await r.json().catch(() => ({}));
-          if (!r.ok) throw new Error(d.message || t("verificationFailed",getLocale()));
-          status.textContent = d.message || t("verificationAccepted",getLocale());
+          if (!r.ok) throw new Error(t(authErrorKey(d.error, "verificationFailed"),getLocale()));
+          status.textContent = t("verificationAccepted",getLocale());
         } catch (error) { status.textContent = error.message; }
       });
       content.querySelector("#account-form").addEventListener("submit", async event => {
@@ -99,7 +116,7 @@ export function initAccountPanel(app) {
             body: JSON.stringify({ email: form.email.value, password: form.password.value })
           });
           const result = await response.json().catch(() => ({}));
-          if (!response.ok) throw new Error(result.message || (result.error === "AUTH_NOT_CONFIGURED" ? t("accountNotReady",getLocale()) : t("loginFailed",getLocale())));
+          if (!response.ok) throw new Error(t(authErrorKey(result.error, "loginFailed"),getLocale()));
           if (mode === "register") {
             status.textContent = t("registrationAccepted",getLocale());
             return;
