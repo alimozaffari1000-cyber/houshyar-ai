@@ -39,3 +39,9 @@ test("API errors and accessibility labels are localized in every supported local
 test("account fallback strings exist for Persian and English", () => {
  for (const locale of ["fa","en"]) for (const key of ["accountSetupHint","createAccount","resetAccepted","verificationAccepted","registrationAccepted"]) assert.notEqual(translate(key,locale),key);
 });
+
+
+test("account interface uses a defined translation or fallback for every locale", () => {
+ const keys=["accountPanelLabel","accountClose","accountChecking","accountNotReady","accountSignedIn","quotaToday","quotaNotEnabled","logout","loggedOut","logoutFailed","accountSignInPrompt","login","register","email","password","forgotPassword","resendVerification","passwordMinimum","enterEmail","sendingReset","resetFailed","sendingVerification","verificationFailed","sendingRequest","loginFailed","loginSuccess","accountCheckFailed","accountSetupHint","createAccount","resetAccepted","verificationAccepted","registrationAccepted"];
+ for (const locale of localeOptions.map(item => item.code)) for (const key of keys) assert.notEqual(translate(key,locale),key,locale+":"+key);
+});
