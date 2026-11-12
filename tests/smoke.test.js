@@ -50,3 +50,15 @@ test('workspace is connected to the home screen and keeps saved data local', asy
  assert.match(js,/localStorage/);
  assert.match(js,/workspaceSaveChat/);
 });
+
+
+test('workspace module is wired to the home screen and stores user data locally', async () => {
+ const js=await readFile(new URL('../src/workspace.js',import.meta.url),'utf8');
+ const main=await readFile(new URL('../src/main.js',import.meta.url),'utf8');
+ assert.match(main,/initWorkspace/);
+ assert.match(main,/workspace-open/);
+ assert.match(js,/houshyar\.workspace\.history\.v1/);
+ assert.match(js,/houshyar\.workspace\.projects\.v1/);
+ assert.match(js,/localStorage/);
+ assert.match(js,/workspaceSaveChat/);
+});
