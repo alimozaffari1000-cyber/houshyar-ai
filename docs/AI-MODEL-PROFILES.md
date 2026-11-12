@@ -16,3 +16,12 @@ If a profile-specific variable is unset, Houshyar safely falls back to `GROQ_MOD
 The API accepts only the four known profile names. It never accepts an arbitrary model identifier from the browser. Provider usage counts are returned when Groq includes them; they are not yet persisted as account billing records.
 
 After changing Cloudflare variables, deploy a new Pages build and verify `/api/chat` with a test message. GitHub Actions success alone does not confirm a Cloudflare deployment.
+
+## Optional model comparison
+
+The chat screen also offers an opt-in comparison checkbox. To enable it, set two different model IDs supported by the connected Groq account:
+
+- `GROQ_MODEL_COMPARE_A`
+- `GROQ_MODEL_COMPARE_B`
+
+Both calls run in parallel through the same Groq API key. This is not cross-provider comparison. It can approximately double model inference usage for that request, so it is off by default. If either model is missing or both are identical, the API rejects comparison instead of silently pretending to compare. Usage totals are combined when both provider responses include usage metadata. These totals are not yet saved to a billing ledger.
