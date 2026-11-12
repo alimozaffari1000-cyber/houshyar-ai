@@ -70,3 +70,11 @@ test('response profile selector is wired to the chat request', async () => {
  assert.match(js,/id="response-mode"/); assert.match(js,/mode:state\.mode/);
  assert.match(api,/GROQ_MODEL_FAST/); assert.match(api,/GROQ_MODEL_DEEP/); assert.match(api,/GROQ_MODEL_CREATIVE/);
 });
+
+
+test('two-model comparison option is wired to the chat API', async () => {
+ const js=await readFile(new URL('../src/main.js',import.meta.url),'utf8');
+ const api=await readFile(new URL('../functions/api/chat.js',import.meta.url),'utf8');
+ assert.match(js,/id="compare-models"/); assert.match(js,/compare:state\.compare/);
+ assert.match(api,/GROQ_MODEL_COMPARE_A/); assert.match(api,/GROQ_MODEL_COMPARE_B/);
+});
