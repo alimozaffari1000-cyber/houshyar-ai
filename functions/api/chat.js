@@ -197,6 +197,12 @@ export async function onRequestPost({ request, env }) {
   return json({ reply: reply.trim(), agent: { id: selectedAgent.id, label: selectedAgent.label, labelEn: selectedAgent.labelEn } });
 }
 
-export async function onRequestGet() {
-  return json({ service: "Houshyar AI API", status: "ready", method: "POST" }, 200);
+export async function onRequestGet({ env } = {}) {
+  const configured = Boolean(env?.GROQ_API_KEY);
+  return json({
+    service: "Houshyar AI API",
+    status: configured ? "ready" : "configuration_required",
+    aiConfigured: configured,
+    method: "POST"
+  }, configured ? 200 : 503);
 }
