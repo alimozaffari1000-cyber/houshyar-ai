@@ -63,3 +63,15 @@ test("workflow toolbox labels and prompts are translated in every supported loca
    }
  }
 });
+
+
+test("workspace interface is translated in every supported locale", () => {
+ const keys=["workspace","workspaceTitle","workspaceSubtitle","workspaceHistory","workspaceProjects","workspaceSaveChat","workspaceNoHistory","workspaceNoProjects","workspaceProjectName","workspaceProjectPrompt","workspaceAddProject","workspaceLocalNotice","workspaceQuotaTitle","workspaceQuotaPending","workspaceOpenChat","workspaceUsePrompt","workspaceDelete","workspaceClose","workspaceNeedMessages","workspaceSaved","workspaceDeleted","workspaceProjectAdded","workspaceNameRequired","workspaceUntitled"];
+ for (const locale of localeOptions.map(item=>item.code)) {
+   for (const key of keys) {
+     const value=translate(key,locale);
+     assert.notEqual(value,key,locale+":"+key);
+     if(locale!=="fa"&&locale!=="en") assert.notEqual(value,translate(key,"en"),locale+" fell back to English for "+key);
+   }
+ }
+});
