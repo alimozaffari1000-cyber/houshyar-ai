@@ -274,3 +274,7 @@ button:focus-visible,textarea:focus-visible,select:focus-visible{
   html{scroll-behavior:auto}
   *,*:before,*:after{transition-duration:.01ms!important;animation-duration:.01ms!important;animation-iteration-count:1!important}
 }
+
+
+/* Houshyar original brand mark */
+.brand .logo{display:block;flex:0 0 44px;width:44px;height:44px;object-fit:contain;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none;overflow:visible}
