@@ -1,3 +1,4 @@
+import { translate as t, getLocale } from "./i18n.js";
 const safe = (value) => String(value ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
 export function initAccountPanel(app) {
   const button = app.querySelector("#account-open");
@@ -9,8 +10,8 @@ export function initAccountPanel(app) {
   panel.setAttribute("aria-label", t("accountPanelLabel",getLocale()));
   panel.innerHTML = `
     <div class="account-card">
-      <div class="account-head"><strong>${t("accountPanelLabel",getLocale())}</strong><button type="button" id="account-close" aria-label=t("accountClose",getLocale())>✕</button></div>
-      <p id="account-status" role="status">در حال بررسی وضعیت حساب…</p>
+      <div class="account-head"><strong>${t("accountPanelLabel",getLocale())}</strong><button type="button" id="account-close" aria-label="${t("accountClose",getLocale())}">✕</button></div>
+      <p id="account-status" role="status">${t("accountChecking",getLocale())}</p>
       <div id="account-content"></div>
     </div>`;
   app.append(panel);
@@ -27,13 +28,13 @@ export function initAccountPanel(app) {
       const data = await response.json().catch(() => ({}));
       if (response.status === 503) {
         status.textContent = t("accountNotReady",getLocale());
-        content.innerHTML = '<p class="account-muted">پس از راه‌اندازی امن پایگاه داده و سرویس حساب، امکان ورود و ثبت‌نام فعال می‌شود.</p>';
+        content.innerHTML = '<p class="account-muted">${t("accountSetupHint",getLocale())}</p>';
         return;
       }
       if (!response.ok) throw new Error("بررسی حساب انجام نشد.");
       if (data.authenticated) {
         status.textContent = t("accountSignedIn",getLocale());
-        const q = data.quota?.enabled ? `<div class="quota-box"><b>${t("quotaToday",getLocale())}</b><strong>${safe(data.quota.remaining)} از ${safe(data.quota.limit)}</strong><small>مصرف‌شده: ${safe(data.quota.used)} · بازنشانی: ${new Date(data.quota.resetAt * 1000).toLocaleString("fa-IR")}</small></div>` : '<p class="account-muted">${t("quotaNotEnabled",getLocale())}</p>';
+        const q = data.quota?.enabled ? `<div class="quota-box"><b>${t("quotaToday",getLocale())}</b><strong>${safe(data.quota.remaining)} از ${safe(data.quota.limit)}</strong><small>مصرف‌شده: ${safe(data.quota.used)} · بازنشانی: ${new Date(data.quota.resetAt * 1000).toLocaleString("fa-IR")}</small></div>` : `<p class="account-muted">${t("quotaNotEnabled",getLocale())}</p>`;
         content.innerHTML = `<p class="account-email"></p>${q}<button type="button" id="account-logout" class="account-submit">${t("logout",getLocale())}</button>`;
         content.querySelector(".account-email").textContent = data.user.email;
         content.querySelector("#account-logout").addEventListener("click", async () => {
@@ -49,7 +50,7 @@ export function initAccountPanel(app) {
         <form id="account-form">
           <label>${t("email",getLocale())}<input name="email" type="email" autocomplete="email" maxlength="254" required></label>
           <label>${t("password",getLocale())}<input name="password" type="password" autocomplete="current-password" minlength="12" maxlength="128" required></label>
-          <button type="submit" class="account-submit">ورود</button>
+          <button type="submit" class="account-submit">${t("login",getLocale())}</button>
         </form>
         <div class="account-actions"><button type="button" id="account-forgot">${t("forgotPassword",getLocale())}</button><button type="button" id="account-resend">${t("resendVerification",getLocale())}</button></div><p class="account-muted">${t("passwordMinimum",getLocale())}</p>`;
       let mode = "login";
@@ -58,7 +59,7 @@ export function initAccountPanel(app) {
         content.querySelectorAll("[data-mode]").forEach(x => x.classList.toggle("active", x === tab));
         const pass = content.querySelector('[name="password"]');
         pass.autocomplete = mode === "login" ? "current-password" : "new-password";
-        content.querySelector(".account-submit").textContent = mode === "login" ? "ورود" : "ایجاد حساب";
+        content.querySelector(".account-submit").textContent = mode === "login" ? t("login",getLocale()) : t("createAccount",getLocale());
       }));
       const emailInput = content.querySelector('[name="email"]');
       content.querySelector("#account-forgot")?.addEventListener("click", async () => {
@@ -68,7 +69,7 @@ export function initAccountPanel(app) {
           const r = await fetch("/api/auth/request-password-reset", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: emailInput.value }) });
           const d = await r.json().catch(() => ({}));
           if (!r.ok) throw new Error(d.message || t("resetFailed",getLocale()));
-          status.textContent = d.message || "اگر حساب فعالی با این ایمیل وجود داشته باشد، دستور بازیابی ارسال می‌شود.";
+          status.textContent = d.message || "${t("resetAccepted",getLocale())}";
         } catch (error) { status.textContent = error.message; }
       });
       content.querySelector("#account-resend")?.addEventListener("click", async () => {
@@ -78,7 +79,7 @@ export function initAccountPanel(app) {
           const r = await fetch("/api/auth/resend-verification", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: emailInput.value }) });
           const d = await r.json().catch(() => ({}));
           if (!r.ok) throw new Error(d.message || t("verificationFailed",getLocale()));
-          status.textContent = d.message || "اگر حساب تأییدنشده‌ای با این ایمیل وجود داشته باشد، پیوند ارسال می‌شود.";
+          status.textContent = d.message || "${t("verificationAccepted",getLocale())}";
         } catch (error) { status.textContent = error.message; }
       });
       content.querySelector("#account-form").addEventListener("submit", async event => {
@@ -96,7 +97,7 @@ export function initAccountPanel(app) {
           const result = await response.json().catch(() => ({}));
           if (!response.ok) throw new Error(result.message || (result.error === "AUTH_NOT_CONFIGURED" ? "حساب کاربری هنوز فعال نشده است." : t("loginFailed",getLocale())));
           if (mode === "register") {
-            status.textContent = "درخواست ثبت‌نام ثبت شد. صندوق ورودی و پوشه هرزنامه را برای تأیید ایمیل بررسی کنید.";
+            status.textContent = "${t("registrationAccepted",getLocale())}";
             return;
           }
           status.textContent = t("loginSuccess",getLocale());
