@@ -28,10 +28,10 @@ export function initAccountPanel(app) {
       const data = await response.json().catch(() => ({}));
       if (response.status === 503) {
         status.textContent = t("accountNotReady",getLocale());
-        content.innerHTML = '<p class="account-muted">${t("accountSetupHint",getLocale())}</p>';
+        content.innerHTML = `<p class="account-muted">${t("accountSetupHint",getLocale())}</p>`;
         return;
       }
-      if (!response.ok) throw new Error("بررسی حساب انجام نشد.");
+      if (!response.ok) throw new Error(t("accountCheckFailed",getLocale()));
       if (data.authenticated) {
         status.textContent = t("accountSignedIn",getLocale());
         const q = data.quota?.enabled ? `<div class="quota-box"><b>${t("quotaToday",getLocale())}</b><strong>${safe(data.quota.remaining)} از ${safe(data.quota.limit)}</strong><small>مصرف‌شده: ${safe(data.quota.used)} · بازنشانی: ${new Date(data.quota.resetAt * 1000).toLocaleString("fa-IR")}</small></div>` : `<p class="account-muted">${t("quotaNotEnabled",getLocale())}</p>`;
@@ -69,7 +69,7 @@ export function initAccountPanel(app) {
           const r = await fetch("/api/auth/request-password-reset", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: emailInput.value }) });
           const d = await r.json().catch(() => ({}));
           if (!r.ok) throw new Error(d.message || t("resetFailed",getLocale()));
-          status.textContent = d.message || "${t("resetAccepted",getLocale())}";
+          status.textContent = d.message || t("resetAccepted",getLocale());
         } catch (error) { status.textContent = error.message; }
       });
       content.querySelector("#account-resend")?.addEventListener("click", async () => {
@@ -79,7 +79,7 @@ export function initAccountPanel(app) {
           const r = await fetch("/api/auth/resend-verification", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: emailInput.value }) });
           const d = await r.json().catch(() => ({}));
           if (!r.ok) throw new Error(d.message || t("verificationFailed",getLocale()));
-          status.textContent = d.message || "${t("verificationAccepted",getLocale())}";
+          status.textContent = d.message || t("verificationAccepted",getLocale());
         } catch (error) { status.textContent = error.message; }
       });
       content.querySelector("#account-form").addEventListener("submit", async event => {
@@ -95,9 +95,9 @@ export function initAccountPanel(app) {
             body: JSON.stringify({ email: form.email.value, password: form.password.value })
           });
           const result = await response.json().catch(() => ({}));
-          if (!response.ok) throw new Error(result.message || (result.error === "AUTH_NOT_CONFIGURED" ? "حساب کاربری هنوز فعال نشده است." : t("loginFailed",getLocale())));
+          if (!response.ok) throw new Error(result.message || (result.error === "AUTH_NOT_CONFIGURED" ? t("accountNotReady",getLocale()) : t("loginFailed",getLocale())));
           if (mode === "register") {
-            status.textContent = "${t("registrationAccepted",getLocale())}";
+            status.textContent = t("registrationAccepted",getLocale());
             return;
           }
           status.textContent = t("loginSuccess",getLocale());
