@@ -34,3 +34,8 @@ test("API errors and accessibility labels are localized in every supported local
     for (const key of keys) assert.notEqual(translate(key, locale), key, locale + ":" + key);
   }
 });
+
+
+test("account fallback strings exist for Persian and English", () => {
+ for (const locale of ["fa","en"]) for (const key of ["accountSetupHint","createAccount","resetAccepted","verificationAccepted","registrationAccepted"]) assert.notEqual(translate(key,locale),key);
+});
