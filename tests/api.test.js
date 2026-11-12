@@ -126,6 +126,19 @@ test('unknown response modes safely fall back to the default model', async () =>
  finally {globalThis.fetch=originalFetch;}
 });
 
+test('runs two configured models in comparison mode and aggregates usage', async () => {
+ const originalFetch=globalThis.fetch; const called=[];
+ globalThis.fetch=async(_url,options)=>{const body=JSON.parse(options.body);called.push(body.model);return new Response(JSON.stringify({choices:[{message:{content:'answer-'+body.model}}],usage:{prompt_tokens:2,completion_tokens:3,total_tokens:5}}),{status:200});};
+ try {const response=await onRequestPost({request:request({message:'مقایسه کن',compare:true}),env:{GROQ_API_KEY:'test-key',GROQ_MODEL_COMPARE_A:'model-a',GROQ_MODEL_COMPARE_B:'model-b'}});const body=await response.json();assert.equal(response.status,200);assert.deepEqual(called.sort(),['model-a','model-b']);assert.equal(body.compare,true);assert.equal(body.comparison.length,2);assert.equal(body.usage.totalTokens,10);assert.match(body.reply,/answer-model-a/);assert.match(body.reply,/answer-model-b/);}
+ finally {globalThis.fetch=originalFetch;}
+});
+
+test('requires two distinct server-configured models for comparison', async () => {
+ const originalFetch=globalThis.fetch;let called=false;globalThis.fetch=async()=>{called=true;throw new Error('must not call provider');};
+ try {const response=await onRequestPost({request:request({message:'مقایسه کن',compare:true}),env:{GROQ_API_KEY:'test-key',GROQ_MODEL:'normal-model'}});assert.equal(response.status,503);assert.equal((await response.json()).error,'COMPARE_NOT_CONFIGURED');assert.equal(called,false);}
+ finally {globalThis.fetch=originalFetch;}
+});
+
 test('does not expose upstream provider errors to the browser', async () => {
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async () => new Response('private provider diagnostic', { status: 401 });
