@@ -12,7 +12,22 @@ const DICTIONARIES = {
   ur: { name:"اردو", dir:"rtl", subtitle:"کثیر لسانی AI معاون", account:"اکاؤنٹ", beta:"آزمائشی ورژن", greeting:"السلام علیکم، میں آپ کی", help:"کیا مدد کر سکتا ہوں؟", intro:"سوال پوچھیں، خیالات دریافت کریں، مواد لکھیں یا اپنے کام کی منصوبہ بندی کریں۔", chat:"گفتگو", clear:"گفتگو صاف کریں", placeholder:"اپنا پیغام لکھیں…", send:"بھیجیں ↑", hint:"بھیجنے کے لیے Enter · نئی سطر کے لیے Shift + Enter", notice:"آزمائشی ورژن: گفتگو صرف صفحہ کھلا رہنے تک براؤزر کی عارضی میموری میں رہتی ہے۔ خفیہ معلومات نہ بھیجیں۔" ,idea:"خیالات",ideaDesc:"حل اور تجاویز",learning:"سیکھنا",learningDesc:"منصوبے اور رہنمائی",content:"مواد کی تخلیق",contentDesc:"تحریر اور تدوین",planning:"منصوبہ بندی",planningDesc:"مرحلہ وار",you:"آپ",assistant:"ہوش‌یار",copy:"کاپی",copyDone:"کاپی ہوگیا",copyFailed:"کاپی ناکام",thinking:"جواب تیار کیا جا رہا ہے…",suggestionsLabel:"گفتگو شروع کرنے کی تجاویز",promptIdea:"میرے کاروبار کے لیے آمدنی کے چند خیالات تجویز کریں",promptLearning:"اس ہفتے کوئی مہارت سیکھنے کا منصوبہ بنائیں",promptContent:"میرے لیے ایک پیشہ ورانہ تعارف لکھیں",promptPlanning:"میرے کاموں کے لیے مرحلہ وار منصوبہ بنائیں",errorAiNotConfigured:"AI سروس ابھی ترتیب نہیں دی گئی۔",errorBodyTooLarge:"درخواست کا حجم بہت زیادہ ہے۔",errorMessageTooLong:"آپ کا پیغام بہت طویل ہے۔",errorUpstreamTimeout:"جواب میں بہت دیر ہوئی۔ دوبارہ کوشش کریں۔",errorUpstreamUnavailable:"AI سروس عارضی طور پر دستیاب نہیں۔",errorGeneric:"ابھی جواب حاصل نہیں ہو سکا۔ بعد میں دوبارہ کوشش کریں۔",chatMessagesLabel:"گفتگو کے پیغامات",messageInputLabel:"آپ کا پیغام",logoAlt:"ہوش‌یار کا لوگو",footer:"ہوش‌یار AI · بیٹا"},
   pt: { name:"Português", dir:"ltr", subtitle:"Assistente de IA multilíngue", account:"Conta", beta:"Versão beta", greeting:"Olá, como posso", help:"ajudar você?", intro:"Faça perguntas, explore ideias, escreva conteúdo ou planeje seu trabalho.", chat:"Conversa", clear:"Limpar conversa", placeholder:"Digite sua mensagem…", send:"Enviar ↑", hint:"Enter para enviar · Shift + Enter para nova linha", notice:"Beta: a conversa fica na memória temporária do navegador enquanto esta página estiver aberta. Não envie informações confidenciais." ,idea:"Ideias",ideaDesc:"Soluções e sugestões",learning:"Aprendizagem",learningDesc:"Planos e tutoriais",content:"Criação de conteúdo",contentDesc:"Escrita e edição",planning:"Planejamento",planningDesc:"Passo a passo",you:"Você",assistant:"Houshyar",copy:"Copiar",copyDone:"Copiado",copyFailed:"Falha ao copiar",thinking:"Preparando uma resposta…",suggestionsLabel:"Sugestões para começar",promptIdea:"Sugira algumas ideias de receita para meu negócio",promptLearning:"Crie um plano para aprender uma habilidade esta semana",promptContent:"Escreva uma apresentação profissional para mim",promptPlanning:"Crie um plano passo a passo para minhas tarefas",errorAiNotConfigured:"O serviço de IA ainda não está configurado.",errorBodyTooLarge:"A solicitação é muito grande.",errorMessageTooLong:"Sua mensagem é muito longa.",errorUpstreamTimeout:"A resposta demorou demais. Tente novamente.",errorUpstreamUnavailable:"O serviço de IA está temporariamente indisponível.",errorGeneric:"Não foi possível obter uma resposta agora. Tente novamente mais tarde.",chatMessagesLabel:"Mensagens da conversa",messageInputLabel:"Sua mensagem",logoAlt:"Logotipo Houshyar",footer:"Houshyar AI · Beta"}
 };
-const STORAGE_KEY = "houshyar.locale";
+
+const ACCOUNT_EXTRA = {
+  fa: { quotaUsed:"مصرف‌شده", quotaReset:"بازنشانی" },
+  en: { quotaUsed:"Used", quotaReset:"Resets" },
+  de: { quotaUsed:"Verwendet", quotaReset:"Zurücksetzung" },
+  ar: { quotaUsed:"المستخدم", quotaReset:"إعادة التعيين" },
+  tr: { quotaUsed:"Kullanılan", quotaReset:"Sıfırlanma" },
+  es: { quotaUsed:"Usado", quotaReset:"Reinicio" },
+  fr: { quotaUsed:"Utilisé", quotaReset:"Réinitialisation" },
+  ru: { quotaUsed:"Использовано", quotaReset:"Сброс" },
+  zh: { quotaUsed:"已使用", quotaReset:"重置时间" },
+  hi: { quotaUsed:"उपयोग किया गया", quotaReset:"रीसेट" },
+  ur: { quotaUsed:"استعمال شدہ", quotaReset:"دوبارہ ترتیب" },
+  pt: { quotaUsed:"Utilizado", quotaReset:"Reinicia" }
+};
+\nconst STORAGE_KEY = "houshyar.locale";
 export const localeOptions = Object.entries(DICTIONARIES).map(([code, item]) => ({ code, name: item.name }));
 export function getLocale() {
   try {
@@ -30,7 +45,7 @@ export function setLocale(locale) {
   return selected;
 }
 export function translate(key, locale = getLocale()) {
-  return DICTIONARIES[locale]?.[key] ?? DICTIONARIES.en[key] ?? key;
+  return DICTIONARIES[locale]?.[key] ?? ACCOUNT_EXTRA[locale]?.[key] ?? DICTIONARIES.en[key] ?? ACCOUNT_EXTRA.en[key] ?? key;
 }
 export function localeDirection(locale = getLocale()) {
   return DICTIONARIES[locale]?.dir ?? "ltr";
