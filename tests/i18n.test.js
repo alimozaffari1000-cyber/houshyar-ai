@@ -26,3 +26,13 @@ test("visible chat controls are translated in every supported locale", () => {
     for (const key of ["idea","ideaDesc","learning","learningDesc","content","contentDesc","planning","planningDesc","you","assistant","copy","copyDone","copyFailed","thinking","suggestionsLabel","footer"]) assert.notEqual(translate(key, locale), key, locale + ":" + key);
   }
 });
+
+test("accessible language and chat labels are translated in every supported locale", () => {
+  for (const locale of localeOptions.map(item => item.code)) {
+    for (const key of ["languageLabel", "messagesLabel", "promptLabel"]) {
+      assert.notEqual(translate(key, locale), key, locale + ":" + key);
+    }
+  }
+  assert.equal(translate("languageLabel", "en"), "Interface language");
+  assert.equal(translate("promptLabel", "fa"), "پیام شما");
+});
