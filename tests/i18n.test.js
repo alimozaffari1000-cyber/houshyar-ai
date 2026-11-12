@@ -26,3 +26,11 @@ test("visible chat controls are translated in every supported locale", () => {
     for (const key of ["idea","ideaDesc","learning","learningDesc","content","contentDesc","planning","planningDesc","you","assistant","copy","copyDone","copyFailed","thinking","suggestionsLabel","footer","promptIdea","promptLearning","promptContent","promptPlanning"]) assert.notEqual(translate(key, locale), key, locale + ":" + key);
   }
 });
+
+
+test("API errors and accessibility labels are localized in every supported locale", () => {
+  const keys = ["errorAiNotConfigured","errorBodyTooLarge","errorMessageTooLong","errorUpstreamTimeout","errorUpstreamUnavailable","errorGeneric","chatMessagesLabel","messageInputLabel","logoAlt"];
+  for (const locale of localeOptions.map(item => item.code)) {
+    for (const key of keys) assert.notEqual(translate(key, locale), key, locale + ":" + key);
+  }
+});
