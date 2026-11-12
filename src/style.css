@@ -278,3 +278,18 @@ button:focus-visible,textarea:focus-visible,select:focus-visible{
 
 /* Houshyar original brand mark */
 .brand .logo{display:block;flex:0 0 44px;width:44px;height:44px;object-fit:contain;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none;overflow:visible}
+
+
+/* Workflow toolbox */
+.toolbox{margin:30px 0 34px}
+.toolbox-heading{text-align:right;margin:0 2px 13px}
+.toolbox-heading h2{margin:0;color:#e9f3ff;font-size:17px;font-weight:700}
+.toolbox-heading p{margin:5px 0 0;color:#91a6bf;font-size:11px;line-height:1.8}
+.toolbox-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px}
+.toolbox-grid button{display:flex;align-items:center;gap:11px;min-height:65px;padding:12px 14px;text-align:right;border:1px solid rgba(166,190,221,.15);border-radius:15px;background:linear-gradient(145deg,rgba(25,43,68,.78),rgba(15,27,46,.9));color:#eaf3ff;font:600 12px Vazirmatn;cursor:pointer;transition:transform .18s ease,border-color .18s ease}
+.toolbox-grid button:hover{transform:translateY(-2px);border-color:rgba(110,231,196,.48)}
+.toolbox-grid button span{display:grid;place-items:center;flex:0 0 34px;height:34px;border-radius:11px;background:rgba(110,231,196,.09);color:#8cebd1;font-size:17px}
+[dir="ltr"] .toolbox-heading{text-align:left}
+[dir="ltr"] .toolbox-grid button{text-align:left}
+@media(max-width:620px){.toolbox-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.toolbox-grid button{min-height:60px;padding:10px;font-size:11px}}
+@media(max-width:360px){.toolbox-grid{grid-template-columns:1fr}}
