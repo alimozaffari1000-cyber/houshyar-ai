@@ -327,3 +327,5 @@ button:focus-visible,textarea:focus-visible,select:focus-visible{
 @media(max-width:560px){.workspace-card{padding:16px;border-radius:18px}.workspace-item{display:block}.workspace-item-actions{justify-content:flex-start;margin-top:10px}.top-actions{gap:7px}.account-open{padding:7px 9px;font-size:10px}}
 
 .mode-control{display:flex;align-items:center;justify-content:flex-end;gap:10px;margin:16px 2px 8px;color:#9fb2ca;font-size:11px}.mode-control select{background:#15263d;border:1px solid #344d69;border-radius:9px;color:#e8f3ff;padding:7px 28px 7px 10px;font:11px Vazirmatn;max-width:180px}.mode-control select:focus-visible{outline:2px solid #58d9bd;outline-offset:2px}
+
+.mode-control .compare-toggle{display:inline-flex;align-items:center;gap:6px;cursor:pointer}.mode-control .compare-toggle input{accent-color:#58d9bd;width:14px;height:14px}.mode-control{flex-wrap:wrap}
