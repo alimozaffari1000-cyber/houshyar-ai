@@ -92,3 +92,42 @@ test("D1 failure fails closed without exposing database diagnostics", async () =
   assert.ok(body.includes("RATE_LIMIT_UNAVAILABLE"));
   assert.equal(body.includes("private database error"), false);
 });
+
+test("chat API rate limiting ignores spoofed X-Forwarded-For and uses the Cloudflare client IP", async () => {
+  const makeRequest = (cloudflareIp, forwardedFor) => new Request("https://example.test/api/chat", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "cf-connecting-ip": cloudflareIp,
+      "x-forwarded-for": forwardedFor
+    },
+    body: JSON.stringify({ message: "سلام" })
+  });
+  const envFor = db => ({
+    GROQ_API_KEY: "test",
+    CHAT_RATE_LIMIT_ENABLED: "true",
+    DB: db
+  });
+
+  const firstDb = fakeDb(21);
+  const first = await onRequestPost({
+    request: makeRequest("203.0.113.10", "198.51.100.10"),
+    env: envFor(firstDb)
+  });
+  const secondDb = fakeDb(21);
+  const second = await onRequestPost({
+    request: makeRequest("203.0.113.10", "198.51.100.99"),
+    env: envFor(secondDb)
+  });
+  const thirdDb = fakeDb(21);
+  const third = await onRequestPost({
+    request: makeRequest("203.0.113.11", "198.51.100.10"),
+    env: envFor(thirdDb)
+  });
+
+  assert.equal(first.status, 429);
+  assert.equal(second.status, 429);
+  assert.equal(third.status, 429);
+  assert.equal(firstDb.captured().values[0], secondDb.captured().values[0]);
+  assert.notEqual(firstDb.captured().values[0], thirdDb.captured().values[0]);
+});
