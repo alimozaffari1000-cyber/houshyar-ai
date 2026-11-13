@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { listAvailableProviders, resolveProvider, requestModel } from "../functions/api/_lib/model-providers.js";
+import { onRequestPost, onRequestGet } from "../functions/api/chat.js";
 
 test("provider availability reflects server-side secrets only", () => {
   assert.deepEqual(listAvailableProviders({ GROQ_API_KEY: "g" }).map(item => [item.id, item.available]), [
@@ -47,6 +48,34 @@ test("Claude adapter uses Messages API and maps usage without exposing its key",
     assert.equal(result.reply, "سلام از کلود");
     assert.deepEqual(result.usage, { promptTokens: 12, completionTokens: 7, totalTokens: 19 });
     assert.equal(JSON.stringify(result).includes("secret-test-key"), false);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("chat API can serve Claude without requiring a Groq key", async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response(JSON.stringify({
+    model: "claude-sonnet-5-5",
+    content: [{ type: "text", text: "پاسخ آزمایشی Claude" }],
+    usage: { input_tokens: 3, output_tokens: 4 }
+  }), { status: 200, headers: { "content-type": "application/json" } });
+  try {
+    const request = new Request("https://houshyar.example/api/chat", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ message: "سلام", provider: "anthropic", mode: "balanced" })
+    });
+    const response = await onRequestPost({ request, env: { CLAUDE_API_KEY: "test-secret" } });
+    const data = await response.json();
+    assert.equal(response.status, 200);
+    assert.equal(data.provider, "anthropic");
+    assert.equal(data.reply, "پاسخ آزمایشی Claude");
+    assert.equal(data.model, "claude-sonnet-5-5");
+    assert.equal(JSON.stringify(data).includes("test-secret"), false);
+    const health = await onRequestGet({ env: { CLAUDE_API_KEY: "test-secret" } });
+    assert.equal(health.status, 200);
+    assert.equal((await health.json()).providers.find(item => item.id === "anthropic").available, true);
   } finally {
     globalThis.fetch = originalFetch;
   }
