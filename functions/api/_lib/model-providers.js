@@ -11,7 +11,7 @@ export function resolveProvider(env = {}, requested = "auto", mode = "balanced")
   const available = listAvailableProviders(env);
   const requestedId = ["groq", "anthropic"].includes(requested) ? requested : "auto";
   const selected = requestedId === "auto"
-    ? (mode === "deep" && env.CLAUDE_API_KEY ? "anthropic" : (env.AI_DEFAULT_PROVIDER || (env.GROQ_API_KEY ? "groq" : "anthropic")))
+    ? (mode === "deep" && env.CLAUDE_API_KEY ? "anthropic" : (["groq", "anthropic"].includes(env.AI_DEFAULT_PROVIDER) ? env.AI_DEFAULT_PROVIDER : (env.GROQ_API_KEY ? "groq" : "anthropic")))
     : requestedId;
   const provider = available.find(item => item.id === selected);
   if (!provider?.available) return { error: "PROVIDER_NOT_CONFIGURED", provider: selected };
