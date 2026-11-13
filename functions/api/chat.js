@@ -199,12 +199,7 @@ export async function onRequestPost({ request, env }) {
         completionTokens: sum.completionTokens + item.usage.completionTokens,
         totalTokens: sum.totalTokens + item.usage.totalTokens
       }), { promptTokens: 0, completionTokens: 0, totalTokens: 0 }) : null;
-      const reply = comparison.map((item, index) => "مدل " + (index + 1) + " (" + item.provider + " / " + item.model + ")
-" + item.reply).join("
-
-━━━━━━━━━━━━━━━━━━━━
-
-");
+      const reply = comparison.map((item, index) => "مدل " + (index + 1) + " (" + item.provider + " / " + item.model + ")\\n" + item.reply).join("\\n\\n━━━━━━━━━━━━━━━━━━━━\\n\\n");
       return json({ reply, compare: true, comparison, usage, provider: "comparison", providers: comparison.map(item => item.provider), agent: { id: selectedAgent.id, label: selectedAgent.label, labelEn: selectedAgent.labelEn } });
     } catch {
       await releaseQuota();
