@@ -14,7 +14,7 @@ const safe=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt
 const getSavedCountry=()=>{try{const saved=localStorage.getItem('houshyar-market-country');return MARKETS[saved]?saved:'IR';}catch{return 'IR';}};
 export function initCountryMarket(app,getLocale){
  const root=app.querySelector('#country-market-root');if(!root)return;
- let country=getSavedCountry(), requestId=0, activeCategory='', activeQuery='', activeCity='';
+ let country=getSavedCountry(), requestId=0, activeCategory='', activeQuery='', activeCity='', sellerStores=[], sellerMessage='';
  const localeNow=()=>['fa','en','de'].includes(getLocale())?getLocale():'en';
  const render=()=>{
   const locale=localeNow(),copy=COPY[locale],market=MARKETS[country];
