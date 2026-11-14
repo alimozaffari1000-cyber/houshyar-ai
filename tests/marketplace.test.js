@@ -67,7 +67,7 @@ test('seller workspace is mounted and uses authenticated marketplace APIs', asyn
   assert.match(seller, /\/api\/market\/stores/);
   assert.match(seller, /\/api\/market\/listings/);
   assert.match(seller, /country:selectedCountry/);
-  assert.match(seller, /storeId:fd\.get\('storeId'\)/);
+  assert.match(seller, /const storeId=fd\.get\('storeId'\)/);
   assert.match(seller, /AUTH_REQUIRED|status===401/);
   assert.match(seller, /aria-live="polite"/);
 });
