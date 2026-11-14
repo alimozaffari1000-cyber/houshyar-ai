@@ -47,6 +47,15 @@ function render() {
       <button type="button" data-prompt="${escapeHTML(t('promptContent',locale))}">✍️ ${t('content',locale)} <small>${t('contentDesc',locale)}</small></button>
       <button type="button" data-prompt="${escapeHTML(t('promptPlanning',locale))}">🧭 ${t('planning',locale)} <small>${t('planningDesc',locale)}</small></button>
     </section>
+    <section class="ad-placement" aria-label="جایگاه تبلیغات">
+      <div class="ad-placement-copy">
+        <span class="ad-label"><i aria-hidden="true"></i> جایگاه تبلیغات</span>
+        <h2>کسب‌وکار شما، در معرض دید کاربران هوش‌یار</h2>
+        <p>این فضا برای معرفی محصولات، خدمات و پیشنهادهای ویژه کسب‌وکارها در نظر گرفته شده است.</p>
+      </div>
+      <div class="ad-placement-art" aria-hidden="true"><span>AD</span><i>✦</i></div>
+      <span class="ad-disclosure">فضای رزروشده برای تبلیغات؛ نمایش آگهی هنوز فعال نشده است.</span>
+    </section>
     <section class="marketplace-section" id="marketplace"><div class="marketplace-intro"><span class="section-kicker">خرید، فروش و رشد کسب‌وکار</span><h2>بازار و فروشگاه هوشمند هوش‌یار</h2><p>ابزارهای خریدوفروش و مدیریت فروشگاه در یک فضای یکپارچه</p></div><section id="country-market-root"></section><section id="market-seller-root"></section><section id="market-admin-root"></section></section>
     <p class="notice">${t('notice',locale)}</p></main>
     <footer>${t('footer',locale)}</footer>`;
