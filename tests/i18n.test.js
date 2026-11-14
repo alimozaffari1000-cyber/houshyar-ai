@@ -75,3 +75,14 @@ test("workspace interface is translated in every supported locale", () => {
    }
  }
 });
+
+
+test("locale selector accessible name is translated in every supported locale", () => {
+  for (const locale of localeOptions.map(item => item.code)) {
+    const value = translate("localeSelectLabel", locale);
+    assert.notEqual(value, "localeSelectLabel", locale);
+    assert.ok(value.trim().length > 0, locale);
+  }
+  assert.equal(translate("localeSelectLabel", "fa"), "زبان رابط کاربری");
+  assert.equal(translate("localeSelectLabel", "en"), "Interface language");
+});
