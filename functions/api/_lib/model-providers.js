@@ -30,10 +30,11 @@ export async function requestModel({ provider, env, messages, model, signal, max
         "anthropic-version": "2023-06-01",
         "content-type": "application/json"
       },
+      // Claude Sonnet 5.5 rejects temperature, top_p, and top_k with HTTP 400.
+      // Keep sampling controls provider-specific instead of forwarding Groq settings.
       body: JSON.stringify({
         model: model || env.CLAUDE_MODEL || CLAUDE_DEFAULT_MODEL,
         max_tokens: maxTokens,
-        temperature,
         system,
         messages: conversation
       }),
