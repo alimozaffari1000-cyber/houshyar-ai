@@ -14,8 +14,8 @@ export async function onRequestGet({ request, env }) {
   if (search) { clauses.push("(l.title LIKE ? ESCAPE '\\' OR l.description LIKE ? ESCAPE '\\')"); const term = "%" + search.replace(/[\\%_]/g, "\\$&") + "%"; bindings.push(term, term); }
   bindings.push(limit);
   try {
-    const sql = "SELECT l.id, l.country_code, l.category, l.title, l.description, l.city, l.price_amount, l.currency_code, l.listing_type, l.created_at, s.id AS store_id, s.name AS store_name, s.slug AS store_slug FROM marketplace_listings l JOIN marketplace_stores s ON s.id = l.store_id WHERE " + clauses.join(" AND ") + " ORDER BY l.created_at DESC LIMIT ?";
-    const result = await env.DB.prepare(sql).bind(...bindings).all(); return marketJson({ country, listings: result.results || [] });
+    const sql = "SELECT l.id, l.country_code, l.category, l.title, l.description, l.city, l.price_amount, l.currency_code, l.listing_type, l.created_at, s.id AS store_id, s.name AS store_name, s.slug AS store_slug, (SELECT group_concat(i.id, ',') FROM marketplace_listing_images li JOIN marketplace_images i ON i.id = li.image_id WHERE li.listing_id = l.id AND i.status = 'ready') AS image_ids FROM marketplace_listings l JOIN marketplace_stores s ON s.id = l.store_id WHERE " + clauses.join(" AND ") + " ORDER BY l.created_at DESC LIMIT ?";
+    const result = await env.DB.prepare(sql).bind(...bindings).all(); const listings = (result.results || []).map(item => { const images = item.image_ids ? item.image_ids.split(',').slice(0, 6) : []; const { image_ids, ...listing } = item; return { ...listing, images }; }); return marketJson({ country, listings });
   } catch { return marketJson({ error: "MARKET_READ_FAILED" }, 503); }
 }
 export async function onRequestPost({ request, env }) {
