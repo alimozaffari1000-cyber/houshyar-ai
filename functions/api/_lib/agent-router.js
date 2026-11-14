@@ -7,7 +7,11 @@ const AGENTS = Object.freeze({
   planner: { id: "planner", label: "برنامه‌ریز", labelEn: "Planner", instruction: "هدف را به مراحل اجرایی، اولویت‌ها، وابستگی‌ها و معیار پایان تقسیم کن. برنامه را واقع‌بینانه و قابل پیگیری نگه دار." },
   developer: { id: "developer", label: "برنامه‌نویس", labelEn: "Developer", instruction: "راه‌حل فنی قابل نگهداری ارائه کن؛ امنیت، اعتبارسنجی ورودی، مدیریت خطا و تست را در نظر بگیر. ادعا نکن کدی اجرا یا مستقر شده مگر واقعاً اجرا شده باشد." }
 });
-
+const REVIEW_ROLES = Object.freeze({
+  security: { id: "security", label: "بازبین امنیت", labelEn: "Security reviewer", instruction: "از منظر امنیت، حریم خصوصی، حداقل‌سازی دسترسی، اعتبارسنجی ورودی و سوءاستفاده احتمالی بررسی کن." },
+  quality: { id: "quality", label: "بازبین کیفیت", labelEn: "Quality reviewer", instruction: "از منظر صحت، کامل‌بودن، تناقض‌ها، قابلیت اجرا و معیارهای پذیرش پاسخ را بازبینی کن." },
+  risk: { id: "risk", label: "بازبین ریسک", labelEn: "Risk reviewer", instruction: "فرض‌های پنهان، ریسک‌ها، هزینه‌ها، پیامدهای ناخواسته و عدم‌قطعیت را بررسی کن." }
+});
 const RULES = [
   ["translator", /ترجمه|مترجم|translate|translation|traduc|übersetz|çevir|перевод|翻译|ترجم/iu],
   ["developer", /کدنویسی|برنامه.?نویسی|باگ|خطای کد|api|javascript|python|typescript|sql|code review|debug|coding|programming/iu],
@@ -16,16 +20,30 @@ const RULES = [
   ["content", /بنویس|بازنویسی|ویرایش متن|کپشن|مقاله|ایمیل|متن تبلیغ|write|rewrite|edit this|caption|article|email draft/iu],
   ["planner", /برنامه.?ریزی|نقشه.?راه|مرحله.?به.?مرحله|زمان.?بندی|برنامه بده|roadmap|plan|schedule|organize/iu]
 ];
-
 export function routeAgentRequest(message) {
   const text = typeof message === "string" ? message.slice(0, 6000) : "";
   const match = RULES.find(([, pattern]) => pattern.test(text));
-  const agent = AGENTS[match?.[0] || "general"];
-  return { ...agent, executionMode: "single_model_specialist", autonomousTools: false };
+  const primary = AGENTS[match?.[0] || "general"];
+  const team = [{ id: primary.id, label: primary.label, labelEn: primary.labelEn, role: "lead" }];
+  const addReviewer = reviewer => {
+    if (!team.some(member => member.id === reviewer.id)) team.push({ id: reviewer.id, label: reviewer.label, labelEn: reviewer.labelEn, role: "reviewer" });
+  };
+  if (primary.id === "developer") { addReviewer(REVIEW_ROLES.security); addReviewer(REVIEW_ROLES.quality); }
+  else if (primary.id === "research" || primary.id === "analyst" || primary.id === "planner") { addReviewer(REVIEW_ROLES.risk); addReviewer(REVIEW_ROLES.quality); }
+  else addReviewer(REVIEW_ROLES.quality);
+  const complexTask = /کامل|از صفر|پروژه|طراحی|راه.?اندازی|پیاده.?سازی|برنامه جامع|comprehensive|from scratch|project|implement|architecture/iu.test(text);
+  if (complexTask) addReviewer(REVIEW_ROLES.risk);
+  const reviewerInstructions = team.slice(1).map(member => REVIEW_ROLES[member.id].instruction);
+  return {
+    ...primary, team, coordinationMode: "single_model_coordinated_roles", autonomousTools: false,
+    instruction: [primary.instruction, "هماهنگ‌کننده مرکزی: هدف و محدودیت‌ها را استخراج کن، سپس پاسخ را از دید نقش اصلی بساز.", ...reviewerInstructions,
+      "نقش‌های بازبین، دیدگاه‌های داخلی در همین پاسخ هستند و مدل یا عامل مستقل جداگانه‌ای اجرا نشده است. اختلاف‌ها را حل کن و یک پاسخ نهایی منسجم بده. اقدام بیرونی یا اجرای ابزار را ادعا نکن مگر واقعاً انجام شده باشد."
+    ].join("\n")
+  };
 }
-
 export function listAgents() {
-  return Object.values(AGENTS).map(({ id, label, labelEn }) => ({
-    id, label, labelEn, status: "available"
-  }));
+  return [
+    ...Object.values(AGENTS).map(({ id, label, labelEn }) => ({ id, label, labelEn, status: "available", role: "specialist" })),
+    ...Object.values(REVIEW_ROLES).map(({ id, label, labelEn }) => ({ id, label, labelEn, status: "review_role", role: "reviewer" }))
+  ];
 }
