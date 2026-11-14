@@ -597,3 +597,17 @@ main{max-width:1180px;padding-top:42px;color:#172b50}
 .notice{color:#657895}
 footer{background:#07152f;color:#a8b9d3}
 @media(max-width:700px){body{background:linear-gradient(180deg,#07152f 0 590px,#f3f6ff 590px,#f8f9ff 100%)}main{padding-top:25px}.toolbox{padding:16px}}
+
+
+/* Reserved, clearly disclosed advertising inventory */
+.ad-placement{position:relative;display:flex;align-items:center;justify-content:space-between;gap:24px;min-height:150px;margin:26px 0 40px;padding:24px 28px 34px;border:1px solid #ead9ad;border-radius:22px;overflow:hidden;background:radial-gradient(ellipse at 88% 50%,rgba(255,214,126,.26),transparent 38%),linear-gradient(115deg,#fffdf7,#fff5df 58%,#fffaf0);box-shadow:0 12px 32px rgba(120,91,35,.08);color:#493719}
+.ad-placement-copy{position:relative;z-index:1;max-width:720px}
+.ad-label{display:inline-flex;align-items:center;gap:7px;padding:6px 10px;border:1px solid #e9d5a7;border-radius:999px;background:#fff9e9;color:#88611c;font-size:10px;font-weight:800}
+.ad-label i{width:7px;height:7px;border-radius:50%;background:#d5a342}
+.ad-placement h2{margin:12px 0 6px;color:#513b18;font-size:clamp(17px,2.4vw,23px);line-height:1.7}
+.ad-placement p{margin:0;color:#806b47;font-size:12px;line-height:1.9}
+.ad-placement-art{position:relative;display:grid;place-items:center;flex:0 0 112px;width:112px;height:92px;border:1px solid rgba(191,145,59,.25);border-radius:20px;background:linear-gradient(145deg,#ffedbd,#f9d98d);color:#9c7027;transform:rotate(4deg)}
+.ad-placement-art span{font-size:30px;font-weight:900;letter-spacing:2px}
+.ad-placement-art i{position:absolute;top:8px;right:12px;font-style:normal;font-size:20px;color:#fff}
+.ad-disclosure{position:absolute;right:28px;bottom:11px;color:#987d4d;font-size:9px}
+@media(max-width:600px){.ad-placement{min-height:0;gap:12px;margin:22px 0 30px;padding:18px 16px 38px}.ad-placement-art{flex-basis:70px;width:70px;height:70px;border-radius:15px}.ad-placement-art span{font-size:22px}.ad-placement h2{font-size:16px;line-height:1.6}.ad-placement p{font-size:10px}.ad-disclosure{right:16px;bottom:10px;font-size:8px}}
