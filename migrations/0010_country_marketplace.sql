@@ -27,7 +27,7 @@ CREATE TABLE IF NOT EXISTS marketplace_listings (
   title TEXT NOT NULL CHECK (length(title) BETWEEN 4 AND 120),
   description TEXT NOT NULL CHECK (length(description) BETWEEN 10 AND 3000),
   city TEXT NOT NULL CHECK (length(city) BETWEEN 2 AND 100),
-  price_minor INTEGER CHECK (price_minor IS NULL OR price_minor >= 0),
+  price_amount INTEGER CHECK (price_minor IS NULL OR price_minor >= 0),
   currency_code TEXT NOT NULL CHECK (currency_code IN ('IRR','AED','EUR','TRY')),
   listing_type TEXT NOT NULL DEFAULT 'offer' CHECK (listing_type IN ('offer','wanted')),
   status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','published','rejected','archived')),
