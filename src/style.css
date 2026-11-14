@@ -374,3 +374,48 @@ button:focus-visible,textarea:focus-visible,select:focus-visible{
 .market-empty,.market-loading,.market-unavailable{padding:12px;border:1px dashed rgba(145,180,218,.2);border-radius:10px;color:#9db0c7;font-size:10px;line-height:1.8}
 .market-unavailable{color:#f1c48a;border-color:rgba(241,196,138,.3)}
 @media(max-width:560px){.market-search{grid-template-columns:1fr 1fr}.market-search input:first-child{grid-column:1/-1}.market-search button{min-height:38px}.market-listing-grid,.market-store-grid{grid-template-columns:1fr}}
+
+
+/* Country marketplace and seller workspace */
+.country-market,.market-seller-panel{margin:28px 0;padding:22px;border:1px solid rgba(166,190,221,.16);border-radius:20px;background:linear-gradient(145deg,rgba(22,39,62,.86),rgba(12,23,40,.94));box-shadow:0 12px 34px rgba(0,0,0,.16)}
+.country-market-head,.market-seller-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:18px}
+.country-market h2,.market-seller-panel h2{margin:5px 0;color:#f0f6ff;font-size:20px}
+.country-market p,.market-seller-panel p{color:#9aacc5;font-size:12px;line-height:1.9}
+.country-market-picker,.market-seller-heading label{display:grid;gap:7px;min-width:150px;color:#9aacc5;font-size:11px}
+.country-market select,.market-seller-panel input,.market-seller-panel textarea,.market-seller-panel select{width:100%;min-width:0;padding:10px 11px;border:1px solid rgba(145,180,218,.2);border-radius:10px;background:#0d1a2c;color:#edf5ff;font:12px Vazirmatn}
+.country-market-meta{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin:18px 0}
+.country-market-meta span{display:grid;gap:5px;padding:12px;border:1px solid var(--line);border-radius:12px;background:#ffffff05}
+.country-market-meta small,.country-market-meta b{font-size:11px;color:#a9bdd4}
+.country-market-categories>div{display:flex;flex-wrap:wrap;gap:7px}
+.country-market-categories button,.market-seller-panel button{border:1px solid rgba(145,180,218,.2);border-radius:10px;background:#172a42;color:#dceafb;padding:9px 12px;font:11px Vazirmatn;cursor:pointer}
+.country-market-categories button.active,.market-seller-panel button[type=submit]{border-color:transparent;background:linear-gradient(110deg,#83efd1,#78b8f6);color:#09201e;font-weight:700}
+.market-search{display:grid;grid-template-columns:1fr  .7fr auto;gap:8px;margin:17px 0}
+.market-search input{min-width:0;padding:10px;border:1px solid var(--line);border-radius:10px;background:#0d1a2c;color:#fff;font:12px Vazirmatn}
+.market-search button{border:0;border-radius:10px;padding:0 15px;background:#55d5b5;color:#09201e;font:700 11px Vazirmatn}
+.market-results h3,.market-seller-panel h3{margin:18px 0 10px;font-size:14px;color:#e8f2ff}
+.market-listing-grid,.market-store-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:18px}
+.market-listing,.market-store,.market-seller-store{padding:13px;border:1px solid var(--line);border-radius:13px;background:#ffffff05}
+.market-listing h4{margin:8px 0;font-size:13px}.market-listing p,.market-store p{margin:6px 0;color:#9aacc5}
+.market-listing>div{display:flex;justify-content:space-between;gap:8px;margin:10px 0;color:#8fe8cf;font-size:11px}
+.market-listing small,.market-store small,.market-seller-store small{display:block;color:#91a6bf;font-size:10px}
+.market-listing-tag{font-size:10px;color:#8fe8cf}
+.market-empty,.market-unavailable,.market-loading{color:#91a6bf;font-size:11px;line-height:1.9}
+.market-seller-panel{margin-top:20px}
+.market-seller-heading{align-items:center}
+.market-seller-heading p{margin:4px 0}
+.market-seller-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:15px}
+.market-seller-form{display:grid;gap:9px;padding:14px;border:1px solid var(--line);border-radius:14px;background:#ffffff04}
+.market-seller-form h3{margin:0 0 4px}
+.market-seller-form textarea{min-height:75px;resize:vertical}
+.market-seller-form button:disabled{opacity:.55;cursor:wait}
+.market-seller-stores{padding:3px}
+.market-seller-store{margin:8px 0}
+.market-seller-store b{display:block;margin-bottom:7px;font-size:12px}
+.market-status{display:inline-block;margin:0 0 6px;padding:3px 7px;border-radius:7px;background:#ffffff12;color:#c4d4e6;font-size:10px}
+.market-status.active{background:#1c604b;color:#a8f4d6}
+.market-status.rejected,.market-status.suspended{background:#623b42;color:#ffc1c7}
+.market-status.pending{background:#66512c;color:#ffe0a1}
+.market-seller-listing{margin-top:14px}
+.market-seller-feedback{min-height:18px;margin:0!important;color:#8fe8cf!important;font-size:11px!important}
+.market-seller-login{white-space:nowrap}
+@media(max-width:650px){.country-market,.market-seller-panel{padding:15px;margin:18px 0}.country-market-head,.market-seller-heading{display:grid}.country-market-picker,.market-seller-heading label{width:100%}.country-market-meta{grid-template-columns:1fr}.market-search{grid-template-columns:1fr}.market-search button{min-height:40px}.market-listing-grid,.market-store-grid,.market-seller-grid{grid-template-columns:1fr}}
