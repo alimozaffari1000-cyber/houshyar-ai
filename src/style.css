@@ -475,12 +475,12 @@ button:focus-visible,textarea:focus-visible,select:focus-visible{
   color:var(--service-accent);
   box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--service-accent) 22%,transparent);
 }
-.toolbox-grid button:nth-child(1){--service-accent:#65c8ff;--service-glow:rgba(55,155,255,.13);font-family:Georgia,"Noto Sans Arabic",Tahoma,serif}
-.toolbox-grid button:nth-child(2){--service-accent:#f3bd68;--service-glow:rgba(243,189,104,.13);font-family:"Trebuchet MS","Noto Sans Arabic",Tahoma,sans-serif}
-.toolbox-grid button:nth-child(3){--service-accent:#b49aff;--service-glow:rgba(153,120,255,.15);font-family:"JetBrains Mono",Consolas,monospace}
-.toolbox-grid button:nth-child(4){--service-accent:#58dfd0;--service-glow:rgba(48,205,190,.13);font-family:Arial,"Noto Sans Arabic",Tahoma,sans-serif}
-.toolbox-grid button:nth-child(5){--service-accent:#ff8fb8;--service-glow:rgba(255,111,166,.14);font-family:"Trebuchet MS",Arial,sans-serif}
-.toolbox-grid button:nth-child(6){--service-accent:#f4d36f;--service-glow:rgba(244,211,111,.13);font-family:Georgia,"Noto Sans Arabic",Tahoma,serif}
+.toolbox-grid button:nth-child(1){--service-accent:#65c8ff;--service-glow:rgba(55,155,255,.13);font-family:Vazirmatn,Tahoma,sans-serif;font-weight:700}
+.toolbox-grid button:nth-child(2){--service-accent:#f3bd68;--service-glow:rgba(243,189,104,.13);font-family:Vazirmatn,Tahoma,sans-serif;font-weight:800}
+.toolbox-grid button:nth-child(3){--service-accent:#b49aff;--service-glow:rgba(153,120,255,.15);font-family:Vazirmatn,Tahoma,sans-serif;font-weight:650;letter-spacing:.15px}
+.toolbox-grid button:nth-child(4){--service-accent:#58dfd0;--service-glow:rgba(48,205,190,.13);font-family:Vazirmatn,Tahoma,sans-serif;font-weight:700}
+.toolbox-grid button:nth-child(5){--service-accent:#ff8fb8;--service-glow:rgba(255,111,166,.14);font-family:Vazirmatn,Tahoma,sans-serif;font-weight:700}
+.toolbox-grid button:nth-child(6){--service-accent:#f4d36f;--service-glow:rgba(244,211,111,.13);font-family:Vazirmatn,Tahoma,sans-serif;font-weight:800}
 .toolbox-grid button:nth-child(1):hover{border-color:#65c8ff}
 .toolbox-grid button:nth-child(2):hover{border-color:#f3bd68}
 .toolbox-grid button:nth-child(3):hover{border-color:#b49aff}
@@ -506,8 +506,8 @@ button:focus-visible,textarea:focus-visible,select:focus-visible{
 #market-admin-root .market-admin-actions button.danger{background:#6e303a;color:#ffe4e7}
 
 /* Keep the Persian reading experience consistent while differentiating section headings. */
-#country-market-root h2{font-family:"Trebuchet MS","Noto Sans Arabic",Tahoma,sans-serif;letter-spacing:-.2px}
-#market-seller-root h2{font-family:Arial,"Noto Sans Arabic",Tahoma,sans-serif;font-weight:800}
-#market-admin-root h2{font-family:Georgia,"Noto Sans Arabic",Tahoma,serif}
+#country-market-root h2{font-family:Vazirmatn,Tahoma,sans-serif;letter-spacing:-.2px}
+#market-seller-root h2{font-family:Vazirmatn,Tahoma,sans-serif;font-weight:800}
+#market-admin-root h2{font-family:Vazirmatn,Tahoma,sans-serif}
 .toolbox-grid button:focus-visible{outline:2px solid var(--service-accent);outline-offset:3px}
 @media(prefers-reduced-motion:reduce){.toolbox-grid button{transition:none}}
