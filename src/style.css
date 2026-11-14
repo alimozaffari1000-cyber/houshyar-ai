@@ -449,3 +449,65 @@ button:focus-visible,textarea:focus-visible,select:focus-visible{
 @media(max-width:650px){.market-seller-heading,.market-admin-heading{display:grid}.market-seller-grid,.market-admin-columns{grid-template-columns:1fr}.market-admin-item{display:grid}.market-admin-actions{width:100%}.market-admin-actions button{flex:1}}
 
 .market-listing-image{display:block;width:100%;height:180px;object-fit:cover;border-radius:12px;margin:0 0 12px;background:#0b1728}
+
+
+/* Service identity system: distinct professional colors and typography. */
+.toolbox-grid button{
+  --service-accent:#8cebd1;
+  --service-glow:rgba(140,235,209,.11);
+  position:relative;
+  overflow:hidden;
+  border-color:color-mix(in srgb,var(--service-accent) 28%,transparent);
+  background:linear-gradient(135deg,var(--service-glow),rgba(15,27,46,.94) 72%);
+  font-weight:650;
+  letter-spacing:.05px;
+}
+.toolbox-grid button:before{
+  content:"";
+  position:absolute;
+  inset:0 auto 0 0;
+  width:3px;
+  background:var(--service-accent);
+  opacity:.9;
+}
+.toolbox-grid button span{
+  background:var(--service-glow);
+  color:var(--service-accent);
+  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--service-accent) 22%,transparent);
+}
+.toolbox-grid button:nth-child(1){--service-accent:#65c8ff;--service-glow:rgba(55,155,255,.13);font-family:Georgia,"Noto Sans Arabic",Tahoma,serif}
+.toolbox-grid button:nth-child(2){--service-accent:#f3bd68;--service-glow:rgba(243,189,104,.13);font-family:"Trebuchet MS","Noto Sans Arabic",Tahoma,sans-serif}
+.toolbox-grid button:nth-child(3){--service-accent:#b49aff;--service-glow:rgba(153,120,255,.15);font-family:"JetBrains Mono",Consolas,monospace}
+.toolbox-grid button:nth-child(4){--service-accent:#58dfd0;--service-glow:rgba(48,205,190,.13);font-family:Arial,"Noto Sans Arabic",Tahoma,sans-serif}
+.toolbox-grid button:nth-child(5){--service-accent:#ff8fb8;--service-glow:rgba(255,111,166,.14);font-family:"Trebuchet MS",Arial,sans-serif}
+.toolbox-grid button:nth-child(6){--service-accent:#f4d36f;--service-glow:rgba(244,211,111,.13);font-family:Georgia,"Noto Sans Arabic",Tahoma,serif}
+.toolbox-grid button:nth-child(1):hover{border-color:#65c8ff}
+.toolbox-grid button:nth-child(2):hover{border-color:#f3bd68}
+.toolbox-grid button:nth-child(3):hover{border-color:#b49aff}
+.toolbox-grid button:nth-child(4):hover{border-color:#58dfd0}
+.toolbox-grid button:nth-child(5):hover{border-color:#ff8fb8}
+.toolbox-grid button:nth-child(6):hover{border-color:#f4d36f}
+.toolbox-heading h2{background:linear-gradient(90deg,#eaf3ff,#8cebd1);-webkit-background-clip:text;background-clip:text;color:transparent}
+
+/* Marketplace, merchant studio, and moderation each get their own visual language. */
+#country-market-root{--section-accent:#62c6ff;--section-wash:rgba(70,165,255,.09)}
+#country-market-root .country-market{border-color:rgba(98,198,255,.3);background:linear-gradient(145deg,rgba(20,57,83,.62),rgba(13,26,44,.96))}
+#country-market-root .country-market-kicker,
+#country-market-root .country-market-categories span,
+#country-market-root .country-market-meta b{color:#9bdcff}
+#country-market-root .country-market-categories button.active{border-color:#62c6ff;background:rgba(98,198,255,.16);color:#eaf8ff}
+#market-seller-root{--section-accent:#68d6a6}
+#market-seller-root .market-seller-panel{border-color:rgba(104,214,166,.3);background:linear-gradient(145deg,rgba(20,67,57,.5),rgba(13,26,40,.97))}
+#market-seller-root .market-seller-heading h2{color:#a8f0cf}
+#market-seller-root .market-seller-form button{background:linear-gradient(110deg,#68d6a6,#9be7bd);color:#08251b}
+#market-admin-root .market-admin-panel{border-color:rgba(255,139,133,.28);background:linear-gradient(145deg,rgba(75,37,48,.38),rgba(16,25,41,.97))}
+#market-admin-root .market-admin-heading h2{color:#ffb2ad}
+#market-admin-root .market-admin-actions button{background:#a64f58;color:#fff0f0}
+#market-admin-root .market-admin-actions button.danger{background:#6e303a;color:#ffe4e7}
+
+/* Keep the Persian reading experience consistent while differentiating section headings. */
+#country-market-root h2{font-family:"Trebuchet MS","Noto Sans Arabic",Tahoma,sans-serif;letter-spacing:-.2px}
+#market-seller-root h2{font-family:Arial,"Noto Sans Arabic",Tahoma,sans-serif;font-weight:800}
+#market-admin-root h2{font-family:Georgia,"Noto Sans Arabic",Tahoma,serif}
+.toolbox-grid button:focus-visible{outline:2px solid var(--service-accent);outline-offset:3px}
+@media(prefers-reduced-motion:reduce){.toolbox-grid button{transition:none}}
