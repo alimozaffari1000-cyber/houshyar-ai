@@ -86,3 +86,22 @@ test("locale selector accessible name is translated in every supported locale", 
   assert.equal(translate("localeSelectLabel", "fa"), "زبان رابط کاربری");
   assert.equal(translate("localeSelectLabel", "en"), "Interface language");
 });
+
+
+test("AI provider selector labels are translated in every supported locale", () => {
+  const keys = ["providerLabel", "providerAuto"];
+  for (const locale of localeOptions.map(item => item.code)) {
+    for (const key of keys) {
+      const value = translate(key, locale);
+      assert.notEqual(value, key, locale + ":" + key);
+      assert.ok(value.trim().length > 0, locale + ":" + key);
+      if (locale !== "fa" && locale !== "en") {
+        assert.notEqual(value, translate(key, "en"), locale + " fell back to English for " + key);
+      }
+    }
+  }
+  assert.equal(translate("providerLabel", "fa"), "موتور هوش مصنوعی");
+  assert.equal(translate("providerAuto", "fa"), "انتخاب خودکار");
+  assert.equal(translate("providerLabel", "en"), "AI provider");
+  assert.equal(translate("providerAuto", "en"), "Automatic");
+});
