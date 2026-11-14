@@ -447,3 +447,5 @@ button:focus-visible,textarea:focus-visible,select:focus-visible{
 .market-admin-actions button.danger{background:#63343b;color:#ffe4e7}
 .market-admin-denied{border-color:#5a3d45}
 @media(max-width:650px){.market-seller-heading,.market-admin-heading{display:grid}.market-seller-grid,.market-admin-columns{grid-template-columns:1fr}.market-admin-item{display:grid}.market-admin-actions{width:100%}.market-admin-actions button{flex:1}}
+
+.market-listing-image{display:block;width:100%;height:180px;object-fit:cover;border-radius:12px;margin:0 0 12px;background:#0b1728}
