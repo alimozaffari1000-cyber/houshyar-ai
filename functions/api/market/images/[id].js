@@ -1,4 +1,4 @@
-import { marketJson } from "../../../_lib/marketplace.js";
+import { marketJson } from "../../_lib/marketplace.js";
 export async function onRequestGet({ params, env }) {
  const id = typeof params.id === "string" ? params.id : "";
  if (!/^[0-9a-f-]{36}$/i.test(id)) return marketJson({error:"IMAGE_NOT_FOUND"},404);
