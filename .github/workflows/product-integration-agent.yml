@@ -1,0 +1,117 @@
+name: Houshyar Product Integration Agent
+on:
+  pull_request:
+  push:
+    branches: [main, "feature/**"]
+  schedule:
+    - cron: "15 6 * * 3"
+  workflow_dispatch:
+permissions:
+  contents: read
+  issues: write
+jobs:
+  integration:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - name: Install dependencies
+        run: npm install
+      - name: Check project structure and deployment assumptions
+        id: structure
+        continue-on-error: true
+        run: npm run agent:check
+      - name: Run automated tests
+        id: tests
+        continue-on-error: true
+        run: npm run qa
+      - name: Build production bundle
+        id: build
+        continue-on-error: true
+        run: npm run build
+      - name: Audit quality and performance budgets
+        id: quality
+        continue-on-error: true
+        run: npm run quality:check
+      - name: Scan repository for exposed secrets
+        id: secrets
+        continue-on-error: true
+        run: npm run security:scan
+      - name: Audit vulnerable dependencies
+        id: dependencies
+        continue-on-error: true
+        run: npm audit --audit-level=high
+      - name: Publish integration report
+        if: always()
+        env:
+          STRUCTURE: ${{ steps.structure.outcome }}
+          TESTS: ${{ steps.tests.outcome }}
+          BUILD: ${{ steps.build.outcome }}
+          QUALITY: ${{ steps.quality.outcome }}
+          SECRETS: ${{ steps.secrets.outcome }}
+          DEPENDENCIES: ${{ steps.dependencies.outcome }}
+        run: |
+          {
+            echo "## Houshyar Product Integration Agent"
+            echo ""
+            echo "| Control | Result |"
+            echo "|---|---|"
+            echo "| Project structure | $STRUCTURE |"
+            echo "| Automated tests | $TESTS |"
+            echo "| Production build | $BUILD |"
+            echo "| Quality and performance budget | $QUALITY |"
+            echo "| Secret scan | $SECRETS |"
+            echo "| Dependency audit | $DEPENDENCIES |"
+            echo ""
+            echo "This agent checks repository-level integration and release hygiene. It does not deploy, merge pull requests, change Cloudflare settings, or claim that external services are configured."
+            echo ""
+            echo "Manual release gates still include verifying the Cloudflare Pages D1 binding named DB, applying reviewed migrations to the intended database, and completing country-specific legal/payment checks before enabling transactions."
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Fail if any integration check failed
+        if: always()
+        env:
+          STRUCTURE: ${{ steps.structure.outcome }}
+          TESTS: ${{ steps.tests.outcome }}
+          BUILD: ${{ steps.build.outcome }}
+          QUALITY: ${{ steps.quality.outcome }}
+          SECRETS: ${{ steps.secrets.outcome }}
+          DEPENDENCIES: ${{ steps.dependencies.outcome }}
+        run: |
+          for result in "$STRUCTURE" "$TESTS" "$BUILD" "$QUALITY" "$SECRETS" "$DEPENDENCIES"; do
+            if [ "$result" != "success" ]; then
+              echo "One or more product integration checks failed."
+              exit 1
+            fi
+          done
+      - name: Open one consolidated review issue for scheduled or main-branch failures
+        if: failure() && (github.event_name == 'schedule' || (github.event_name == 'push' && github.ref == 'refs/heads/main'))
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const title = "Houshyar Product Integration Agent: review required";
+            const { data: issues } = await github.rest.issues.listForRepo({
+              owner, repo, state: "open", per_page: 100
+            });
+            if (issues.some(issue => issue.title === title && !issue.pull_request)) {
+              core.info("An integration review issue is already open.");
+              return;
+            }
+            await github.rest.issues.create({
+              owner, repo, title,
+              body: [
+                "The Product Integration Agent found one or more failed repository checks.",
+                "",
+                "Run: " + context.serverUrl + "/" + owner + "/" + repo + "/actions/runs/" + context.runId,
+                "Commit: " + context.sha,
+                "",
+                "Review the workflow summary and logs. This report is not proof of a production outage.",
+                "The agent does not deploy, merge, modify secrets, or access external payment systems."
+              ].join("\n")
+            });
