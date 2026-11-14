@@ -13,7 +13,7 @@ export function initMarketAdmin(app, getLocale) {
   const t=COPY[locale()];
   root.innerHTML='<section class="market-admin-panel"><p>'+t.loading+'</p></section>';
   try{
-   const response=await fetch('/api/market/moderate?country='+encodeURIComponent(country));
+   const response=await fetch('/api/market/moderation-queue?country='+encodeURIComponent(country));
    const data=await response.json().catch(()=>({}));
    if(response.status===401||response.status===403){root.innerHTML='<section class="market-admin-panel market-admin-denied"><h2>'+t.title+'</h2><p>'+t.denied+'</p></section>';return;}
    if(!response.ok)throw new Error(data.error||'queue');
