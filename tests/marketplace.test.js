@@ -42,3 +42,17 @@ test('marketplace public listing endpoint filters by country and approved state'
   assert.match(source, /getSessionUser|requireMarketUser/);
   assert.match(source, /originAllowed/);
 });
+
+test('seller store listing is scoped to authenticated owner', async () => {
+  const source = await readFile(new URL('../functions/api/market/my-stores.js', import.meta.url), 'utf8');
+  assert.match(source, /requireMarketUser/);
+  assert.match(source, /WHERE owner_user_id = \?/);
+});
+
+test('moderation requires admin and publishes only in the matching country', async () => {
+  const source = await readFile(new URL('../functions/api/market/moderate.js', import.meta.url), 'utf8');
+  assert.match(source, /auth\.user\.role !== "admin"/);
+  assert.match(source, /country_code = \?/);
+  assert.match(source, /STORE_NOT_ACTIVE/);
+  assert.match(source, /marketplace\.moderated/);
+});
