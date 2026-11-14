@@ -56,3 +56,18 @@ test('moderation requires admin and publishes only in the matching country', asy
   assert.match(source, /STORE_NOT_ACTIVE/);
   assert.match(source, /marketplace\.moderated/);
 });
+
+
+test('seller workspace is mounted and uses authenticated marketplace APIs', async () => {
+  const seller = await readFile(new URL('../src/market-seller.js', import.meta.url), 'utf8');
+  const main = await readFile(new URL('../src/main.js', import.meta.url), 'utf8');
+  assert.match(main, /initMarketSeller\(app, getLocale\)/);
+  assert.match(main, /market-seller-root/);
+  assert.match(seller, /\/api\/market\/my-stores/);
+  assert.match(seller, /\/api\/market\/stores/);
+  assert.match(seller, /\/api\/market\/listings/);
+  assert.match(seller, /country:selectedCountry/);
+  assert.match(seller, /storeId:fd\.get\('storeId'\)/);
+  assert.match(seller, /AUTH_REQUIRED|status===401/);
+  assert.match(seller, /aria-live="polite"/);
+});
