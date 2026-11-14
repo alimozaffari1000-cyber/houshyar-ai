@@ -93,3 +93,19 @@ test('moderation dashboard is mounted and uses protected moderation endpoints', 
   assert.match(admin, /data-decision="reject"/);
   assert.match(admin, /status===401\|\|response\.status===403/);
 });
+
+
+test('marketplace image upload requires owner authentication, private R2 storage and content verification', async () => {
+  const source = await readFile(new URL('../functions/api/market/images/upload.js', import.meta.url), 'utf8');
+  assert.match(source, /originAllowed/);
+  assert.match(source, /requireMarketUser/);
+  assert.match(source, /owner_user_id = \?/);
+  assert.match(source, /status IN \('pending','active'\)/);
+  assert.match(source, /MAX_IMAGE_BYTES = 5 \* 1024 \* 1024/);
+  assert.match(source, /IMAGE_TYPES/);
+  assert.match(source, /IMAGE_CONTENT_MISMATCH/);
+  assert.match(source, /crypto\.randomUUID\(\)/);
+  assert.match(source, /env\.R2_BUCKET\.put/);
+  assert.match(source, /IMAGE_STORAGE_NOT_CONFIGURED/);
+  assert.doesNotMatch(source, /file\.name/);
+});
