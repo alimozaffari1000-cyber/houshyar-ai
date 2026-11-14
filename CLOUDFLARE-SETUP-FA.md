@@ -60,3 +60,13 @@
 مستند رسمی تفاوت Pages و Workers Builds:
 - https://developers.cloudflare.com/pages/configuration/build-configuration/
 - https://developers.cloudflare.com/workers/ci-cd/builds/configuration/
+
+
+## وضعیت بررسی اتصال Cloudflare در ۱۴ نوامبر ۲۰۲۶
+
+در commit آزمایشی `d963414`، چک Cloudflare Pages موفق و Preview جدید ساخته شد؛ هم‌زمان چک جداگانه Workers Builds ناموفق بود و لینک آن به سرویس Worker با نام `houshyar-ai` اشاره می‌کرد. چون متن خطای داخلی Build در دسترس نیست، اتصال اشتباه/قدیمی Worker فقط یک فرضیه است، نه علت قطعی.
+
+- Pages Preview موفق: https://d4a2c635.houshyar-ai.pages.dev
+- پیگیری داشبورد و اتصال Worker: https://github.com/alimozaffari1000-cyber/houshyar-ai/issues/59
+
+**اقدام احتیاطی:** پروژه Pages را حفظ کنید. Worker احتمالی را تا وقتی در داشبورد مشخص نشده که دامنه یا ترافیک Production به آن وابسته نیست، حذف نکنید. اگر Worker اتصال اضافی و بدون مصرف است، Git integration آن را غیرفعال کنید؛ تنظیمات مخزن Pages را به `npx wrangler deploy` تغییر ندهید.
