@@ -109,3 +109,26 @@ test('marketplace image upload requires owner authentication, private R2 storage
   assert.match(source, /IMAGE_STORAGE_NOT_CONFIGURED/);
   assert.doesNotMatch(source, /file\.name/);
 });
+
+
+test('marketplace image migration and public endpoints enforce published visibility', async () => {
+ const sql=await readFile(new URL('../migrations/0011_marketplace_images.sql',import.meta.url),'utf8');
+ assert.match(sql,/CREATE TABLE IF NOT EXISTS marketplace_images/);
+ assert.match(sql,/object_key TEXT NOT NULL UNIQUE/);
+ assert.match(sql,/CREATE TABLE IF NOT EXISTS marketplace_listing_images/);
+ const image=await readFile(new URL('../functions/api/market/images/[id].js',import.meta.url),'utf8');
+ assert.match(image,/l\.status='published'/);
+ assert.match(image,/s\.status='active'/);
+ const store=await readFile(new URL('../functions/api/market/stores/public.js',import.meta.url),'utf8');
+ assert.match(store,/status='active'/);
+ assert.match(store,/status='published'/);
+ const detail=await readFile(new URL('../functions/api/market/listings/[id].js',import.meta.url),'utf8');
+ assert.match(detail,/status='published'/);
+});
+
+test('listing create limits image count and verifies ownership', async () => {
+ const source=await readFile(new URL('../functions/api/market/listings.js',import.meta.url),'utf8');
+ assert.match(source,/imageIds.length > 6/);
+ assert.match(source,/IMAGE_NOT_OWNED_OR_INVALID/);
+ assert.match(source,/marketplace_listing_images/);
+});
