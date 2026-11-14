@@ -30,7 +30,8 @@ test('country marketplace schema enforces country ownership and moderation state
   assert.match(sql, /owner_user_id TEXT NOT NULL REFERENCES users\(id\)/);
   assert.match(sql, /status TEXT NOT NULL DEFAULT 'pending'/);
   assert.match(sql, /CREATE INDEX IF NOT EXISTS idx_market_listings_country_status_category/);
-  assert.match(sql, /price_amount INTEGER CHECK \\(price_amount IS NULL OR price_amount >= 0\\)/);\n  assert.doesNotMatch(sql, /price_minor/);
+  assert.match(sql, /price_amount INTEGER CHECK \(price_amount IS NULL OR price_amount >= 0\)/);
+  assert.doesNotMatch(sql, /price_minor/);
 });
 
 test('marketplace public listing endpoint filters by country and approved state', async () => {
