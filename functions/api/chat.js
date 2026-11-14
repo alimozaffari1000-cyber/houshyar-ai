@@ -2,6 +2,7 @@ import { checkChatRateLimit } from "./_lib/chat-rate-limit.js";
 import { getSessionUser } from "./_lib/auth.js";
 import { reserveDailyChat, releaseDailyChat } from "./_lib/daily-quota.js";
 import { routeAgentRequest } from "./_lib/agent-router.js";
+import { resolveProvider, requestModel, listAvailableProviders } from "./_lib/model-providers.js";
 
 const MAX_BODY_BYTES = 32 * 1024;
 const UPSTREAM_TIMEOUT_MS = 20_000;
@@ -57,7 +58,7 @@ async function readJsonLimited(request) {
 }
 
 export async function onRequestPost({ request, env }) {
-  if (!env.GROQ_API_KEY) return json({ error: "AI_NOT_CONFIGURED", message: "سرویس هوش مصنوعی هنوز تنظیم نشده است." }, 503);
+  if (!env.GROQ_API_KEY && !env.CLAUDE_API_KEY) return json({ error: "AI_NOT_CONFIGURED", message: "هیچ ارائه‌دهنده هوش مصنوعی پیکربندی نشده است." }, 503);
   const contentType = (request.headers.get("content-type") || "").split(";", 1)[0].trim().toLowerCase();
   if (contentType !== "application/json") {
     return json({ error: "UNSUPPORTED_MEDIA_TYPE", message: "نوع محتوای درخواست باید JSON باشد." }, 415);
@@ -145,8 +146,16 @@ export async function onRequestPost({ request, env }) {
   }
 
   const requestedMode = ["fast", "balanced", "deep", "creative"].includes(body.mode) ? body.mode : "balanced";
-  const modelByMode = { fast: env.GROQ_MODEL_FAST, balanced: env.GROQ_MODEL, deep: env.GROQ_MODEL_DEEP, creative: env.GROQ_MODEL_CREATIVE };
-  const model = modelByMode[requestedMode] || env.GROQ_MODEL || "llama-3.3-70b-versatile";
+  const requestedProvider = ["auto", "groq", "anthropic"].includes(body.provider) ? body.provider : "auto";
+  const providerChoice = resolveProvider(env, requestedProvider, requestedMode);
+  if (providerChoice.error) {
+    await releaseQuota();
+    return json({ error: "PROVIDER_NOT_CONFIGURED", provider: providerChoice.provider, message: "ارائه‌دهنده انتخاب‌شده هنوز در تنظیمات سرور فعال نیست." }, 503);
+  }
+  const groqModelByMode = { fast: env.GROQ_MODEL_FAST, balanced: env.GROQ_MODEL, deep: env.GROQ_MODEL_DEEP, creative: env.GROQ_MODEL_CREATIVE };
+  const model = providerChoice.provider === "anthropic"
+    ? (env.CLAUDE_MODEL || providerChoice.model)
+    : (groqModelByMode[requestedMode] || providerChoice.model);
   const selectedAgent = routeAgentRequest(latest);
   const messages = [
     { role: "system", content: "تو هوش‌یار، یک دستیار چندمنظوره و چندزبانه دقیق و کاربردی هستی. پاسخ را به زبان کاربر، روشن و مرحله‌ای ارائه کن. اطلاعات نامطمئن را قطعی جلوه نده. برای موضوعات پزشکی، مالی و حقوقی محدودیت‌ها و ریسک‌ها را روشن کن. هرگز ادعا نکن جستجوی زنده، اقدام بیرونی، اجرای کد یا دسترسی به ابزار انجام داده‌ای مگر واقعاً انجام شده باشد.\n\nنقش تخصصی این درخواست: " + selectedAgent.instruction },
@@ -157,89 +166,82 @@ export async function onRequestPost({ request, env }) {
   }
 
   if (body.compare === true) {
-    const compareModels = [env.GROQ_MODEL_COMPARE_A, env.GROQ_MODEL_COMPARE_B];
-    if (!compareModels[0] || !compareModels[1] || compareModels[0] === compareModels[1]) {
+    let compareTargets;
+    if (env.GROQ_API_KEY && env.CLAUDE_API_KEY) {
+      compareTargets = [
+        { provider: "groq", model: groqModelByMode[requestedMode] || env.GROQ_MODEL || "llama-3.3-70b-versatile" },
+        { provider: "anthropic", model: env.CLAUDE_MODEL || "claude-sonnet-5-5" }
+      ];
+    } else if (env.GROQ_API_KEY && env.GROQ_MODEL_COMPARE_A && env.GROQ_MODEL_COMPARE_B && env.GROQ_MODEL_COMPARE_A !== env.GROQ_MODEL_COMPARE_B) {
+      compareTargets = [
+        { provider: "groq", model: env.GROQ_MODEL_COMPARE_A },
+        { provider: "groq", model: env.GROQ_MODEL_COMPARE_B }
+      ];
+    } else {
       await releaseQuota();
-      return json({ error: "COMPARE_NOT_CONFIGURED", message: "برای مقایسه، دو مدل متفاوت را در تنظیمات سرور تعریف کنید." }, 503);
+      return json({ error: "COMPARE_NOT_CONFIGURED", message: "برای مقایسه، کلید Claude را همراه Groq یا دو مدل متفاوت Groq تنظیم کنید." }, 503);
     }
-    const runComparison = async (selectedModel) => {
+    const runComparison = async target => {
       const compareController = new AbortController();
       const compareTimeout = setTimeout(() => compareController.abort("upstream_timeout"), UPSTREAM_TIMEOUT_MS);
       try {
-        const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-          method: "POST",
-          headers: { "Authorization": `Bearer ${env.GROQ_API_KEY}`, "Content-Type": "application/json" },
-          body: JSON.stringify({ model: selectedModel, messages, temperature: 0.5, max_tokens: 1200 }),
-          signal: compareController.signal
+        const result = await requestModel({
+          provider: target.provider, env, messages, model: target.model,
+          signal: compareController.signal, maxTokens: 1200, temperature: 0.5
         });
-        if (!response.ok) throw new Error("comparison_provider_error");
-        const result = await response.json();
-        const answer = result?.choices?.[0]?.message?.content;
-        if (typeof answer !== "string" || !answer.trim()) throw new Error("comparison_empty_reply");
-        return { model: selectedModel, reply: answer.trim(), usage: result?.usage ? { promptTokens: result.usage.prompt_tokens || 0, completionTokens: result.usage.completion_tokens || 0, totalTokens: result.usage.total_tokens || 0 } : null };
+        return { provider: target.provider, model: result.model, reply: result.reply, usage: result.usage };
       } finally { clearTimeout(compareTimeout); }
     };
     try {
-      const comparison = await Promise.all(compareModels.map(runComparison));
-      const usage = comparison.every(item => item.usage) ? comparison.reduce((sum, item) => ({ promptTokens: sum.promptTokens + item.usage.promptTokens, completionTokens: sum.completionTokens + item.usage.completionTokens, totalTokens: sum.totalTokens + item.usage.totalTokens }), { promptTokens: 0, completionTokens: 0, totalTokens: 0 }) : null;
-      const reply = comparison.map((item, index) => "مدل " + (index + 1) + " (" + item.model + ")\\n" + item.reply).join("\\n\\n━━━━━━━━━━━━━━━━━━━━\\n\\n");
-      return json({ reply, compare: true, comparison, usage, agent: { id: selectedAgent.id, label: selectedAgent.label, labelEn: selectedAgent.labelEn } });
+      const comparison = await Promise.all(compareTargets.map(runComparison));
+      const usage = comparison.every(item => item.usage) ? comparison.reduce((sum, item) => ({
+        promptTokens: sum.promptTokens + item.usage.promptTokens,
+        completionTokens: sum.completionTokens + item.usage.completionTokens,
+        totalTokens: sum.totalTokens + item.usage.totalTokens
+      }), { promptTokens: 0, completionTokens: 0, totalTokens: 0 }) : null;
+      const reply = comparison.map((item, index) => "مدل " + (index + 1) + " (" + item.provider + " / " + item.model + ")\\n" + item.reply).join("\\n\\n━━━━━━━━━━━━━━━━━━━━\\n\\n");
+      return json({ reply, compare: true, comparison, usage, provider: "comparison", providers: comparison.map(item => item.provider), agent: { id: selectedAgent.id, label: selectedAgent.label, labelEn: selectedAgent.labelEn } });
     } catch {
       await releaseQuota();
-      return json({ error: "COMPARISON_FAILED", message: "مقایسه مدل‌ها کامل نشد. تنظیمات یا دسترسی مدل‌ها را بررسی کنید." }, 502);
+      return json({ error: "COMPARISON_FAILED", message: "مقایسه مدل‌ها کامل نشد. کلیدها، اعتبار حساب و دسترسی مدل‌ها را بررسی کنید." }, 502);
     }
   }
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort("upstream_timeout"), UPSTREAM_TIMEOUT_MS);
-  let upstream;
-  let data;
+  let result;
   try {
-    upstream = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      headers: { "Authorization": `Bearer ${env.GROQ_API_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model,
-        messages,
-        temperature: 0.5,
-        max_tokens: 1200
-      }),
-      signal: controller.signal
+    result = await requestModel({
+      provider: providerChoice.provider, env, messages, model,
+      signal: controller.signal, maxTokens: 1200, temperature: 0.5
     });
-    if (upstream.ok) data = await upstream.json();
   } catch {
+    await releaseQuota();
     if (controller.signal.aborted) {
-      await releaseQuota();
       return json({ error: "UPSTREAM_TIMEOUT", message: "پاسخ سرویس هوش مصنوعی بیش از زمان مجاز طول کشید." }, 504);
     }
-    if (upstream) {
-      await releaseQuota();
-      return json({ error: "EMPTY_REPLY", message: "پاسخ معتبری از مدل دریافت نشد." }, 502);
-    }
-    await releaseQuota();
-    return json({ error: "UPSTREAM_UNAVAILABLE", message: "ارتباط با سرویس هوش مصنوعی برقرار نشد." }, 502);
+    return json({ error: "UPSTREAM_ERROR", message: "ارائه‌دهنده هوش مصنوعی موقتاً پاسخ‌گو نیست یا تنظیمات آن معتبر نیست." }, 502);
   } finally {
     clearTimeout(timeout);
   }
-
-  if (!upstream.ok) {
-    await releaseQuota();
-    return json({ error: "UPSTREAM_ERROR", message: "سرویس هوش مصنوعی موقتاً پاسخ‌گو نیست." }, 502);
-  }
-  const reply = data?.choices?.[0]?.message?.content;
-  if (typeof reply !== "string" || !reply.trim()) {
-    await releaseQuota();
-    return json({ error: "EMPTY_REPLY", message: "پاسخ معتبری از مدل دریافت نشد." }, 502);
-  }
-  return json({ reply: reply.trim(), mode: requestedMode, model, usage: data?.usage ? { promptTokens: data.usage.prompt_tokens || 0, completionTokens: data.usage.completion_tokens || 0, totalTokens: data.usage.total_tokens || 0 } : null, agent: { id: selectedAgent.id, label: selectedAgent.label, labelEn: selectedAgent.labelEn } });
+  return json({
+    reply: result.reply,
+    mode: requestedMode,
+    provider: providerChoice.provider,
+    model: result.model,
+    usage: result.usage,
+    agent: { id: selectedAgent.id, label: selectedAgent.label, labelEn: selectedAgent.labelEn }
+  });
 }
 
 export async function onRequestGet({ env } = {}) {
-  const configured = Boolean(env?.GROQ_API_KEY);
+  const providers = listAvailableProviders(env || {});
+  const configured = providers.some(item => item.available);
   return json({
     service: "Houshyar AI API",
     status: configured ? "ready" : "configuration_required",
     aiConfigured: configured,
+    providers: providers.map(({ id, available, defaultModel }) => ({ id, available, defaultModel })),
     method: "POST"
   }, configured ? 200 : 503);
 }
