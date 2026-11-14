@@ -101,7 +101,7 @@ test('marketplace image upload requires owner authentication, private R2 storage
   assert.match(source, /requireMarketUser/);
   assert.match(source, /owner_user_id\s*=\s*\?/);
   assert.match(source, /status IN \('pending','active'\)/);
-  assert.match(source, /MAX_IMAGE_BYTES=5\\*1024\\*1024/);
+  assert.match(source, /MAX_IMAGE_BYTES=5\*1024\*1024/);
   assert.match(source, /IMAGE_TYPES/);
   assert.match(source, /IMAGE_CONTENT_MISMATCH/);
   assert.match(source, /crypto\.randomUUID\(\)/);
