@@ -40,9 +40,8 @@ export function initMarketSeller(app, getLocale) {
    root.querySelector('#seller-listing-form')?.addEventListener('submit',async e=>{
     e.preventDefault();selectedCountry=countrySelect()?.value || selectedCountry;const form=e.currentTarget,fd=new FormData(form),button=form.querySelector('button'),feedback=form.querySelector('.market-seller-feedback'),price=fd.get('price');button.disabled=true;feedback.textContent='';
     try{
-     const storeId=fd.get('storeId'),files=Array.from(form.querySelector('input[name="images"]')?.files||[]);
+     const storeId=fd.get('storeId'),files=Array.from(form.querySelector('input[name="images"]')?.files||[]),imageIds=[];
      if(files.length>6)throw new Error('max six images');
-     const imageIds=[];
      for(const file of files){
       const imageForm=new FormData();imageForm.append('image',file);imageForm.append('storeId',storeId);imageForm.append('country',selectedCountry);
       const uploaded=await fetch('/api/market/images/upload',{method:'POST',body:imageForm}),imageData=await uploaded.json();
@@ -51,7 +50,7 @@ export function initMarketSeller(app, getLocale) {
      }
      const r=await fetch('/api/market/listings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({country:selectedCountry,storeId,category:fd.get('category'),title:fd.get('title'),description:fd.get('description'),city:fd.get('city'),price:price===''?null:Number(price),listingType:'offer',imageIds})});
      const d=await r.json();if(!r.ok)throw new Error(d.error||'failed');feedback.textContent=t.listingOk;form.reset();
-    }catch{feedback.textContent=t.failed;}finally{button.disabled=false;}
+    }catch{await Promise.all(imageIds.map(imageId=>fetch('/api/market/images/'+encodeURIComponent(imageId),{method:'DELETE'}).catch(()=>null)));feedback.textContent=t.failed;}finally{button.disabled=false;}
    });
   } catch {
    root.innerHTML='<section class="market-seller-panel"><h2>'+t.title+'</h2><p class="market-unavailable">'+t.unavailable+'</p></section>';
