@@ -157,3 +157,12 @@ test('listing create limits image count and verifies image ownership', async () 
  assert.match(seller,/api\/market\/images\/upload/);
  assert.match(seller,/imageIds/);
 });
+
+
+test('listing and attached images are inserted through one atomic D1 batch', async () => {
+  const source = await readFile(new URL('../functions/api/market/listings.js', import.meta.url), 'utf8');
+  assert.match(source, /const statements = \[/);
+  assert.match(source, /\.\.\.imageIds\.map\(/);
+  assert.match(source, /await env\.DB\.batch\(statements\)/);
+  assert.doesNotMatch(source, /for \(let index = 0; index < imageIds\.length; index\+\+\) await env\.DB/);
+});
