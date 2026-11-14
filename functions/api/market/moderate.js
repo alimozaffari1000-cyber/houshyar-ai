@@ -21,7 +21,7 @@ export async function onRequestPost({ request, env }) {
       if (decision === "approve" && row.store_status !== "active") return marketJson({ error: "STORE_NOT_ACTIVE" }, 409);
       await env.DB.prepare("UPDATE marketplace_listings SET status = ?, updated_at = ? WHERE id = ? AND country_code = ? AND status = 'pending'").bind(status, now, id, country.toUpperCase()).run();
     }
-    await env.DB.prepare("INSERT INTO audit_events (id, actor_user_id, event_type, target_type, target_id, metadata_json, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)").bind(crypto.randomUUID(), auth.user.id, "marketplace.moderated", type, id, JSON.stringify({ country: country.toUpperCase(), decision }), now).run();
+    try { await env.DB.prepare("INSERT INTO audit_events (id, actor_user_id, event_type, target_type, target_id, metadata_json, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)").bind(crypto.randomUUID(), auth.user.id, "marketplace.moderated", type, id, JSON.stringify({ country: country.toUpperCase(), decision }), now).run(); } catch { /* moderation state remains authoritative if audit storage is temporarily unavailable */ }
     return marketJson({ success: true, type, id, status });
   } catch { return marketJson({ error: "MODERATION_FAILED" }, 503); }
 }
