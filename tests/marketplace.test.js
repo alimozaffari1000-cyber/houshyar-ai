@@ -71,3 +71,25 @@ test('seller workspace is mounted and uses authenticated marketplace APIs', asyn
   assert.match(seller, /AUTH_REQUIRED|status===401/);
   assert.match(seller, /aria-live="polite"/);
 });
+
+
+test('moderation queue is admin-only and country-scoped', async () => {
+  const source = await readFile(new URL('../functions/api/market/moderation-queue.js', import.meta.url), 'utf8');
+  assert.match(source, /auth\.user\.role !== "admin"/);
+  assert.match(source, /validCountry\(country\)/);
+  assert.match(source, /status = 'pending'/);
+  assert.match(source, /country_code = \?/);
+  assert.doesNotMatch(source, /owner_user_id|email/);
+});
+
+test('moderation dashboard is mounted and uses protected moderation endpoints', async () => {
+  const admin = await readFile(new URL('../src/market-admin.js', import.meta.url), 'utf8');
+  const main = await readFile(new URL('../src/main.js', import.meta.url), 'utf8');
+  assert.match(main, /initMarketAdmin\(app, getLocale\)/);
+  assert.match(main, /market-admin-root/);
+  assert.match(admin, /\/api\/market\/moderation-queue\?country=/);
+  assert.match(admin, /\/api\/market\/moderate/);
+  assert.match(admin, /data-decision="approve"/);
+  assert.match(admin, /data-decision="reject"/);
+  assert.match(admin, /status===401\|\|response\.status===403/);
+});
