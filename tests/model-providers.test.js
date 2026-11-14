@@ -21,7 +21,7 @@ test("explicit unconfigured provider returns a safe configuration error", () => 
   });
 });
 
-test("Claude adapter uses Messages API and maps usage without exposing its key", async () => {
+test("Claude adapter uses Messages API, omits unsupported sampling controls, and maps usage without exposing its key", async () => {
   const originalFetch = globalThis.fetch;
   let captured;
   globalThis.fetch = async (url, init) => {
@@ -45,6 +45,9 @@ test("Claude adapter uses Messages API and maps usage without exposing its key",
     assert.equal(captured.headers["x-api-key"], "secret-test-key");
     assert.equal(captured.body.system, "system rules");
     assert.deepEqual(captured.body.messages, [{ role: "user", content: "سلام" }]);
+    assert.equal(Object.hasOwn(captured.body, "temperature"), false);
+    assert.equal(Object.hasOwn(captured.body, "top_p"), false);
+    assert.equal(Object.hasOwn(captured.body, "top_k"), false);
     assert.equal(result.reply, "سلام از کلود");
     assert.deepEqual(result.usage, { promptTokens: 12, completionTokens: 7, totalTokens: 19 });
     assert.equal(JSON.stringify(result).includes("secret-test-key"), false);
