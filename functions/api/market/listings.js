@@ -26,6 +26,8 @@ export async function onRequestPost({ request, env }) {
   const storeId = typeof body.storeId === "string" ? body.storeId : "", category = typeof body.category === "string" ? body.category : "";
   const title = cleanText(body.title, 4, 120), description = cleanText(body.description, 10, 3000), city = cleanText(body.city, 2, 100);
   const listingType = body.listingType === "wanted" ? "wanted" : "offer", price = body.price === "" || body.price === null || body.price === undefined ? null : Number(body.price);
+  const imageIds = Array.isArray(body.imageIds) ? body.imageIds : [];
+  if (imageIds.length > 6 || imageIds.some(id => typeof id !== "string" || !/^[0-9a-f-]{36}$/i.test(id)) || new Set(imageIds).size !== imageIds.length) return marketJson({ error: "INVALID_IMAGE_IDS" }, 400);
   if (!validCountry(country) || !storeId || storeId.length > 64 || !MARKET_CATEGORIES.has(category) || !title || !description || !city) return marketJson({ error: "INVALID_LISTING_DATA" }, 400);
   if (price !== null && (!Number.isSafeInteger(price) || price < 0)) return marketJson({ error: "INVALID_PRICE" }, 400);
   try {
@@ -33,7 +35,13 @@ export async function onRequestPost({ request, env }) {
     if (!store) return marketJson({ error: "STORE_NOT_FOUND_OR_NOT_OWNED" }, 404);
     if (await enforceMarketWriteLimit(env.DB, auth.user.id, "listing")) return marketJson({ error: "RATE_LIMITED" }, 429);
     const id = crypto.randomUUID(), now = Math.floor(Date.now() / 1000);
+    if (imageIds.length) {
+      const placeholders = imageIds.map(() => "?").join(",");
+      const owned = await env.DB.prepare("SELECT id FROM marketplace_images WHERE owner_user_id = ? AND store_id = ? AND country_code = ? AND status = 'ready' AND id IN (" + placeholders + ")").bind(auth.user.id, storeId, country, ...imageIds).all();
+      if ((owned.results || []).length !== imageIds.length) return marketJson({ error: "IMAGE_NOT_OWNED_OR_INVALID" }, 403);
+    }
     await env.DB.prepare("INSERT INTO marketplace_listings (id, store_id, owner_user_id, country_code, category, title, description, city, price_amount, currency_code, listing_type, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)").bind(id, storeId, auth.user.id, country, category, title, description, city, price, MARKET_CURRENCIES[country], listingType, now, now).run();
+    for (let index = 0; index < imageIds.length; index++) await env.DB.prepare("INSERT INTO marketplace_listing_images (listing_id, image_id, sort_order) VALUES (?, ?, ?)").bind(id, imageIds[index], index).run();
     return marketJson({ accepted: true, listing: { id, country, category, title, city, price, currency: MARKET_CURRENCIES[country], status: "pending" } }, 201);
   } catch { return marketJson({ error: "LISTING_CREATE_FAILED" }, 503); }
 }
