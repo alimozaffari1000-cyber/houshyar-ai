@@ -40,8 +40,12 @@ export async function onRequestPost({ request, env }) {
       const owned = await env.DB.prepare("SELECT id FROM marketplace_images WHERE owner_user_id = ? AND store_id = ? AND country_code = ? AND status = 'ready' AND id IN (" + placeholders + ")").bind(auth.user.id, storeId, country, ...imageIds).all();
       if ((owned.results || []).length !== imageIds.length) return marketJson({ error: "IMAGE_NOT_OWNED_OR_INVALID" }, 403);
     }
-    await env.DB.prepare("INSERT INTO marketplace_listings (id, store_id, owner_user_id, country_code, category, title, description, city, price_amount, currency_code, listing_type, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)").bind(id, storeId, auth.user.id, country, category, title, description, city, price, MARKET_CURRENCIES[country], listingType, now, now).run();
-    for (let index = 0; index < imageIds.length; index++) await env.DB.prepare("INSERT INTO marketplace_listing_images (listing_id, image_id, sort_order) VALUES (?, ?, ?)").bind(id, imageIds[index], index).run();
+    const statements = [
+      env.DB.prepare("INSERT INTO marketplace_listings (id, store_id, owner_user_id, country_code, category, title, description, city, price_amount, currency_code, listing_type, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)").bind(id, storeId, auth.user.id, country, category, title, description, city, price, MARKET_CURRENCIES[country], listingType, now, now),
+      ...imageIds.map((imageId, index) => env.DB.prepare("INSERT INTO marketplace_listing_images (listing_id, image_id, sort_order) VALUES (?, ?, ?)").bind(id, imageId, index))
+    ];
+    // D1 batch executes the listing and its image relations as one transaction.
+    await env.DB.batch(statements);
     return marketJson({ accepted: true, listing: { id, country, category, title, city, price, currency: MARKET_CURRENCIES[country], status: "pending" } }, 201);
   } catch { return marketJson({ error: "LISTING_CREATE_FAILED" }, 503); }
 }
