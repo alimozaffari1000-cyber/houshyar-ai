@@ -166,3 +166,16 @@ test('listing and attached images are inserted through one atomic D1 batch', asy
   assert.match(source, /await env\.DB\.batch\(statements\)/);
   assert.doesNotMatch(source, /for \(let index = 0; index < imageIds\.length; index\+\+\) await env\.DB/);
 });
+
+
+test('unused marketplace image deletion is authenticated, owner-scoped and blocked when linked', async () => {
+  const source = await readFile(new URL('../functions/api/market/images/[id].js', import.meta.url), 'utf8');
+  assert.match(source, /onRequestDelete/);
+  assert.match(source, /originAllowed/);
+  assert.match(source, /requireMarketUser/);
+  assert.match(source, /owner_user_id=\?/);
+  assert.match(source, /NOT EXISTS \(SELECT 1 FROM marketplace_listing_images WHERE image_id=\?\)/);
+  assert.match(source, /status='deleted'/);
+  const seller = await readFile(new URL('../src/market-seller.js', import.meta.url), 'utf8');
+  assert.match(seller, /method:'DELETE'/);
+});
