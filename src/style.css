@@ -354,3 +354,23 @@ button:focus-visible,textarea:focus-visible,select:focus-visible{
 .country-market-categories span{padding:6px 10px;border:1px solid rgba(110,231,196,.17);border-radius:999px;background:rgba(110,231,196,.055);color:#bcefe1;font-size:10px}
 .country-market-note{margin:14px 0 0;padding-top:11px;border-top:1px solid rgba(145,180,218,.12);color:#91a6bf;font-size:10px;line-height:1.9}
 @media(max-width:560px){.country-market{padding:15px}.country-market-head{align-items:stretch;flex-direction:column}.country-market-picker{min-width:0}.country-market-meta{gap:6px}.country-market-meta span{padding:9px 7px}.country-market-meta b{font-size:10px}}
+
+/* Country marketplace browse UI */
+.country-market-categories button{border:1px solid rgba(110,231,196,.17);border-radius:999px;background:rgba(110,231,196,.055);color:#bcefe1;padding:7px 11px;font:10px Vazirmatn;cursor:pointer}
+.country-market-categories button.active{background:rgba(110,231,196,.2);border-color:#6ee7c4;color:#f0fff9}
+.market-search{display:grid;grid-template-columns:minmax(0,1fr) minmax(110px,.55fr) auto;gap:8px;margin:16px 0}
+.market-search input{min-width:0;background:#0d1b2d;border:1px solid #3b5672;border-radius:10px;padding:10px;color:#f0f6ff;font:11px Vazirmatn}
+.market-search button{border:0;border-radius:10px;background:#55d5b5;color:#09201e;padding:0 14px;font:700 11px Vazirmatn;cursor:pointer}
+.market-results h3{margin:20px 0 10px;color:#dce9f7;font-size:12px}
+.market-listing-grid,.market-store-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.market-listing,.market-store{min-width:0;padding:12px;border:1px solid rgba(145,180,218,.15);border-radius:13px;background:rgba(255,255,255,.025)}
+.market-listing h4{margin:7px 0;color:#f1f7ff;font-size:12px}
+.market-listing p,.market-store p{margin:5px 0 10px;color:#9db0c7;font-size:10px;line-height:1.8;overflow-wrap:anywhere}
+.market-listing>div{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:10px 0}
+.market-listing>div b{color:#78e4c5;font-size:11px}
+.market-listing small,.market-store small{color:#91a6bf;font-size:9px}
+.market-listing-tag{display:inline-block;border-radius:999px;background:#213b50;color:#aeead9;padding:3px 7px;font-size:9px}
+.market-store>b{display:block;color:#eaf3ff;font-size:11px}
+.market-empty,.market-loading,.market-unavailable{padding:12px;border:1px dashed rgba(145,180,218,.2);border-radius:10px;color:#9db0c7;font-size:10px;line-height:1.8}
+.market-unavailable{color:#f1c48a;border-color:rgba(241,196,138,.3)}
+@media(max-width:560px){.market-search{grid-template-columns:1fr 1fr}.market-search input:first-child{grid-column:1/-1}.market-search button{min-height:38px}.market-listing-grid,.market-store-grid{grid-template-columns:1fr}}
