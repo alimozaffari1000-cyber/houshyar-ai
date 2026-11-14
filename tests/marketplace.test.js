@@ -99,7 +99,7 @@ test('marketplace image upload requires owner authentication, private R2 storage
   const source = await readFile(new URL('../functions/api/market/images/upload.js', import.meta.url), 'utf8');
   assert.match(source, /originAllowed/);
   assert.match(source, /requireMarketUser/);
-  assert.match(source, /owner_user_id\\s*=\\s*\\?/);
+  assert.match(source, /owner_user_id\s*=\s*\?/);
   assert.match(source, /status IN \('pending','active'\)/);
   assert.match(source, /MAX_IMAGE_BYTES = 5 \* 1024 \* 1024/);
   assert.match(source, /IMAGE_TYPES/);
