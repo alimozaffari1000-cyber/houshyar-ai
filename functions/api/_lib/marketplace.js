@@ -21,6 +21,6 @@ export async function enforceMarketWriteLimit(db, userId, action, now = Math.flo
   const windowStart = Math.floor(now / 3600) * 3600, key = "market:" + action + ":" + userId;
   await db.prepare("INSERT INTO api_rate_limits (bucket_key, window_start, request_count, expires_at) VALUES (?, ?, 1, ?) ON CONFLICT(bucket_key, window_start) DO UPDATE SET request_count = request_count + 1").bind(key, windowStart, windowStart + 7200).run();
   const row = await db.prepare("SELECT request_count FROM api_rate_limits WHERE bucket_key = ? AND window_start = ?").bind(key, windowStart).first();
-  return Number(row?.request_count || 0) > (action === "store" ? 3 : 20);
+  const limits = { store: 3, listing: 20, "image-upload": 15 };\n  return Number(row?.request_count || 0) > (limits[action] || 10);
 }
 export function validSlug(value) { return typeof value === "string" && /^[a-z0-9](?:[a-z0-9-]{0,78}[a-z0-9])?$/.test(value); }
