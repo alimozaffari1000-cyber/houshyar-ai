@@ -335,3 +335,22 @@ button:focus-visible,textarea:focus-visible,select:focus-visible{
 .learning-feedback{display:flex;align-items:center;flex-wrap:wrap;gap:7px;margin-top:12px;padding-top:9px;border-top:1px solid rgba(145,180,218,.12);color:#8198b4;font-size:10px}
 .learning-feedback button{border:1px solid rgba(145,180,218,.2);border-radius:8px;padding:5px 9px;background:rgba(255,255,255,.025);color:#b9cbe0;font:10px Vazirmatn;cursor:pointer}
 .learning-feedback button.selected{border-color:#58d9bd;color:#83efd1;background:rgba(85,213,181,.08)}
+
+/* Country-aware marketplace selector */
+#country-market-root{margin:30px 0}
+.country-market{padding:20px;border:1px solid rgba(145,180,218,.2);border-radius:20px;background:linear-gradient(145deg,rgba(23,42,66,.88),rgba(13,26,44,.94));box-shadow:0 12px 32px rgba(0,0,0,.14)}
+.country-market-head{display:flex;align-items:center;justify-content:space-between;gap:18px}
+.country-market-kicker{font-size:9px;letter-spacing:2px;color:#83efd1;font-weight:700}
+.country-market-head h2{margin:6px 0 4px;font-size:18px;color:#eff7ff}
+.country-market-head p{margin:0;color:#91a6bf;font-size:10px;line-height:1.8}
+.country-market-picker{display:grid;gap:6px;min-width:190px;color:#a9bdd4;font-size:10px}
+.country-market-picker select{width:100%;background:#0d1b2d;border:1px solid #3b5672;border-radius:10px;padding:10px;color:#f0f6ff;font:12px Vazirmatn}
+.country-market-meta{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin:18px 0}
+.country-market-meta span{display:grid;gap:5px;padding:11px;border:1px solid rgba(145,180,218,.13);border-radius:12px;background:rgba(255,255,255,.025)}
+.country-market-meta small{color:#8da4bf;font-size:9px}
+.country-market-meta b{color:#e4f0ff;font-size:11px;font-weight:600}
+.country-market-categories h3{margin:0 0 9px;color:#cbd9e9;font-size:11px}
+.country-market-categories>div{display:flex;flex-wrap:wrap;gap:7px}
+.country-market-categories span{padding:6px 10px;border:1px solid rgba(110,231,196,.17);border-radius:999px;background:rgba(110,231,196,.055);color:#bcefe1;font-size:10px}
+.country-market-note{margin:14px 0 0;padding-top:11px;border-top:1px solid rgba(145,180,218,.12);color:#91a6bf;font-size:10px;line-height:1.9}
+@media(max-width:560px){.country-market{padding:15px}.country-market-head{align-items:stretch;flex-direction:column}.country-market-picker{min-width:0}.country-market-meta{gap:6px}.country-market-meta span{padding:9px 7px}.country-market-meta b{font-size:10px}}
