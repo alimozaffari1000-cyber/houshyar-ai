@@ -419,3 +419,31 @@ button:focus-visible,textarea:focus-visible,select:focus-visible{
 .market-seller-feedback{min-height:18px;margin:0!important;color:#8fe8cf!important;font-size:11px!important}
 .market-seller-login{white-space:nowrap}
 @media(max-width:650px){.country-market,.market-seller-panel{padding:15px;margin:18px 0}.country-market-head,.market-seller-heading{display:grid}.country-market-picker,.market-seller-heading label{width:100%}.country-market-meta{grid-template-columns:1fr}.market-search{grid-template-columns:1fr}.market-search button{min-height:40px}.market-listing-grid,.market-store-grid,.market-seller-grid{grid-template-columns:1fr}}
+
+
+.market-seller-panel,.market-admin-panel{margin:22px 0;padding:22px;background:#111e30;border:1px solid #2a405d;border-radius:18px;color:#edf4ff}
+.market-seller-heading,.market-admin-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+.market-seller-heading h2,.market-admin-heading h2{margin:4px 0 8px;font-size:20px}
+.market-seller-heading p,.market-admin-heading p{margin:0;color:#9aadc5;font-size:12px;line-height:1.8}
+.market-seller-heading label,.market-admin-heading label{display:grid;gap:7px;color:#9aadc5;font-size:11px}
+.market-seller-panel select,.market-seller-panel input,.market-seller-panel textarea,.market-admin-panel select{width:100%;padding:11px;border:1px solid #344a65;border-radius:10px;background:#0b1728;color:#edf4ff;font:12px Vazirmatn}
+.market-seller-grid,.market-admin-columns{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:18px}
+.market-seller-form,.market-seller-stores,.market-admin-columns>div{padding:15px;border:1px solid #2a405d;border-radius:13px;background:#0e1a2b}
+.market-seller-form{display:grid;gap:10px}
+.market-seller-form h3,.market-seller-stores h3,.market-admin-columns h3{margin:0 0 7px;font-size:14px}
+.market-seller-form button,.market-admin-actions button{border:0;border-radius:9px;padding:10px 14px;background:#55d5b5;color:#09201e;font:700 12px Vazirmatn;cursor:pointer}
+.market-seller-form button:disabled,.market-admin-actions button:disabled{opacity:.5}
+.market-seller-listing{margin-top:16px}
+.market-seller-store,.market-admin-item{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid #263a53}
+.market-seller-store:last-child,.market-admin-item:last-child{border-bottom:0}
+.market-seller-store small,.market-admin-item small{display:block;color:#8fa4bf;font-size:10px}
+.market-status{font-size:10px;color:#b7c6d8}
+.market-status.active{color:#59d9bd}.market-status.rejected{color:#ff9d9d}
+.market-empty,.market-unavailable,.market-seller-feedback,.market-admin-feedback{color:#9eb1ca;font-size:12px;line-height:1.8}
+.market-admin-item{align-items:flex-start}
+.market-admin-item p{margin:5px 0;color:#a7b8cd;font-size:11px;line-height:1.7}
+.market-admin-actions{display:flex;gap:6px;flex-shrink:0}
+.market-admin-actions button{padding:7px 10px}
+.market-admin-actions button.danger{background:#63343b;color:#ffe4e7}
+.market-admin-denied{border-color:#5a3d45}
+@media(max-width:650px){.market-seller-heading,.market-admin-heading{display:grid}.market-seller-grid,.market-admin-columns{grid-template-columns:1fr}.market-admin-item{display:grid}.market-admin-actions{width:100%}.market-admin-actions button{flex:1}}
