@@ -1,5 +1,6 @@
 import './style.css';
 import { initCommerce } from './commerce.js';
+import './commerce.css';
 import { initAccountPanel } from './account.js';
 import { initAuthFlows } from './auth-flows.js';
 import { translate as t, getLocale, setLocale, localeOptions } from './i18n.js';
