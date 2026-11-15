@@ -107,8 +107,10 @@ test("seller dashboard exposes editable store discovery profile and explicit loc
 
 test("marketplace UI explains disabled payment and virtual try-on features", async () => {
   const ui = await readFile(new URL("../src/marketplace.js", import.meta.url), "utf8");
-  assert.match(ui, /Product images are stored privately/);
-  assert.match(ui, /تصاویر محصولات در فضای خصوصی ذخیره می‌شوند/);
+  assert.match(ui, /Product image saved to private store storage/);
+  assert.match(ui, /تصویر محصول در فضای خصوصی فروشگاه ذخیره شد/);
+  assert.match(ui, /AI virtual try-on is not active yet/);
+  assert.match(ui, /پرو مجازی هوش مصنوعی هنوز فعال نیست/);
 });
 
 test("seller dashboard supports a private multi-image product gallery and deletion", async () => {
