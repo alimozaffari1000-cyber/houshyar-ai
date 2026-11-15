@@ -4,8 +4,48 @@ import { reserveDailyChat, releaseDailyChat } from "./_lib/daily-quota.js";
 import { routeAgentRequest, resolveResponseMode, buildCollaborationPlan, listAgents } from "./_lib/agent-router.js";
 import { resolveProvider, requestModel, streamModel, listAvailableProviders } from "./_lib/model-providers.js";
 
-const MAX_BODY_BYTES = 32 * 1024;
+const MAX_BODY_BYTES = 6 * 1024 * 1024;
 const UPSTREAM_TIMEOUT_MS = 20_000;
+
+const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
+const MAX_TOTAL_IMAGE_BYTES = 4 * 1024 * 1024;
+const ALLOWED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
+
+function validateImageAttachments(value) {
+  if (value == null) return { attachments: [], error: null };
+  if (!Array.isArray(value) || value.length > 2) return { attachments: [], error: "INVALID_ATTACHMENTS" };
+  const attachments = [];
+  let totalBytes = 0;
+  for (const item of value) {
+    if (!item || typeof item !== "object" || !ALLOWED_IMAGE_TYPES.has(item.mimeType) ||
+        typeof item.data !== "string" || item.data.length > Math.ceil(MAX_IMAGE_BYTES * 4 / 3) + 8) {
+      return { attachments: [], error: "INVALID_ATTACHMENTS" };
+    }
+    const encoded = item.data.replace(/^data:[^,]+,/, "");
+    if (!/^[A-Za-z0-9+/]+={0,2}$/.test(encoded) || encoded.length % 4 === 1) {
+      return { attachments: [], error: "INVALID_ATTACHMENTS" };
+    }
+    let bytes;
+    try {
+      const binary = atob(encoded);
+      bytes = Uint8Array.from(binary, char => char.charCodeAt(0));
+    } catch {
+      return { attachments: [], error: "INVALID_ATTACHMENTS" };
+    }
+    if (!bytes.length || bytes.byteLength > MAX_IMAGE_BYTES) return { attachments: [], error: "ATTACHMENT_TOO_LARGE" };
+    totalBytes += bytes.byteLength;
+    if (totalBytes > MAX_TOTAL_IMAGE_BYTES) return { attachments: [], error: "ATTACHMENT_TOO_LARGE" };
+    const signature = [...bytes.slice(0, 12)];
+    const isJpeg = signature[0] === 0xff && signature[1] === 0xd8 && signature[2] === 0xff;
+    const isPng = signature.slice(0, 8).join(",") === "137,80,78,71,13,10,26,10";
+    const isGif = ["GIF87a", "GIF89a"].some(magic => String.fromCharCode(...signature.slice(0, 6)) === magic);
+    const isWebp = String.fromCharCode(...signature.slice(0, 4)) === "RIFF" &&
+      String.fromCharCode(...signature.slice(8, 12)) === "WEBP";
+    if (!(isJpeg || isPng || isGif || isWebp)) return { attachments: [], error: "INVALID_ATTACHMENTS" };
+    attachments.push({ mimeType: item.mimeType, data: encoded });
+  }
+  return { attachments, error: null };
+}
 
 const json = (body, status = 200, extraHeaders = {}) => new Response(JSON.stringify(body), {
   status,
@@ -78,6 +118,11 @@ export async function onRequestPost({ request, env }) {
   const latest = typeof body.message === "string" ? body.message.trim() : "";
   if (!latest) return json({ error: "MESSAGE_REQUIRED", message: "متن پیام خالی است." }, 400);
   if (latest.length > 6000) return json({ error: "MESSAGE_TOO_LONG", message: "پیام بیش از حد طولانی است." }, 413);
+  const validatedImages = validateImageAttachments(body.attachments);
+  if (validatedImages.error) {
+    const tooLarge = validatedImages.error === "ATTACHMENT_TOO_LARGE";
+    return json({ error: validatedImages.error, message: tooLarge ? "حجم تصویر از حد مجاز بیشتر است." : "فایل تصویری معتبر یا مجاز نیست." }, tooLarge ? 413 : 400);
+  }
 
   // Enable only after the D1 migration and DB binding have been configured.
   if (env.CHAT_RATE_LIMIT_ENABLED === "true") {
@@ -149,7 +194,10 @@ export async function onRequestPost({ request, env }) {
   const selectedAgent = routeAgentRequest(latest);
   const effectiveMode = resolveResponseMode(latest, requestedMode, selectedAgent);
   const requestedProvider = ["auto", "groq", "anthropic"].includes(body.provider) ? body.provider : "auto";
-  const providerChoice = resolveProvider(env, requestedProvider, effectiveMode);
+  let providerChoice = resolveProvider(env, requestedProvider, effectiveMode);
+  if (validatedImages.attachments.length && requestedProvider === "auto" && env.CLAUDE_API_KEY) {
+    providerChoice = resolveProvider(env, "anthropic", effectiveMode);
+  }
   if (providerChoice.error) {
     await releaseQuota();
     return json({ error: "PROVIDER_NOT_CONFIGURED", provider: providerChoice.provider, message: "ارائه‌دهنده انتخاب‌شده هنوز در تنظیمات سرور فعال نیست." }, 503);
@@ -157,13 +205,28 @@ export async function onRequestPost({ request, env }) {
   const groqModelByMode = { fast: env.GROQ_MODEL_FAST, balanced: env.GROQ_MODEL, deep: env.GROQ_MODEL_DEEP, creative: env.GROQ_MODEL_CREATIVE };
   const model = providerChoice.provider === "anthropic"
     ? (env.CLAUDE_MODEL || providerChoice.model)
-    : (groqModelByMode[effectiveMode] || providerChoice.model);
+    : (validatedImages.attachments.length ? env.GROQ_MODEL_VISION : (groqModelByMode[effectiveMode] || providerChoice.model));
+  if (validatedImages.attachments.length && providerChoice.provider === "groq" && !env.GROQ_MODEL_VISION) {
+    await releaseQuota();
+    return json({ error: "VISION_NOT_CONFIGURED", message: "مدل بینایی Groq هنوز در تنظیمات سرور فعال نشده است." }, 503);
+  }
   const messages = [
     { role: "system", content: "تو هوش‌یار، یک دستیار چندمنظوره و چندزبانه دقیق و کاربردی هستی. پاسخ را به زبان کاربر، روشن و مرحله‌ای ارائه کن. اطلاعات نامطمئن را قطعی جلوه نده. برای موضوعات پزشکی، مالی و حقوقی محدودیت‌ها و ریسک‌ها را روشن کن. هرگز ادعا نکن جستجوی زنده، اقدام بیرونی، اجرای کد یا دسترسی به ابزار انجام داده‌ای مگر واقعاً انجام شده باشد.\n\nنقش تخصصی این درخواست: " + selectedAgent.instruction },
     ...safeHistory,
   ];
   if (messages[messages.length - 1]?.role !== "user" || messages[messages.length - 1]?.content !== latest) {
     messages.push({ role: "user", content: latest });
+  }
+  if (validatedImages.attachments.length) {
+    const lastUser = [...messages].reverse().find(item => item.role === "user" && item.content === latest);
+    if (lastUser) {
+      lastUser.content = [
+        { type: "text", text: latest },
+        ...validatedImages.attachments.map(image => providerChoice.provider === "anthropic"
+          ? { type: "image", source: { type: "base64", media_type: image.mimeType, data: image.data } }
+          : { type: "image_url", image_url: { url: "data:" + image.mimeType + ";base64," + image.data } })
+      ];
+    }
   }
 
   if (body.compare === true) {
