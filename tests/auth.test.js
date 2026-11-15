@@ -10,13 +10,17 @@ test("normalizes and validates email addresses", () => {
   assert.equal(validEmail("not-an-email"), false);
 });
 
-test("password record uses a unique salt and verifies only the matching password", async () => {
-  const first = await createPasswordRecord("a-long-test-password-123");
-  const second = await createPasswordRecord("a-long-test-password-123");
+test("password record uses a unique salt, a server pepper and Workers-compatible iterations", async () => {
+  const pepper = "test-only-pepper-value-that-is-at-least-32-bytes-long";
+  const first = await createPasswordRecord("a-long-test-password-123", pepper);
+  const second = await createPasswordRecord("a-long-test-password-123", pepper);
   assert.notEqual(first.salt, second.salt);
   assert.notEqual(first.hash, second.hash);
-  assert.equal(await verifyPassword("a-long-test-password-123", first.salt, first.hash, first.iterations), true);
-  assert.equal(await verifyPassword("incorrect-password", first.salt, first.hash, first.iterations), false);
+  assert.equal(first.iterations, 100000);
+  assert.equal(await verifyPassword("a-long-test-password-123", first.salt, first.hash, first.iterations, pepper), true);
+  assert.equal(await verifyPassword("incorrect-password", first.salt, first.hash, first.iterations, pepper), false);
+  await assert.rejects(() => createPasswordRecord("a-long-test-password-123"), /AUTH_PEPPER_MISSING_OR_WEAK/);
+  await assert.rejects(() => verifyPassword("a-long-test-password-123", first.salt, first.hash, first.iterations, "short"), /AUTH_PEPPER_MISSING_OR_WEAK/);
 });
 
 test("session cookie is HttpOnly, Secure and SameSite Lax", () => {
