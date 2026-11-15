@@ -5,7 +5,7 @@ import { onRequestPost, onRequestGet } from "../functions/api/chat.js";
 
 test("provider availability reflects server-side secrets only", () => {
   assert.deepEqual(listAvailableProviders({ GROQ_API_KEY: "g" }).map(item => [item.id, item.available]), [
-    ["groq", true], ["anthropic", false]
+    ["groq", true], ["openai", false], ["anthropic", false]
   ]);
   assert.equal(resolveProvider({ CLAUDE_API_KEY: "c" }, "auto", "balanced").provider, "anthropic");
 });
@@ -166,4 +166,35 @@ test("streaming parser handles chunk boundaries, CRLF separators, and a final ev
   } finally {
     globalThis.fetch = originalFetch;
   }
+});
+
+test("OpenAI provider is independently configurable and selected by auto mode", () => {
+  const providers = listAvailableProviders({ OPENAI_API_KEY: "openai-secret" });
+  assert.deepEqual(providers.map(item => [item.id, item.available]), [
+    ["groq", false], ["openai", true], ["anthropic", false]
+  ]);
+  assert.equal(resolveProvider({ OPENAI_API_KEY: "openai-secret" }).provider, "openai");
+  assert.equal(resolveProvider({ OPENAI_API_KEY: "openai-secret", OPENAI_MODEL: "custom-gpt" }).model, "custom-gpt");
+});
+
+test("OpenAI chat completions use the official endpoint and server-side key", async () => {
+  const originalFetch = globalThis.fetch;
+  let call;
+  globalThis.fetch = async (url, options) => {
+    call = { url, headers: options.headers, body: JSON.parse(options.body) };
+    return new Response(JSON.stringify({ model: "custom-gpt", choices: [{ message: { content: "پاسخ از OpenAI" } }], usage: { prompt_tokens: 3, completion_tokens: 4, total_tokens: 7 } }), { status: 200 });
+  };
+  try {
+    const result = await requestModel({ provider: "openai", env: { OPENAI_API_KEY: "secret-key", OPENAI_MODEL: "custom-gpt" }, messages: [{ role: "user", content: "سلام" }] });
+    assert.equal(call.url, "https://api.openai.com/v1/chat/completions");
+    assert.equal(call.headers.Authorization, "Bearer secret-key");
+    assert.equal(call.body.model, "custom-gpt");
+    assert.equal(result.reply, "پاسخ از OpenAI");
+    assert.equal(result.usage.totalTokens, 7);
+  } finally { globalThis.fetch = originalFetch; }
+});
+
+test("auto provider respects a configured default only when its key is present", () => {
+  assert.equal(resolveProvider({ AI_DEFAULT_PROVIDER: "openai", GROQ_API_KEY: "g" }).provider, "groq");
+  assert.equal(resolveProvider({ AI_DEFAULT_PROVIDER: "openai", OPENAI_API_KEY: "o", GROQ_API_KEY: "g" }).provider, "openai");
 });
