@@ -1,7 +1,7 @@
 import { checkChatRateLimit } from "./_lib/chat-rate-limit.js";
 import { getSessionUser } from "./_lib/auth.js";
 import { reserveDailyChat, releaseDailyChat } from "./_lib/daily-quota.js";
-import { routeAgentRequest } from "./_lib/agent-router.js";
+import { routeAgentRequest, resolveResponseMode } from "./_lib/agent-router.js";
 import { resolveProvider, requestModel, listAvailableProviders } from "./_lib/model-providers.js";
 
 const MAX_BODY_BYTES = 32 * 1024;
@@ -145,9 +145,11 @@ export async function onRequestPost({ request, env }) {
     historyChars += content.length;
   }
 
-  const requestedMode = ["fast", "balanced", "deep", "creative"].includes(body.mode) ? body.mode : "balanced";
+  const requestedMode = ["auto", "fast", "balanced", "deep", "creative"].includes(body.mode) ? body.mode : "auto";
+  const selectedAgent = routeAgentRequest(latest);
+  const effectiveMode = resolveResponseMode(latest, requestedMode, selectedAgent);
   const requestedProvider = ["auto", "groq", "anthropic"].includes(body.provider) ? body.provider : "auto";
-  const providerChoice = resolveProvider(env, requestedProvider, requestedMode);
+  const providerChoice = resolveProvider(env, requestedProvider, effectiveMode);
   if (providerChoice.error) {
     await releaseQuota();
     return json({ error: "PROVIDER_NOT_CONFIGURED", provider: providerChoice.provider, message: "ارائه‌دهنده انتخاب‌شده هنوز در تنظیمات سرور فعال نیست." }, 503);
@@ -155,8 +157,7 @@ export async function onRequestPost({ request, env }) {
   const groqModelByMode = { fast: env.GROQ_MODEL_FAST, balanced: env.GROQ_MODEL, deep: env.GROQ_MODEL_DEEP, creative: env.GROQ_MODEL_CREATIVE };
   const model = providerChoice.provider === "anthropic"
     ? (env.CLAUDE_MODEL || providerChoice.model)
-    : (groqModelByMode[requestedMode] || providerChoice.model);
-  const selectedAgent = routeAgentRequest(latest);
+    : (groqModelByMode[effectiveMode] || providerChoice.model);
   const messages = [
     { role: "system", content: "تو هوش‌یار، یک دستیار چندمنظوره و چندزبانه دقیق و کاربردی هستی. پاسخ را به زبان کاربر، روشن و مرحله‌ای ارائه کن. اطلاعات نامطمئن را قطعی جلوه نده. برای موضوعات پزشکی، مالی و حقوقی محدودیت‌ها و ریسک‌ها را روشن کن. هرگز ادعا نکن جستجوی زنده، اقدام بیرونی، اجرای کد یا دسترسی به ابزار انجام داده‌ای مگر واقعاً انجام شده باشد.\n\nنقش تخصصی این درخواست: " + selectedAgent.instruction },
     ...safeHistory,
@@ -226,7 +227,8 @@ export async function onRequestPost({ request, env }) {
   }
   return json({
     reply: result.reply,
-    mode: requestedMode,
+    mode: effectiveMode,
+    requestedMode,
     provider: providerChoice.provider,
     model: result.model,
     usage: result.usage,
