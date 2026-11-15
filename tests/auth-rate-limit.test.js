@@ -43,6 +43,7 @@ test("marketplace order and seller status actions use independent rate-limit buc
   for (const action of ["marketplace-order", "store-order-update"]) {
     const result = await checkAuthRateLimit({ db, action, email: "seller@example.com", clientIp: "203.0.113.9", now: 1800000000 });
     assert.equal(result.allowed, true);
+    assert.equal(result.limit, action === "marketplace-order" ? 10 : 30);
   }
   assert.ok(keys.some(key => key.startsWith("auth:marketplace-order:")));
   assert.ok(keys.some(key => key.startsWith("auth:store-order-update:")));
