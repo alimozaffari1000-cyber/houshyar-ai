@@ -13,12 +13,8 @@ test("seller order endpoint scopes reads and status updates to the authenticated
 });
 
 
-import { createHash } from "node:crypto";
 import { onRequestGet, onRequestPatch } from "../functions/api/store/orders.js";
 
-async function tokenHash(token) {
-  return createHash("sha256").update(token).digest("hex");
-}
 function ordersDb({ store = { id: "store-1" }, updateChanges = 1, rows = [] } = {}) {
   const sqlLog = [];
   return {
