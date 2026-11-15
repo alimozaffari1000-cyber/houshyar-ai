@@ -277,8 +277,8 @@ test('propagates browser cancellation to the upstream AI request', async () => {
     client.abort();
     const response = await pending;
     assert.equal(upstreamSignal.aborted, true);
-    assert.equal(response.status, 504);
-    assert.equal((await response.json()).error, 'UPSTREAM_TIMEOUT');
+    assert.equal(response.status, 499);
+    assert.equal((await response.json()).error, 'REQUEST_CANCELLED');
   } finally {
     globalThis.fetch = originalFetch;
   }
