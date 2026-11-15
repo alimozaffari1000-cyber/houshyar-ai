@@ -15,7 +15,7 @@ test("seller order endpoint scopes reads and status updates to the authenticated
 
 import { onRequestGet, onRequestPatch } from "../functions/api/store/orders.js";
 
-function ordersDb({ store = { id: "store-1" }, updateChanges = 1, rows = [] } = {}) {
+function ordersDb({ store = { id: "store-1" }, updateChanges = 1, updateError = null, rows = [] } = {}) {
   const sqlLog = [];
   return {
     sqlLog,
@@ -31,7 +31,10 @@ function ordersDb({ store = { id: "store-1" }, updateChanges = 1, rows = [] } = 
               return null;
             },
             async all() { return { results: rows }; },
-            async run() { return { meta: { changes: updateChanges }, values }; }
+            async run() {
+              if (updateError) throw updateError;
+              return { meta: { changes: updateChanges }, values };
+            }
           };
         }
       };
@@ -115,4 +118,15 @@ test("seller order update rejects unknown lifecycle states", async () => {
     env: { DB }
   });
   assert.equal(response.status, 400);
+});
+
+
+test("seller receives a conflict when inventory is no longer sufficient at acceptance time", async () => {
+  const DB = ordersDb({ updateError: new Error("D1_ERROR: trigger failed: INSUFFICIENT_ORDER_STOCK") });
+  const response = await onRequestPatch({
+    request: sellerRequest("/api/store/orders", "PATCH", { orderId: "123e4567-e89b-12d3-a456-426614174000", status: "accepted" }),
+    env: { DB }
+  });
+  assert.equal(response.status, 409);
+  assert.equal((await response.json()).error, "ORDER_NO_LONGER_AVAILABLE");
 });
