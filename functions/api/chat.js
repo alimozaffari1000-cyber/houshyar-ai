@@ -215,7 +215,8 @@ export async function onRequestPost({ request, env }) {
     else request.signal.addEventListener("abort", () => streamController.abort("client_cancelled"), { once: true });
     const streamTimeout = setTimeout(() => streamController.abort("upstream_timeout"), UPSTREAM_TIMEOUT_MS);
     const encoder = new TextEncoder();
-    const send = (controller, event) => controller.enqueue(encoder.encode("data: " + JSON.stringify(event) + "\\n\\n"));
+    let streamCancelled = false;
+    const send = (controller, event) => { if (!streamCancelled) controller.enqueue(encoder.encode("data: " + JSON.stringify(event) + "\\n\\n")); };
     const stream = new ReadableStream({
       async start(controller) {
         try {
@@ -236,7 +237,7 @@ export async function onRequestPost({ request, env }) {
           try { controller.close(); } catch { /* client already closed */ }
         }
       },
-      cancel() { streamController.abort("client_cancelled"); }
+      cancel() { streamCancelled = true; streamController.abort("client_cancelled"); }
     });
     return new Response(stream, { status: 200, headers: {
       "Content-Type": "text/event-stream; charset=utf-8",
