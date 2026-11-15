@@ -13,10 +13,25 @@ const app = document.querySelector('#app');
 const RESPONSE_MODE_LABELS = {"fa":["سریع","متعادل","تحلیلی عمیق","خلاق"],"en":["Fast","Balanced","Deep reasoning","Creative"],"de":["Schnell","Ausgewogen","Tiefgehend","Kreativ"],"ar":["سريع","متوازن","استدلال عميق","إبداعي"],"tr":["Hızlı","Dengeli","Derin düşünme","Yaratıcı"],"es":["Rápido","Equilibrado","Razonamiento profundo","Creativo"],"fr":["Rapide","Équilibré","Raisonnement approfondi","Créatif"],"ru":["Быстрый","Сбалансированный","Глубокий анализ","Творческий"],"zh":["快速","均衡","深度推理","创意"],"hi":["तेज़","संतुलित","गहन तर्क","रचनात्मक"],"ur":["تیز","متوازن","گہری سوچ","تخلیقی"],"pt":["Rápido","Equilibrado","Raciocínio profundo","Criativo"]};
 const COMPARE_LABELS = {"fa":"مقایسه دو مدل (مصرف بیشتر)","en":"Compare two models (higher usage)","de":"Zwei Modelle vergleichen (mehr Verbrauch)","ar":"مقارنة نموذجين (استهلاك أعلى)","tr":"İki modeli karşılaştır (daha fazla kullanım)","es":"Comparar dos modelos (mayor consumo)","fr":"Comparer deux modèles (consommation accrue)","ru":"Сравнить две модели (больше затрат)","zh":"比较两个模型（消耗更多）","hi":"दो मॉडल तुलना करें (अधिक उपयोग)","ur":"دو ماڈلز کا موازنہ (زیادہ استعمال)","pt":"Comparar dois modelos (maior consumo)"};
 const RESPONSE_MODE_TITLES = {"fa":"حالت پاسخ","en":"Response mode","de":"Antwortmodus","ar":"وضع الاستجابة","tr":"Yanıt modu","es":"Modo de respuesta","fr":"Mode de réponse","ru":"Режим ответа","zh":"回答模式","hi":"उत्तर मोड","ur":"جواب کا انداز","pt":"Modo de resposta"};
-const state = { messages: [], busy: false, draft: '', mode: 'auto', compare: false, provider: 'auto' };
+const CHAT_HISTORY_KEY = 'houshyar.chat.sessions.v1';
+const readChatHistory = () => { try { const value = JSON.parse(localStorage.getItem(CHAT_HISTORY_KEY) || '[]'); return Array.isArray(value) ? value.filter(item => item && typeof item.id === 'string' && Array.isArray(item.messages)).slice(0,40) : []; } catch { return []; } };
+const makeId = () => globalThis.crypto?.randomUUID?.() || 'chat-' + Date.now() + '-' + Math.random().toString(36).slice(2,8);
+const state = { messages: [], busy: false, draft: '', mode: 'auto', compare: false, provider: 'auto', conversations: readChatHistory(), activeConversationId: null, sidebarOpen: false };
 const DESIGN_STUDIO_LABELS = {fa:'استودیو طراحی',en:'Design Studio',de:'Designstudio',ar:'استوديو التصميم',tr:'Tasarım Stüdyosu',es:'Estudio de diseño',fr:'Studio de design',ru:'Студия дизайна',zh:'设计工作室',hi:'डिज़ाइन स्टूडियो',ur:'ڈیزائن اسٹوڈیو',pt:'Estúdio de design'};
 const AUTO_MODE_LABELS = { fa: 'یادگیری خودکار', en: 'Adaptive auto', de: 'Adaptiv automatisch', ar: 'تلقائي متكيف', tr: 'Uyarlanabilir otomatik', es: 'Automático adaptativo', fr: 'Automatique adaptatif', ru: 'Адаптивный авто', zh: '自适应自动', hi: 'अनुकूली ऑटो', ur: 'خودکار موافق', pt: 'Automático adaptativo' };
 const escapeHTML = (value='') => String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function saveCurrentConversation() {
+  if (!state.messages.length) return;
+  const firstUser = state.messages.find(message => message.role === 'user');
+  const conversation = { id: state.activeConversationId || makeId(), title: String(firstUser?.text || 'گفتگوی جدید').replace(/\s+/g, ' ').slice(0, 56), messages: state.messages.slice(-80).map(message => ({ role: message.role, text: String(message.text || '').slice(0, 12000), agent: message.agent || null, collaboration: message.collaboration || null })), updatedAt: new Date().toISOString() };
+  state.activeConversationId = conversation.id;
+  state.conversations = [conversation, ...state.conversations.filter(item => item.id !== conversation.id)].slice(0, 40);
+  try { localStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify(state.conversations)); } catch { /* current in-memory chat remains available */ }
+}
+function renderConversationList() {
+  return state.conversations.map(item => '<button type="button" class="history-item ' + (item.id === state.activeConversationId ? 'active' : '') + '" data-chat-id="' + escapeHTML(item.id) + '"><span>◷</span><span class="history-item-title">' + escapeHTML(item.title || 'گفتگو') + '</span><span class="history-item-delete" data-delete-chat="' + escapeHTML(item.id) + '" role="button" aria-label="حذف گفتگو">×</span></button>').join('') || '<p class="history-empty">گفتگوی قبلی اینجا نمایش داده می‌شود.</p>';
+}
+function startNewChat() { if (state.busy) return; saveCurrentConversation(); state.messages = []; state.draft = ''; state.activeConversationId = null; state.sidebarOpen = false; render(); app.querySelector('#prompt')?.focus(); }
 const scrollChat = () => {
   const chat = app.querySelector('.chat');
   if (!chat) return;
@@ -29,6 +44,15 @@ function render() {
   setLocale(locale);
   app.innerHTML = `
     <header class="top"><div class="brand"><img class="logo" src="/brand/mark.svg" alt="${t('logoAlt',locale)}" width="44" height="44"><div><strong>هوش‌یار</strong><small>${t('subtitle',locale)}</small></div></div><div class="top-actions"><select id="locale-select" class="locale-select" aria-label="${t('localeSelectLabel',locale)}">${localeOptions.map(item=>'<option value="'+item.code+'" '+(item.code===locale?'selected':'')+'>'+item.name+'</option>').join('')}</select><button id="workspace-open" type="button" class="account-open">${t("workspace",locale)}</button><button id="account-open" type="button" class="account-open">${t('account',locale)}</button><span class="status"><i></i> ${t('beta',locale)}</span></div></header>
+    <div class="chat-layout">
+      <aside class="chat-sidebar ${state.sidebarOpen ? 'open' : ''}" aria-label="تاریخچه گفتگوها">
+        <button type="button" class="new-chat-button" id="new-chat"><span>＋</span> گفتگوی جدید</button>
+        <div class="sidebar-section-label">گفتگوهای اخیر</div>
+        <nav class="chat-history-list" aria-label="گفتگوهای قبلی">${renderConversationList()}</nav>
+        <div class="sidebar-bottom"><span class="sidebar-avatar">ه</span><span><b>هوش‌یار</b><small>دستیار هوشمند</small></span><button type="button" id="sidebar-workspace" title="فضای کاری">•••</button></div>
+      </aside>
+      <div class="chat-main">
+        <div class="mobile-chat-bar"><button type="button" id="sidebar-toggle" aria-label="نمایش تاریخچه">☰</button><span>هوش‌یار</span><button type="button" id="mobile-new-chat" aria-label="گفتگوی جدید">＋</button></div>
     <main><section class="welcome"><span class="eyebrow">HOUSHYAR AI</span><h1>${t('greeting',locale)}<br><em>${t('help',locale)}</em></h1><p>${t('intro',locale)}</p></section>
     <section class="toolbox" aria-labelledby="toolbox-title"><div class="toolbox-heading"><h2 id="toolbox-title">${t('toolboxTitle',locale)}</h2><p>${t('toolboxDesc',locale)}</p></div><div class="toolbox-grid">
       <button type="button" data-prompt="${escapeHTML(t('toolResearchPrompt',locale))}"><span>⌕</span><b>${t('toolResearch',locale)}</b></button>
@@ -52,11 +76,32 @@ function render() {
     <div class="mode-control"><label for="ai-provider">موتور هوش مصنوعی</label><select id="ai-provider" aria-label="AI provider"><option value="auto" ${state.provider==='auto'?'selected':''}>انتخاب خودکار</option><option value="groq" ${state.provider==='groq'?'selected':''}>Groq</option><option value="anthropic" ${state.provider==='anthropic'?'selected':''}>Claude (Anthropic)</option></select><label class="compare-toggle"><input id="compare-models" type="checkbox" ${state.compare ? "checked" : ""}> ${COMPARE_LABELS[locale] || COMPARE_LABELS.en}</label><label for="response-mode">${RESPONSE_MODE_TITLES[locale] || "Response mode"}</label><select id="response-mode" aria-label="Response mode">${["auto","fast","balanced","deep","creative"].map((mode,i)=>'<option value="'+mode+'" '+(state.mode===mode?'selected':'')+'>'+(mode === 'auto' ? (AUTO_MODE_LABELS[locale] || AUTO_MODE_LABELS.en) : RESPONSE_MODE_LABELS[locale][i-1])+'</option>').join('')}</select></div>\n    <form id="chat-form"><textarea id="prompt" aria-label="${t('messageInputLabel',locale)}" rows="1" maxlength="6000" placeholder="${t('placeholder',locale)}" required>${escapeHTML(state.draft)}</textarea><button id="send" type="submit" ${state.busy?'disabled':''}>${t('send',locale)}</button></form>
     <p class="input-hint">${t('hint',locale)}</p>
     <p class="notice">${t('notice',locale)}</p></main>
+      </div>
+    </div>
     <footer>${t('footer',locale)}</footer>`;
   attachLearningFeedback(app.querySelector('.chat'), state.messages, locale);
   initDesignStudio(app, { locale });
   initMarketplace(app, { locale });
   initVisualCommerce(app, { locale });
+  app.querySelector('#new-chat').addEventListener('click', startNewChat);
+  app.querySelector('#mobile-new-chat').addEventListener('click', startNewChat);
+  app.querySelector('#sidebar-toggle').addEventListener('click', () => { state.sidebarOpen = !state.sidebarOpen; app.querySelector('.chat-sidebar').classList.toggle('open', state.sidebarOpen); });
+  app.querySelector('#sidebar-workspace').addEventListener('click', () => app.querySelector('#workspace-open')?.click());
+  app.querySelectorAll('[data-chat-id]').forEach(button => button.addEventListener('click', event => {
+    if (event.target.closest('[data-delete-chat]')) return;
+    const item = state.conversations.find(entry => entry.id === button.dataset.chatId);
+    if (!item || state.busy) return;
+    saveCurrentConversation(); state.activeConversationId = item.id;
+    state.messages = item.messages.map(message => ({ role: message.role, text: message.text, agent: message.agent || null, collaboration: message.collaboration || null }));
+    state.draft = ''; state.sidebarOpen = false; render(); scrollChat();
+  }));
+  app.querySelectorAll('[data-delete-chat]').forEach(button => button.addEventListener('click', event => {
+    event.stopPropagation(); const id = button.dataset.deleteChat;
+    state.conversations = state.conversations.filter(item => item.id !== id);
+    try { localStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify(state.conversations)); } catch {}
+    if (state.activeConversationId === id) { state.activeConversationId = null; state.messages = []; }
+    render();
+  }));
   app.querySelector('#locale-select').addEventListener('change', event => { setLocale(event.target.value); render(); });
   initAccountPanel(app);
   initAuthFlows(app);
@@ -71,7 +116,7 @@ function render() {
   app.querySelector('#compare-models').addEventListener('change', event => { state.compare = event.target.checked === true; });
   app.querySelector('#ai-provider').addEventListener('change', event => { state.provider = ['auto','groq','anthropic'].includes(event.target.value) ? event.target.value : 'auto'; });
   app.querySelector('#chat-form').addEventListener('submit',submitMessage);
-  app.querySelector('#clear-chat').addEventListener('click',()=>{if(state.busy)return;state.messages=[];state.draft='';render();});
+  app.querySelector('#clear-chat').addEventListener('click',()=>{if(state.busy)return;state.messages=[];state.draft='';state.activeConversationId=null;render();});
   app.querySelectorAll('.copy-reply').forEach(button=>button.addEventListener('click',async()=>{const reply=state.messages[Number(button.dataset.index)]?.text;if(!reply)return;try{await navigator.clipboard.writeText(reply);button.textContent=t('copyDone',getLocale());}catch{button.textContent=t('copyFailed',getLocale());}}));
 }
 
@@ -80,8 +125,9 @@ async function submitMessage(event) {
   const input=app.querySelector('#prompt'); const text=input.value.trim();
   if(!text || state.busy) return;
   state.draft='';
-  const learningMode = state.mode === 'auto' ? recommendLearningMode(text) : state.mode;
+  const learningMode = state.mode;
   state.messages.push({role:'user',text});
+  saveCurrentConversation();
   state.busy=true; render(); scrollChat();
   try {
     const response=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:text,history:state.messages.slice(-11),mode:learningMode,compare:state.compare,provider:state.provider})});
@@ -90,10 +136,10 @@ async function submitMessage(event) {
       const errorKeys={AI_NOT_CONFIGURED:'errorAiNotConfigured',BODY_TOO_LARGE:'errorBodyTooLarge',MESSAGE_TOO_LONG:'errorMessageTooLong',UPSTREAM_TIMEOUT:'errorUpstreamTimeout',UPSTREAM_ERROR:'errorUpstreamUnavailable',UPSTREAM_UNAVAILABLE:'errorUpstreamUnavailable',COMPARE_NOT_CONFIGURED:'errorAiNotConfigured',PROVIDER_NOT_CONFIGURED:'errorAiNotConfigured',COMPARISON_FAILED:'errorUpstreamUnavailable'};
       throw new Error(t(errorKeys[data.error] || 'errorGeneric',getLocale()));
     }
-    state.messages.push({role:'assistant',text:data.reply || 'پاسخ خالی از سرویس دریافت شد.',agent:data.agent || null,provider:data.provider || null,responseId:crypto.randomUUID(),category:data.agent?.id || classifyLearningTask(text),mode:learningMode});
+    state.messages.push({role:'assistant',text:data.reply || 'پاسخ خالی از سرویس دریافت شد.',agent:data.agent || null,collaboration:data.collaboration || null,provider:data.provider || null,responseId:makeId(),category:data.agent?.id || classifyLearningTask(text),mode:learningMode});
   } catch(error) {
     state.messages.push({role:'assistant',text:error.message || t('errorGeneric',getLocale())});
-  } finally { state.busy=false; render(); scrollChat(); }
+  } finally { state.busy=false; saveCurrentConversation(); render(); scrollChat(); }
 }
 
 render();
