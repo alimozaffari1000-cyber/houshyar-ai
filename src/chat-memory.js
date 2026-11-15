@@ -33,6 +33,10 @@ export function normalizeChatHistory(value) {
       };
     })
     .filter(item => item.messages.length > 0)
-    .sort((a, b) => Date.parse(b.updatedAt || 0) - Date.parse(a.updatedAt || 0))
+    .sort((a, b) => {
+      const aTime = Date.parse(a.updatedAt);
+      const bTime = Date.parse(b.updatedAt);
+      return (Number.isFinite(bTime) ? bTime : 0) - (Number.isFinite(aTime) ? aTime : 0);
+    })
     .slice(0, MAX_CONVERSATIONS);
 }
