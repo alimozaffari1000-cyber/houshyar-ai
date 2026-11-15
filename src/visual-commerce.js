@@ -27,6 +27,7 @@ export function initVisualCommerce(root,{locale="fa"}={}) {
       <button type="button" class="visual-commerce-generate" disabled>${c.provider}</button>
       <p class="visual-commerce-privacy">${c.privacy}</p>
     </div>`;
+  root.querySelector(".visual-commerce-overlay")?.remove();
   root.append(overlay);
   const urls={scene:null,product:null};
   let mode="apparel";
