@@ -3,63 +3,30 @@ import assert from "node:assert/strict";
 import { DatabaseSync } from "node:sqlite";
 import { readFile } from "node:fs/promises";
 
-const migrationUrl = new URL("../migrations/0008_atomic_order_inventory.sql", import.meta.url);
+const migrationFiles = Array.from({ length: 8 }, (_, i) =>
+  new URL(`../migrations/${String(i + 1).padStart(4, "0")}_${[
+    "identity_usage_security",
+    "daily_usage_quotas",
+    "email_verification_password_reset",
+    "marketplace_foundation",
+    "visual_try_on_foundation",
+    "local_store_discovery",
+    "marketplace_orders",
+    "atomic_order_inventory"
+  ][i]}.sql`, import.meta.url)
+);
 
-function makeDatabase() {
+async function makeDatabase() {
   const db = new DatabaseSync(":memory:");
+  for (const migration of migrationFiles) {
+    db.exec(await readFile(migration, "utf8"));
+  }
   db.exec(`
-    PRAGMA foreign_keys = ON;
-    CREATE TABLE users (id TEXT PRIMARY KEY);
-    CREATE TABLE merchant_stores (
-      id TEXT PRIMARY KEY,
-      user_id TEXT NOT NULL REFERENCES users(id),
-      name TEXT NOT NULL,
-      slug TEXT NOT NULL,
-      description TEXT NOT NULL DEFAULT '',
-      status TEXT NOT NULL,
-      created_at INTEGER NOT NULL,
-      updated_at INTEGER NOT NULL
-    );
-    CREATE TABLE products (
-      id TEXT PRIMARY KEY,
-      store_id TEXT NOT NULL REFERENCES merchant_stores(id),
-      title TEXT NOT NULL,
-      slug TEXT NOT NULL,
-      description TEXT NOT NULL DEFAULT '',
-      category TEXT NOT NULL,
-      price_minor INTEGER NOT NULL,
-      currency_code TEXT NOT NULL,
-      stock_count INTEGER NOT NULL CHECK (stock_count >= 0),
-      status TEXT NOT NULL,
-      created_at INTEGER NOT NULL,
-      updated_at INTEGER NOT NULL
-    );
-    CREATE TABLE marketplace_orders (
-      id TEXT PRIMARY KEY,
-      buyer_id TEXT NOT NULL REFERENCES users(id),
-      store_id TEXT NOT NULL REFERENCES merchant_stores(id),
-      customer_name TEXT NOT NULL,
-      customer_phone TEXT NOT NULL,
-      fulfillment TEXT NOT NULL,
-      delivery_address TEXT NOT NULL DEFAULT '',
-      note TEXT NOT NULL DEFAULT '',
-      status TEXT NOT NULL DEFAULT 'requested',
-      total_minor INTEGER NOT NULL,
-      currency_code TEXT NOT NULL,
-      created_at INTEGER NOT NULL,
-      updated_at INTEGER NOT NULL
-    );
-    CREATE TABLE marketplace_order_items (
-      id TEXT PRIMARY KEY,
-      order_id TEXT NOT NULL REFERENCES marketplace_orders(id),
-      product_id TEXT NOT NULL REFERENCES products(id),
-      product_title TEXT NOT NULL,
-      quantity INTEGER NOT NULL,
-      unit_price_minor INTEGER NOT NULL,
-      line_total_minor INTEGER NOT NULL
-    );
+    INSERT INTO users(id,email_normalized,password_hash,password_salt,created_at,updated_at)
+    VALUES ('seller-1','seller1@example.test','hash','salt',1,1),
+           ('seller-2','seller2@example.test','hash','salt',1,1),
+           ('buyer-1','buyer@example.test','hash','salt',1,1)
   `);
-  db.exec("INSERT INTO users(id) VALUES ('seller-1'), ('seller-2'), ('buyer-1')");
   db.exec(`
     INSERT INTO merchant_stores(id,user_id,name,slug,status,created_at,updated_at)
     VALUES ('store-1','seller-1','Store One','store-one','active',1,1),
@@ -84,16 +51,11 @@ function addOrder(db, { id, storeId = "store-1", productId = "product-1", quanti
   `).run("item-" + id, id, productId, quantity, 100 * quantity);
 }
 
-async function applyInventoryMigration(db) {
-  db.exec(await readFile(migrationUrl, "utf8"));
-}
-
 test("SQLite integration: competing sellers cannot both accept the last unit", async () => {
-  const db = makeDatabase();
+  const db = await makeDatabase();
   try {
     addOrder(db, { id: "order-a" });
     addOrder(db, { id: "order-b" });
-    await applyInventoryMigration(db);
 
     db.prepare("UPDATE marketplace_orders SET status='accepted', updated_at=2 WHERE id='order-a'").run();
     assert.throws(
