@@ -475,3 +475,9 @@ button:focus-visible,textarea:focus-visible,select:focus-visible{
 .marketplace-media-upload{display:flex;align-items:center;gap:8px;flex-wrap:wrap;color:#a7f0db;font-size:10px}
 .marketplace-media-upload input{max-width:190px;color:#9eb1c9;font:10px Vazirmatn}
 .marketplace-media-upload input:disabled{opacity:.55}
+
+/* Product media gallery cards */
+.marketplace-product-image{flex:0 0 112px;width:112px;height:132px;object-fit:cover;border-radius:12px;background:#13243a;border:1px solid rgba(145,180,218,.13)}
+.marketplace-seller-thumb{flex:0 0 54px;width:54px;height:60px;object-fit:cover;border-radius:9px;background:#13243a;border:1px solid rgba(145,180,218,.13)}
+.marketplace-seller-thumb-empty{display:grid;place-items:center;color:#83efd1;font-size:24px}
+@media(max-width:620px){.marketplace-product-image{flex-basis:84px;width:84px;height:100px}}
