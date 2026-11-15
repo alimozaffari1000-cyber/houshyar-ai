@@ -106,7 +106,7 @@ async function readJsonLimited(request) {
 }
 
 export async function onRequestPost({ request, env }) {
-  if (!env.GROQ_API_KEY && !env.CLAUDE_API_KEY) return json({ error: "AI_NOT_CONFIGURED", message: "هیچ ارائه‌دهنده هوش مصنوعی پیکربندی نشده است." }, 503);
+  if (!env.GROQ_API_KEY && !env.OPENAI_API_KEY && !env.CLAUDE_API_KEY) return json({ error: "AI_NOT_CONFIGURED", message: "هیچ ارائه‌دهنده هوش مصنوعی پیکربندی نشده است." }, 503);
   const contentType = (request.headers.get("content-type") || "").split(";", 1)[0].trim().toLowerCase();
   if (contentType !== "application/json") {
     return json({ error: "UNSUPPORTED_MEDIA_TYPE", message: "نوع محتوای درخواست باید JSON باشد." }, 415);
@@ -207,19 +207,24 @@ export async function onRequestPost({ request, env }) {
   const requestedMode = body.mode == null ? "auto" : (["auto", "fast", "balanced", "deep", "creative"].includes(body.mode) ? body.mode : "balanced");
   const selectedAgent = routeAgentRequest(latest);
   const effectiveMode = resolveResponseMode(latest, requestedMode, selectedAgent);
-  const requestedProvider = ["auto", "groq", "anthropic"].includes(body.provider) ? body.provider : "auto";
+  const requestedProvider = ["auto", "groq", "openai", "anthropic"].includes(body.provider) ? body.provider : "auto";
   let providerChoice = resolveProvider(env, requestedProvider, effectiveMode);
-  if (validatedImages.attachments.length && requestedProvider === "auto" && env.CLAUDE_API_KEY) {
-    providerChoice = resolveProvider(env, "anthropic", effectiveMode);
+  if (validatedImages.attachments.length && requestedProvider === "auto") {
+    const imageProvider = env.CLAUDE_API_KEY ? "anthropic" : (env.OPENAI_API_KEY ? "openai" : (env.GROQ_API_KEY ? "groq" : "auto"));
+    providerChoice = resolveProvider(env, imageProvider, effectiveMode);
   }
   if (providerChoice.error) {
     await releaseQuota();
     return json({ error: "PROVIDER_NOT_CONFIGURED", provider: providerChoice.provider, message: "ارائه‌دهنده انتخاب‌شده هنوز در تنظیمات سرور فعال نیست." }, 503);
   }
-  const groqModelByMode = { fast: env.GROQ_MODEL_FAST, balanced: env.GROQ_MODEL, deep: env.GROQ_MODEL_DEEP, creative: env.GROQ_MODEL_CREATIVE };
-  const model = providerChoice.provider === "anthropic"
-    ? (env.CLAUDE_MODEL || providerChoice.model)
-    : (validatedImages.attachments.length ? env.GROQ_MODEL_VISION : (groqModelByMode[effectiveMode] || providerChoice.model));
+  const modelProfiles = {
+    groq: { fast: env.GROQ_MODEL_FAST, balanced: env.GROQ_MODEL, deep: env.GROQ_MODEL_DEEP, creative: env.GROQ_MODEL_CREATIVE },
+    openai: { fast: env.OPENAI_MODEL_FAST, balanced: env.OPENAI_MODEL, deep: env.OPENAI_MODEL_DEEP, creative: env.OPENAI_MODEL_CREATIVE },
+    anthropic: { fast: env.CLAUDE_MODEL_FAST, balanced: env.CLAUDE_MODEL, deep: env.CLAUDE_MODEL_DEEP, creative: env.CLAUDE_MODEL_CREATIVE }
+  };
+  const model = validatedImages.attachments.length && providerChoice.provider === "groq"
+    ? env.GROQ_MODEL_VISION
+    : (modelProfiles[providerChoice.provider]?.[effectiveMode] || providerChoice.model);
   if (validatedImages.attachments.length && providerChoice.provider === "groq" && !env.GROQ_MODEL_VISION) {
     await releaseQuota();
     return json({ error: "VISION_NOT_CONFIGURED", message: "مدل بینایی Groq هنوز در تنظیمات سرور فعال نشده است." }, 503);
@@ -245,11 +250,9 @@ export async function onRequestPost({ request, env }) {
 
   if (body.compare === true) {
     let compareTargets;
-    if (env.GROQ_API_KEY && env.CLAUDE_API_KEY) {
-      compareTargets = [
-        { provider: "groq", model: groqModelByMode[requestedMode] || env.GROQ_MODEL || "llama-3.3-70b-versatile" },
-        { provider: "anthropic", model: env.CLAUDE_MODEL || "claude-sonnet-5-5" }
-      ];
+    const configuredCompareProviders = listAvailableProviders(env).filter(item => item.available);
+    if (configuredCompareProviders.length >= 2) {
+      compareTargets = configuredCompareProviders.slice(0, 2).map(item => ({ provider: item.id, model: modelProfiles[item.id]?.[effectiveMode] || item.defaultModel }));
     } else if (env.GROQ_API_KEY && env.GROQ_MODEL_COMPARE_A && env.GROQ_MODEL_COMPARE_B && env.GROQ_MODEL_COMPARE_A !== env.GROQ_MODEL_COMPARE_B) {
       compareTargets = [
         { provider: "groq", model: env.GROQ_MODEL_COMPARE_A },
@@ -257,7 +260,7 @@ export async function onRequestPost({ request, env }) {
       ];
     } else {
       await releaseQuota();
-      return json({ error: "COMPARE_NOT_CONFIGURED", message: "برای مقایسه، کلید Claude را همراه Groq یا دو مدل متفاوت Groq تنظیم کنید." }, 503);
+      return json({ error: "COMPARE_NOT_CONFIGURED", message: "برای مقایسه، حداقل دو ارائه‌دهنده یا دو مدل متفاوت Groq را فعال کنید." }, 503);
     }
     const runComparison = async target => {
       const compareController = new AbortController();
