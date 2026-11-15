@@ -250,7 +250,8 @@ export async function onRequestPost({ request, env }) {
           agents: plan.map(item => ({ id: item.id, label: item.label })),
           stages: ["draft", "review_and_synthesis"]
         };
-      } catch {
+      } catch (error) {
+        if (request.signal.aborted) throw error;
         // Preserve the first useful answer if the review stage fails or times out.
         collaboration = {
           enabled: true,
