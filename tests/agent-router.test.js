@@ -9,6 +9,9 @@ test("routes translation, coding, analysis, research, content and planning tasks
   assert.equal(routeAgentRequest("برای این موضوع تحقیق کن و منابع بده").id, "research");
   assert.equal(routeAgentRequest("یک متن تبلیغاتی بنویس").id, "content");
   assert.equal(routeAgentRequest("یک نقشه راه مرحله به مرحله بده").id, "planner");
+  assert.equal(routeAgentRequest("برای خانه یک مبل مناسب خریداری کنم").id, "commerce");
+  assert.equal(routeAgentRequest("این مبحث ریاضی را به من آموزش بده").id, "education");
+  assert.equal(routeAgentRequest("برای ورود به حسابم مشکل دارم").id, "support");
   assert.equal(routeAgentRequest("سلام").id, "general");
 });
 
@@ -19,7 +22,7 @@ test("agent routing never grants autonomous tool permissions", () => {
 });
 
 test("agent catalog exposes the available specialist roles", () => {
-  assert.ok(listAgents().length >= 7);
+  assert.ok(listAgents().length >= 10);
   assert.ok(listAgents().every(agent => agent.status === "available"));
 });
 
@@ -63,4 +66,11 @@ test("non-deep requests do not incur multi-agent calls", () => {
 test("research and analysis agents cross-review each other", () => {
   assert.equal(buildCollaborationPlan("تحقیق جامع", routeAgentRequest("تحقیق جامع"), "deep")[1].id, "analyst");
   assert.equal(buildCollaborationPlan("تحلیل جامع", routeAgentRequest("تحلیل جامع"), "deep")[1].id, "research");
+});
+
+
+test("commerce, education and support specialists receive bounded cross-review roles", () => {
+  assert.equal(buildCollaborationPlan("خرید جامع", routeAgentRequest("خرید جامع"), "deep")[1].id, "analyst");
+  assert.equal(buildCollaborationPlan("آموزش جامع", routeAgentRequest("آموزش جامع"), "deep")[1].id, "research");
+  assert.equal(buildCollaborationPlan("پشتیبانی جامع", routeAgentRequest("پشتیبانی جامع"), "deep")[1].id, "developer");
 });
