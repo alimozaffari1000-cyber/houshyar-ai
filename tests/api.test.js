@@ -283,3 +283,26 @@ test('propagates browser cancellation to the upstream AI request', async () => {
     globalThis.fetch = originalFetch;
   }
 });
+
+
+test('chat API returns server-sent events when streaming is requested', async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (_url, options) => {
+    assert.equal(JSON.parse(options.body).stream, true);
+    return new Response([
+      'data: {"choices":[{"delta":{"content":"سلام"}}]}\\n\\n',
+      'data: [DONE]\\n\\n'
+    ].join(""), { status: 200, headers: { "content-type": "text/event-stream" } });
+  };
+  try {
+    const response = await onRequestPost({
+      request: request({ message: 'سلام', stream: true, collaborate: false }),
+      env: { GROQ_API_KEY: 'test-key' }
+    });
+    assert.equal(response.status, 200);
+    assert.match(response.headers.get('content-type'), /text\/event-stream/);
+    const body = await response.text();
+    assert.match(body, /"type":"delta","text":"سلام"/);
+    assert.match(body, /"type":"done"/);
+  } finally { globalThis.fetch = originalFetch; }
+});
