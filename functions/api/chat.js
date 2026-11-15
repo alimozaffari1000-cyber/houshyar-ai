@@ -145,7 +145,7 @@ export async function onRequestPost({ request, env }) {
     historyChars += content.length;
   }
 
-  const requestedMode = ["auto", "fast", "balanced", "deep", "creative"].includes(body.mode) ? body.mode : "auto";
+  const requestedMode = body.mode == null ? "auto" : (["auto", "fast", "balanced", "deep", "creative"].includes(body.mode) ? body.mode : "balanced");
   const selectedAgent = routeAgentRequest(latest);
   const effectiveMode = resolveResponseMode(latest, requestedMode, selectedAgent);
   const requestedProvider = ["auto", "groq", "anthropic"].includes(body.provider) ? body.provider : "auto";
