@@ -201,3 +201,25 @@ test("auto provider respects a configured default only when its key is present",
   assert.equal(resolveProvider({ AI_DEFAULT_PROVIDER: "openai", GROQ_API_KEY: "g" }).provider, "groq");
   assert.equal(resolveProvider({ AI_DEFAULT_PROVIDER: "openai", OPENAI_API_KEY: "o", GROQ_API_KEY: "g" }).provider, "openai");
 });
+test("OpenAI streaming uses GPT-compatible parameters and emits incremental deltas", async () => {
+  const originalFetch = globalThis.fetch;
+  let sentBody;
+  globalThis.fetch = async (_url, init) => {
+    sentBody = JSON.parse(init.body);
+    return new Response([
+      `data: {"choices":[{"delta":{"content":"پاسخ "}}]}\n\n`,
+      `data: {"choices":[{"delta":{"content":"جریانی"}}]}\n\n`,
+      `data: [DONE]\n\n`
+    ].join(""), { status: 200, headers: { "content-type": "text/event-stream" } });
+  };
+  try {
+    const { streamModel } = await import("../functions/api/_lib/model-providers.js");
+    const deltas = [];
+    const result = await streamModel({ provider: "openai", env: { OPENAI_API_KEY: "stream-secret" }, messages: [{ role: "user", content: "سلام" }], onText: value => deltas.push(value) });
+    assert.equal(sentBody.stream, true);
+    assert.equal(sentBody.max_completion_tokens, 1200);
+    assert.equal("temperature" in sentBody, false);
+    assert.deepEqual(deltas, ["پاسخ ", "جریانی"]);
+    assert.equal(result.reply, "پاسخ جریانی");
+  } finally { globalThis.fetch = originalFetch; }
+});
