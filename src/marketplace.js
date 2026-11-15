@@ -182,8 +182,9 @@ export function initMarketplace(app, { locale = "fa" } = {}) {
     input.disabled = true; say(c.loading);
     try {
       await request("/api/store/products/media", { method:"POST", body });
-      say(c.mediaUploaded);
       input.value = "";
+      await loadSeller();
+      say(c.mediaUploaded);
     } catch (error) {
       say(error.status === 503 ? c.mediaNotReady : error.status === 400 ? c.mediaInvalid : c.requestFailed);
     } finally { input.disabled = false; }
