@@ -7,7 +7,9 @@ export async function onRequestGet({ request, env }) {
   if (!user) return authJson({ error: "AUTH_REQUIRED" }, 401);
   try {
     const store = await env.DB.prepare(
-      "SELECT id, name, slug, description, status, created_at AS createdAt, updated_at AS updatedAt FROM merchant_stores WHERE user_id = ? LIMIT 1"
+      "SELECT id, name, slug, description, status, city, region, public_address AS publicAddress, latitude, longitude, " +
+      "offers_delivery AS offersDelivery, offers_pickup AS offersPickup, contact_phone AS contactPhone, order_url AS orderUrl, " +
+      "created_at AS createdAt, updated_at AS updatedAt FROM merchant_stores WHERE user_id = ? LIMIT 1"
     ).bind(user.id).first();
     if (!store) return authJson({ authenticated: true, store: null, products: [] });
     const result = await env.DB.prepare(
