@@ -147,3 +147,14 @@ test("buyer product cards expose an on-demand public multi-image gallery", async
   assert.match(ui, /stockAvailable/);
   assert.match(ui, /stockUnavailable/);
 });
+
+
+test("local store results expose expandable store profiles and map links without implying in-app checkout", async () => {
+  const ui = await readFile(new URL("../src/marketplace.js", import.meta.url), "utf8");
+  assert.match(ui, /data-local-store-details=/);
+  assert.match(ui, /data-local-store-panel=/);
+  assert.match(ui, /localStoreDetails/);
+  assert.match(ui, /https:\/\/www\.google\.com\/maps\?q=/);
+  assert.match(ui, /localMethods/);
+  assert.match(ui, /localOrder/);
+});
