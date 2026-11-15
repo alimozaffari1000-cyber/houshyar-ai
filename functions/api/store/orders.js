@@ -50,7 +50,14 @@ export async function onRequestPatch({ request, env }) {
     ).bind(status, Math.floor(Date.now() / 1000), orderId, store.id, allowedFrom).run();
     if (Number(result?.meta?.changes ?? result?.changes ?? 0) !== 1) return authJson({ error: "ORDER_STATUS_CONFLICT" }, 409);
     return authJson({ updated: true, orderId, status });
-  } catch {
+  } catch (error) {
+    const message = String(error?.message || error);
+    if (message.includes("INSUFFICIENT_ORDER_STOCK")) {
+      return authJson({ error: "ORDER_NO_LONGER_AVAILABLE" }, 409);
+    }
+    if (message.includes("ORDER_ITEMS_MISSING")) {
+      return authJson({ error: "ORDER_ITEMS_INVALID" }, 409);
+    }
     return authJson({ error: "STORE_ORDERS_UNAVAILABLE" }, 503);
   }
 }
