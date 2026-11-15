@@ -22,21 +22,21 @@ const AUTO_MODE_LABELS = { fa: 'یادگیری خودکار', en: 'Adaptive auto
 const escapeHTML = (value='') => String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function formatMessage(value='') {
   const blocks = [];
-  let html = escapeHTML(value).replace(/```([a-z0-9_-]*)\\n([\\s\\S]*?)```/gi, (_match, language, code) => {
-    const index = blocks.push('<pre class="chat-code"><div class="chat-code-head">' + escapeHTML(language || 'code') + '</div><code>' + code.replace(/\\n$/, '') + '</code></pre>') - 1;
+  let html = escapeHTML(value).replace(/```([a-z0-9_-]*)\n([\s\S]*?)```/gi, (_match, language, code) => {
+    const index = blocks.push('<pre class="chat-code"><div class="chat-code-head">' + escapeHTML(language || 'code') + '</div><code>' + code.replace(/\n$/, '') + '</code></pre>') - 1;
     return '__HOUSHYAR_CODE_BLOCK_' + index + '__';
   });
   html = html
-    .replace(/`([^`\\n]+)`/g, '<code class="chat-inline-code">$1</code>')
+    .replace(/`([^`\n]+)`/g, '<code class="chat-inline-code">$1</code>')
     .replace(/^### (.+)$/gm, '<h4>$1</h4>')
     .replace(/^## (.+)$/gm, '<h3>$1</h3>')
     .replace(/^# (.+)$/gm, '<h2>$1</h2>')
     .replace(/^&gt; (.+)$/gm, '<blockquote>$1</blockquote>')
-    .replace(/^\\s*[-*]\\s+(.+)$/gm, '<li>$1</li>')
-    .replace(/(?:<li>.*<\\/li>\\n?)+/g, match => '<ul>' + match + '</ul>')
-    .replace(/\\*\\*(.+?)\\*\\*/g, '<strong>$1</strong>')
-    .replace(/\\n/g, '<br>');
-  return html.replace(/__HOUSHYAR_CODE_BLOCK_(\\d+)__/g, (_match, index) => blocks[Number(index)] || '');
+    .replace(/^\s*[-*]\s+(.+)$/gm, '<li>$1</li>')
+    .replace(/(?:<li>.*<\/li>\n?)+/g, match => '<ul>' + match + '</ul>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\n/g, '<br>');
+  return html.replace(/__HOUSHYAR_CODE_BLOCK_(\d+)__/g, (_match, index) => blocks[Number(index)] || '');
 }
 
 function saveCurrentConversation() {
