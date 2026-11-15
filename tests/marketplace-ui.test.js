@@ -107,6 +107,15 @@ test("seller dashboard exposes editable store discovery profile and explicit loc
 
 test("marketplace UI explains disabled payment and virtual try-on features", async () => {
   const ui = await readFile(new URL("../src/marketplace.js", import.meta.url), "utf8");
-  assert.match(ui, /Checkout, payments, image uploads and virtual try-on are not enabled/);
-  assert.match(ui, /پرداخت، سبد خرید، ارسال تصویر و پرو مجازی فعال نیستند/);
+  assert.match(ui, /Product image uploads require the private store storage binding/);
+  assert.match(ui, /بارگذاری تصویر محصول پس از اتصال فضای ذخیره‌سازی امن فروشگاه فعال می‌شود/);
+});
+
+test("seller dashboard exposes private product image upload with client-side size/type checks", async () => {
+  const ui = await readFile(new URL("../src/marketplace.js", import.meta.url), "utf8");
+  assert.match(ui, /data-product-media-upload/);
+  assert.match(ui, /\/api\/store\/products\/media/);
+  assert.match(ui, /image\/jpeg.*image\/png.*image\/webp/);
+  assert.match(ui, /5 \* 1024 \* 1024/);
+  assert.match(ui, /new FormData\(\)/);
 });
