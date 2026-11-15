@@ -484,3 +484,10 @@ button:focus-visible,textarea:focus-visible,select:focus-visible{
 
 .marketplace-local-image{flex:0 0 88px;width:88px;height:100px;object-fit:cover;border-radius:10px;background:#13243a;border:1px solid rgba(145,180,218,.13)}
 @media(max-width:420px){.marketplace-local-image{width:100%;height:170px;flex-basis:auto}}
+
+.marketplace-media-gallery{display:flex;align-items:center;flex-wrap:wrap;gap:8px;width:100%;padding:8px 0}
+.marketplace-media-gallery>b{width:100%;color:#a9bdd2;font-size:10px}
+.marketplace-media-item{display:flex;align-items:center;gap:5px;padding:5px;border:1px solid rgba(145,180,218,.14);border-radius:10px;background:#102037}
+.marketplace-media-item img{width:52px;height:58px;object-fit:cover;border-radius:7px}
+.marketplace-media-item button{padding:5px 7px;border:1px solid rgba(255,130,150,.2);border-radius:7px;background:#492b3b;color:#ffd5e1;font:10px Vazirmatn;cursor:pointer}
+.marketplace-seller-product{flex-wrap:wrap}
