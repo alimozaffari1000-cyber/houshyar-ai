@@ -209,6 +209,8 @@ export async function onRequestPost({ request, env }) {
   }
 
   const controller = new AbortController();
+  if (request.signal.aborted) controller.abort("client_cancelled");
+  else request.signal.addEventListener("abort", () => controller.abort("client_cancelled"), { once: true });
   const timeout = setTimeout(() => controller.abort("upstream_timeout"), UPSTREAM_TIMEOUT_MS);
   let result;
   let collaboration = { enabled: false, agents: [{ id: selectedAgent.id, label: selectedAgent.label }], status: "single_agent" };
