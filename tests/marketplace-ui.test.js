@@ -45,8 +45,8 @@ test("seller dashboard returns only the signed-in user's store and products", as
   assert.equal(response.status, 200);
   assert.equal(body.store.id, "store-1");
   assert.equal(body.products[0].id, "product-1");
-  assert.match(DB.statements[1], /WHERE user_id = \\?/);
-  assert.match(DB.statements[2], /WHERE store_id = \\?/);
+  assert.match(DB.statements[1], /WHERE user_id = \?/);
+  assert.match(DB.statements[2], /WHERE store_id = \?/);
   assert.match(response.headers.get("cache-control"), /no-store/);
 });
 
@@ -70,11 +70,11 @@ test("marketplace UI is connected to home screen and uses authenticated store en
   const main = await readFile(new URL("../src/main.js", import.meta.url), "utf8");
   assert.match(main, /initMarketplace/);
   assert.match(main, /data-open-marketplace/);
-  assert.match(ui, /\\/api\\/store\\/products/);
-  assert.match(ui, /\\/api\\/store\\/mine/);
-  assert.match(ui, /\\/api\\/store\\/apply/);
-  assert.match(ui, /\\/api\\/store\\/products\\/publish/);
-  assert.match(ui, /escape\\(product\\.title\\)/);
+  assert.match(ui, /\/api\/store\/products/);
+  assert.match(ui, /\/api\/store\/mine/);
+  assert.match(ui, /\/api\/store\/apply/);
+  assert.match(ui, /\/api\/store\/products\/publish/);
+  assert.match(ui, /escape\(product\.title\)/);
   assert.match(ui, /credentials:"same-origin"/);
 });
 
