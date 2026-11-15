@@ -132,7 +132,7 @@ export function initMarketplace(app, { locale = "fa" } = {}) {
       '<label class="marketplace-check-label"><input name="offersDelivery" type="checkbox" ' + (store.offersDelivery ? 'checked' : '') + '> ' + c.storeDelivery + '</label>' +
       '<label class="marketplace-check-label"><input name="offersPickup" type="checkbox" ' + (store.offersPickup ? 'checked' : '') + '> ' + c.storePickup + '</label>' +
       '<button type="button" data-store-location>' + c.storeLocation + '</button><button type="submit">' + c.storeSave + '</button></form></div>' : '') +
-      (store.status === "active" ? '<div class="marketplace-form-card"><h3>' + c.createProduct + '</h3><form data-product-create>'
+      (store.status === "active" ? '<div class="marketplace-form-card"><h3>' + c.createProduct + '</h3><form data-product-create>' +
       '<label>' + c.productTitle + '<input name="title" minlength="2" maxlength="160" required></label>' +
       '<label>' + c.category + '<input name="category" pattern="[a-z0-9]+(-[a-z0-9]+)*" maxlength="60" required dir="ltr"></label>' +
       '<label>' + c.price + '<input name="priceMinor" type="number" min="1" step="1" required inputmode="numeric"></label>' +
