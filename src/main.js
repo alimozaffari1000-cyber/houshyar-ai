@@ -20,6 +20,25 @@ const state = { messages: [], busy: false, draft: '', mode: 'auto', compare: fal
 const DESIGN_STUDIO_LABELS = {fa:'استودیو طراحی',en:'Design Studio',de:'Designstudio',ar:'استوديو التصميم',tr:'Tasarım Stüdyosu',es:'Estudio de diseño',fr:'Studio de design',ru:'Студия дизайна',zh:'设计工作室',hi:'डिज़ाइन स्टूडियो',ur:'ڈیزائن اسٹوڈیو',pt:'Estúdio de design'};
 const AUTO_MODE_LABELS = { fa: 'یادگیری خودکار', en: 'Adaptive auto', de: 'Adaptiv automatisch', ar: 'تلقائي متكيف', tr: 'Uyarlanabilir otomatik', es: 'Automático adaptativo', fr: 'Automatique adaptatif', ru: 'Адаптивный авто', zh: '自适应自动', hi: 'अनुकूली ऑटो', ur: 'خودکار موافق', pt: 'Automático adaptativo' };
 const escapeHTML = (value='') => String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function formatMessage(value='') {
+  const blocks = [];
+  let html = escapeHTML(value).replace(/```([a-z0-9_-]*)\\n([\\s\\S]*?)```/gi, (_match, language, code) => {
+    const index = blocks.push('<pre class="chat-code"><div class="chat-code-head">' + escapeHTML(language || 'code') + '</div><code>' + code.replace(/\\n$/, '') + '</code></pre>') - 1;
+    return '__HOUSHYAR_CODE_BLOCK_' + index + '__';
+  });
+  html = html
+    .replace(/`([^`\\n]+)`/g, '<code class="chat-inline-code">$1</code>')
+    .replace(/^### (.+)$/gm, '<h4>$1</h4>')
+    .replace(/^## (.+)$/gm, '<h3>$1</h3>')
+    .replace(/^# (.+)$/gm, '<h2>$1</h2>')
+    .replace(/^&gt; (.+)$/gm, '<blockquote>$1</blockquote>')
+    .replace(/^\\s*[-*]\\s+(.+)$/gm, '<li>$1</li>')
+    .replace(/(?:<li>.*<\\/li>\\n?)+/g, match => '<ul>' + match + '</ul>')
+    .replace(/\\*\\*(.+?)\\*\\*/g, '<strong>$1</strong>')
+    .replace(/\\n/g, '<br>');
+  return html.replace(/__HOUSHYAR_CODE_BLOCK_(\\d+)__/g, (_match, index) => blocks[Number(index)] || '');
+}
+
 function saveCurrentConversation() {
   if (!state.messages.length) return;
   const firstUser = state.messages.find(message => message.role === 'user');
@@ -72,7 +91,7 @@ function render() {
       <button type="button" data-prompt="${escapeHTML(t('promptPlanning',locale))}">🧭 ${t('planning',locale)} <small>${t('planningDesc',locale)}</small></button>
     </section>
     <div class="chat-tools"><span>${t('chat',locale)}</span><button id="clear-chat" type="button" ${state.messages.length || state.draft ? '' : 'disabled'}>${t('clear',locale)}</button></div>
-    <section class="chat" aria-live="polite" aria-label="${t('chatMessagesLabel',locale)}">${state.messages.map((m,i)=>`<article class="msg ${m.role}"><div class="msg-head"><b>${m.role==='user'?t('you',locale):t('assistant',locale)}</b>${m.agent?'<small class="agent-label"> · '+escapeHTML(m.agent.label)+'</small>':''}${m.collaboration?.enabled?'<small class="collaboration-label"> · '+(m.collaboration.status==='completed'?'بازبینی چندعاملی':'بازبینی ناقص')+'</small>':''}${m.role==='assistant'?'<button type="button" class="copy-reply" data-index="'+i+'" aria-label="'+t('copy',locale)+'">'+t('copy',locale)+'</button>':''}</div><p>${escapeHTML(m.text)}</p></article>`).join('')}${state.busy?'<article class="msg assistant" role="status"><b>'+t('assistant',locale)+'</b><p>'+t('thinking',locale)+'</p></article>':''}</section>
+    <section class="chat" aria-live="polite" aria-label="${t('chatMessagesLabel',locale)}">${state.messages.map((m,i)=>`<article class="msg ${m.role}"><div class="msg-head"><b>${m.role==='user'?t('you',locale):t('assistant',locale)}</b>${m.agent?'<small class="agent-label"> · '+escapeHTML(m.agent.label)+'</small>':''}${m.collaboration?.enabled?'<small class="collaboration-label"> · '+(m.collaboration.status==='completed'?'بازبینی چندعاملی':'بازبینی ناقص')+'</small>':''}${m.role==='assistant'?'<button type="button" class="copy-reply" data-index="'+i+'" aria-label="'+t('copy',locale)+'">'+t('copy',locale)+'</button>':''}</div><div class="message-content">${formatMessage(m.text)}</div></article>`).join('')}${state.busy?'<article class="msg assistant" role="status"><b>'+t('assistant',locale)+'</b><p>'+t('thinking',locale)+'</p></article>':''}</section>
     <div class="mode-control"><label for="ai-provider">موتور هوش مصنوعی</label><select id="ai-provider" aria-label="AI provider"><option value="auto" ${state.provider==='auto'?'selected':''}>انتخاب خودکار</option><option value="groq" ${state.provider==='groq'?'selected':''}>Groq</option><option value="anthropic" ${state.provider==='anthropic'?'selected':''}>Claude (Anthropic)</option></select><label class="compare-toggle"><input id="compare-models" type="checkbox" ${state.compare ? "checked" : ""}> ${COMPARE_LABELS[locale] || COMPARE_LABELS.en}</label><label for="response-mode">${RESPONSE_MODE_TITLES[locale] || "Response mode"}</label><select id="response-mode" aria-label="Response mode">${["auto","fast","balanced","deep","creative"].map((mode,i)=>'<option value="'+mode+'" '+(state.mode===mode?'selected':'')+'>'+(mode === 'auto' ? (AUTO_MODE_LABELS[locale] || AUTO_MODE_LABELS.en) : RESPONSE_MODE_LABELS[locale][i-1])+'</option>').join('')}</select></div>\n    <form id="chat-form"><textarea id="prompt" aria-label="${t('messageInputLabel',locale)}" rows="1" maxlength="6000" placeholder="${t('placeholder',locale)}" required>${escapeHTML(state.draft)}</textarea><button id="send" type="submit" ${state.busy?'disabled':''}>${t('send',locale)}</button></form>
     <p class="input-hint">${t('hint',locale)}</p>
     <p class="notice">${t('notice',locale)}</p></main>
