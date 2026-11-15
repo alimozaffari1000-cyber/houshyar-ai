@@ -471,3 +471,7 @@ button:focus-visible,textarea:focus-visible,select:focus-visible{
 .visual-commerce-generate{width:100%;padding:12px;border:0;border-radius:11px;background:#3c5267;color:#c5d2df;font:600 11px Vazirmatn;cursor:not-allowed}
 .visual-commerce-privacy{margin:12px 0 0;color:#91a6bf;font-size:10px;line-height:1.9}
 @media(max-width:560px){.visual-commerce-dialog{padding:15px;border-radius:18px}.visual-commerce-head h2{font-size:17px}.visual-commerce-upload-grid{grid-template-columns:1fr}.visual-upload-card{min-height:155px}}
+
+.marketplace-media-upload{display:flex;align-items:center;gap:8px;flex-wrap:wrap;color:#a7f0db;font-size:10px}
+.marketplace-media-upload input{max-width:190px;color:#9eb1c9;font:10px Vazirmatn}
+.marketplace-media-upload input:disabled{opacity:.55}
