@@ -22,3 +22,25 @@ test("agent catalog exposes the available specialist roles", () => {
   assert.ok(listAgents().length >= 7);
   assert.ok(listAgents().every(agent => agent.status === "available"));
 });
+
+import { resolveResponseMode } from "../functions/api/_lib/agent-router.js";
+
+test("auto mode escalates complex and coding requests to deep reasoning", () => {
+  const coding = routeAgentRequest("این JavaScript code را debug کن");
+  assert.equal(resolveResponseMode("این JavaScript code را debug کن", "auto", coding), "deep");
+  const architecture = "یک معماری امنیتی جامع طراحی کن";
+  assert.equal(resolveResponseMode(architecture, "auto", routeAgentRequest(architecture)), "deep");
+});
+
+test("auto mode uses fast for short exchanges and balanced for ordinary requests", () => {
+  assert.equal(resolveResponseMode("سلام", "auto", routeAgentRequest("سلام")), "fast");
+  const ordinary = "لطفاً این موضوع را توضیح بده";
+  assert.equal(resolveResponseMode(ordinary, "auto", routeAgentRequest(ordinary)), "balanced");
+});
+
+test("explicit response mode always overrides adaptive selection", () => {
+  const complex = "یک کد پیچیده را بررسی کن";
+  assert.equal(resolveResponseMode(complex, "fast", routeAgentRequest(complex)), "fast");
+  const creative = "یک شعار خلاق بنویس";
+  assert.equal(resolveResponseMode(creative, "creative", routeAgentRequest(creative)), "creative");
+});
