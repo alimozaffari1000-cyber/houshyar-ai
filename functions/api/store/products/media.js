@@ -46,14 +46,18 @@ function matchesSignature(bytes, type) {
 }
 
 async function sellerContext(env, request, action) {
-  const user = await getSessionUser(env.DB, request);
-  if (!user) return { response: authJson({ error: "AUTH_REQUIRED" }, 401) };
-  const limited = await enforceAuthRateLimit({ env, request, action, email: user.email, limit: 10 });
-  if (limited) return { response: limited };
-  const store = await env.DB.prepare("SELECT id, status FROM merchant_stores WHERE user_id = ? LIMIT 1").bind(user.id).first();
-  if (!store) return { response: authJson({ error: "STORE_NOT_FOUND" }, 404) };
-  if (store.status !== "active") return { response: authJson({ error: "STORE_NOT_APPROVED" }, 403) };
-  return { user, store };
+  try {
+    const user = await getSessionUser(env.DB, request);
+    if (!user) return { response: authJson({ error: "AUTH_REQUIRED" }, 401) };
+    const limited = await enforceAuthRateLimit({ env, request, action, email: user.email, limit: 10 });
+    if (limited) return { response: limited };
+    const store = await env.DB.prepare("SELECT id, status FROM merchant_stores WHERE user_id = ? LIMIT 1").bind(user.id).first();
+    if (!store) return { response: authJson({ error: "STORE_NOT_FOUND" }, 404) };
+    if (store.status !== "active") return { response: authJson({ error: "STORE_NOT_APPROVED" }, 403) };
+    return { user, store };
+  } catch {
+    return { response: authJson({ error: "MEDIA_AUTH_UNAVAILABLE" }, 503) };
+  }
 }
 
 export async function onRequestPost({ request, env }) {
@@ -106,8 +110,8 @@ export async function onRequestDelete({ request, env }) {
   try {
     const media = await env.DB.prepare("SELECT pm.id, pm.object_key FROM product_media pm JOIN products p ON p.id = pm.product_id WHERE pm.id = ? AND p.store_id = ? LIMIT 1").bind(mediaId, context.store.id).first();
     if (!media) return authJson({ error: "MEDIA_NOT_FOUND" }, 404);
-    await env.MEDIA_BUCKET.delete(media.object_key);
     await env.DB.prepare("DELETE FROM product_media WHERE id = ?").bind(mediaId).run();
+    await env.MEDIA_BUCKET.delete(media.object_key);
     return authJson({ deleted: true, mediaId });
   } catch {
     return authJson({ error: "MEDIA_DELETE_UNAVAILABLE" }, 503);
