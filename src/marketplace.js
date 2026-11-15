@@ -82,7 +82,7 @@ export function initMarketplace(app, { locale = "fa" } = {}) {
         '<small>' + c.localMethods + ': ' + [product.offersDelivery ? c.localDeliveryYes : '', product.offersPickup ? c.localPickupYes : ''].filter(Boolean).join(' · ') + '</small>' +
         (mapUrl ? '<a href="' + mapUrl + '" target="_blank" rel="noopener noreferrer">' + c.localMap + '</a>' : '') +
         '</section></div>' +
-        '<div class="marketplace-local-actions"><button type="button" class="marketplace-order-open" data-order-open="' + escape(product.productId) + '">' + c.orderRequest + '</button>' + (orderUrl ? '<a href="' + escape(orderUrl) + '" target="_blank" rel="noopener noreferrer">' + c.localOrder + '</a>' : '') +
+        '<div class="marketplace-local-actions">' + (Number(product.stockCount) > 0 && (product.offersDelivery || product.offersPickup) ? '<button type="button" class="marketplace-order-open" data-order-open="' + escape(product.productId) + '">' + c.orderRequest + '</button>' : '') + (orderUrl ? '<a href="' + escape(orderUrl) + '" target="_blank" rel="noopener noreferrer">' + c.localOrder + '</a>' : '') +
         (phone ? '<a href="tel:' + escape(phone) + '">' + c.localCall + '</a>' : '') + '</div></article>';
     }).join("");
   }
