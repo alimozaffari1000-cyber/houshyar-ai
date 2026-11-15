@@ -24,3 +24,12 @@ test("order endpoint requires same-origin authenticated buyer and validates fulf
   assert.match(source, /env\.DB\.batch/);
   assert.match(source, /status: "requested"/);
 });
+
+
+test("order requests are explicitly not represented as online payments or stock reservations", async () => {
+  const ui = await readFile(new URL("../src/marketplace.js", import.meta.url), "utf8");
+  const api = await readFile(new URL("../functions/api/orders.js", import.meta.url), "utf8");
+  assert.match(ui, /درخواست سفارش پرداخت آنلاین نیست/);
+  assert.match(ui, /not online payments and do not reserve stock/);
+  assert.match(api, /status: "requested"/);
+});
