@@ -189,6 +189,9 @@ test("OpenAI chat completions use the official endpoint and server-side key", as
     assert.equal(call.url, "https://api.openai.com/v1/chat/completions");
     assert.equal(call.headers.Authorization, "Bearer secret-key");
     assert.equal(call.body.model, "custom-gpt");
+    assert.equal(call.body.max_completion_tokens, 1200);
+    assert.equal("temperature" in call.body, false);
+    assert.equal("max_tokens" in call.body, false);
     assert.equal(result.reply, "پاسخ از OpenAI");
     assert.equal(result.usage.totalTokens, 7);
   } finally { globalThis.fetch = originalFetch; }
