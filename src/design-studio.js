@@ -84,6 +84,7 @@ export function initDesignStudio(root, {locale="fa"}={}) {
       <section class="design-studio-output" hidden><div class="design-studio-output-head"><strong>${copy.preview}</strong><button type="button" data-studio-copy>${copy.copy}</button></div><pre data-studio-prompt></pre></section>
       <p class="design-studio-note">${copy.note}</p>
     </div>`;
+  root.querySelector(".design-studio-overlay")?.remove();
   root.append(overlay);
   let selectedTemplate = "startup";
   const close = () => { overlay.hidden = true; button.focus(); };
