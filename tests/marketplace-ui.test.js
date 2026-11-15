@@ -78,6 +78,19 @@ test("marketplace UI is connected to home screen and uses authenticated store en
   assert.match(ui, /credentials:"same-origin"/);
 });
 
+test("local store discovery UI uses explicit geolocation consent and manual city search", async () => {
+  const ui = await readFile(new URL("../src/marketplace.js", import.meta.url), "utf8");
+  assert.match(ui, /marketplace-local-search/);
+  assert.match(ui, /\/api\/stores\?/);
+  assert.match(ui, /navigator\.geolocation\.getCurrentPosition/);
+  assert.match(ui, /localNeedArea/);
+  assert.match(ui, /params\.set\("lat"/);
+  assert.match(ui, /params\.set\("lon"/);
+  assert.match(ui, /rel="noopener noreferrer"/);
+  assert.match(ui, /tel:/);
+  assert.match(ui, /localStock/);
+});
+
 test("marketplace UI explains disabled payment and virtual try-on features", async () => {
   const ui = await readFile(new URL("../src/marketplace.js", import.meta.url), "utf8");
   assert.match(ui, /Checkout, payments, image uploads and virtual try-on are not enabled/);
