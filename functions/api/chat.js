@@ -41,7 +41,12 @@ function validateImageAttachments(value) {
     const isGif = ["GIF87a", "GIF89a"].some(magic => String.fromCharCode(...signature.slice(0, 6)) === magic);
     const isWebp = String.fromCharCode(...signature.slice(0, 4)) === "RIFF" &&
       String.fromCharCode(...signature.slice(8, 12)) === "WEBP";
-    if (!(isJpeg || isPng || isGif || isWebp)) return { attachments: [], error: "INVALID_ATTACHMENTS" };
+    const signatureMatches =
+      (item.mimeType === "image/jpeg" && isJpeg) ||
+      (item.mimeType === "image/png" && isPng) ||
+      (item.mimeType === "image/gif" && isGif) ||
+      (item.mimeType === "image/webp" && isWebp);
+    if (!signatureMatches) return { attachments: [], error: "INVALID_ATTACHMENTS" };
     attachments.push({ mimeType: item.mimeType, data: encoded });
   }
   return { attachments, error: null };
