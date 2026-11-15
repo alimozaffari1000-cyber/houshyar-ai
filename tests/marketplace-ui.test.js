@@ -111,6 +111,17 @@ test("marketplace UI explains disabled payment and virtual try-on features", asy
   assert.match(ui, /بارگذاری تصویر محصول پس از اتصال فضای ذخیره‌سازی امن فروشگاه فعال می‌شود/);
 });
 
+test("seller dashboard supports a private multi-image product gallery and deletion", async () => {
+  const ui = await readFile(new URL("../src/marketplace.js", import.meta.url), "utf8");
+  const api = await readFile(new URL("../functions/api/store/products/media.js", import.meta.url), "utf8");
+  assert.match(ui, /\/api\/store\/products\/media/);
+  assert.match(ui, /multiple/);
+  assert.match(ui, /data-delete-media/);
+  assert.match(ui, /method:"DELETE"/);
+  assert.match(ui, /mediaByProduct/);
+  assert.match(api, /export async function onRequestGet/);
+  assert.match(api, /WHERE p\.store_id = \?/);
+});
 test("seller dashboard exposes private product image upload with client-side size/type checks", async () => {
   const ui = await readFile(new URL("../src/marketplace.js", import.meta.url), "utf8");
   assert.match(ui, /data-product-media-upload/);
