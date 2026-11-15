@@ -306,3 +306,64 @@ test('chat API returns server-sent events when streaming is requested', async ()
     assert.match(body, /"type":"done"/);
   } finally { globalThis.fetch = originalFetch; }
 });
+
+
+test("validates image signatures and forwards accepted images to Claude vision", async () => {
+  const originalFetch = globalThis.fetch;
+  let sentBody;
+  globalThis.fetch = async (_url, options) => {
+    sentBody = JSON.parse(options.body);
+    return new Response(JSON.stringify({
+      model: "claude-sonnet-5-5",
+      content: [{ type: "text", text: "تصویر دریافت شد" }]
+    }), { status: 200, headers: { "content-type": "application/json" } });
+  };
+  try {
+    const response = await onRequestPost({
+      request: request({
+        message: "این عکس چیست؟",
+        attachments: [{ mimeType: "image/jpeg", data: "/9j/" }]
+      }),
+      env: { GROQ_API_KEY: "groq-test", CLAUDE_API_KEY: "claude-test" }
+    });
+    const data = await response.json();
+    assert.equal(response.status, 200);
+    assert.equal(data.provider, "anthropic");
+    const image = sentBody.messages.at(-1).content.find(block => block.type === "image");
+    assert.deepEqual(image, { type: "image", source: { type: "base64", media_type: "image/jpeg", data: "/9j/" } });
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("rejects spoofed image MIME types before contacting an AI provider", async () => {
+  const originalFetch = globalThis.fetch;
+  let called = false;
+  globalThis.fetch = async () => { called = true; throw new Error("must not call provider"); };
+  try {
+    const response = await onRequestPost({
+      request: request({
+        message: "این فایل را بررسی کن",
+        attachments: [{ mimeType: "image/png", data: "bm90LWEtcG5n" }]
+      }),
+      env: { CLAUDE_API_KEY: "claude-test" }
+    });
+    assert.equal(response.status, 400);
+    assert.equal((await response.json()).error, "INVALID_ATTACHMENTS");
+    assert.equal(called, false);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("rejects images above the per-file size limit", async () => {
+  const response = await onRequestPost({
+    request: request({
+      message: "عکس را ببین",
+      attachments: [{ mimeType: "image/jpeg", data: "A".repeat(2 * 1024 * 1024) }]
+    }),
+    env: { CLAUDE_API_KEY: "claude-test" }
+  });
+  assert.equal(response.status, 413);
+  assert.equal((await response.json()).error, "ATTACHMENT_TOO_LARGE");
+});
