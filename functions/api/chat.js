@@ -239,7 +239,7 @@ export async function onRequestPost({ request, env }) {
   const buildMessagesForProvider = targetProvider => {
     const targetMessages = messages.map(item => ({ ...item }));
     if (validatedImages.attachments.length) {
-      const lastUser = [...targetMessages].reverse().find(item => item.role === "user" && item.content === latest);
+      const lastUser = [...targetMessages].reverse().find(item => item.role === "user" && (item.content === latest || Array.isArray(item.content)));
       if (lastUser) {
         lastUser.content = [
           { type: "text", text: latest },
@@ -254,7 +254,7 @@ export async function onRequestPost({ request, env }) {
   messages.splice(0, messages.length, ...buildMessagesForProvider(providerChoice.provider));
   const availableProviderConfigs = listAvailableProviders(env);
   const modelForTarget = targetProvider => {
-    if (validatedImages.attachments.length && targetProvider === "groq") return env.GROQ_MODEL_VISION;
+    if (validatedImages.attachments.length && targetProvider === "groq") return env.GROQ_MODEL_VISION;\n    if (validatedImages.attachments.length && targetProvider === "openai" && env.OPENAI_MODEL_VISION) return env.OPENAI_MODEL_VISION;
     return modelProfiles[targetProvider]?.[effectiveMode] || availableProviderConfigs.find(item => item.id === targetProvider)?.defaultModel;
   };
   const fallbackProviders = () => availableProviderConfigs
@@ -401,7 +401,7 @@ export async function onRequestPost({ request, env }) {
       ];
       try {
         const reviewed = await requestModel({
-          provider: providerChoice.provider, env, messages: reviewMessages, model,
+          provider: providerChoice.provider, env, messages: reviewMessages.map(item => item.role === "user" && Array.isArray(item.content) ? { ...item, content: buildMessagesForProvider(providerChoice.provider).find(message => message.role === "user" && Array.isArray(message.content))?.content || item.content } : item), model,
           signal: controller.signal, maxTokens: 1400, temperature: 0.3
         });
         result = {
