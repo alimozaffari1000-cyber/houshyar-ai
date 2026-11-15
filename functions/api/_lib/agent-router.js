@@ -41,3 +41,33 @@ export function resolveResponseMode(message, requestedMode = "auto", agent = nul
 export function listAgents() {
   return Object.values(AGENTS).map(({ id, label, labelEn }) => ({ id, label, labelEn, status: "available" }));
 }
+
+/**
+ * Build a bounded collaboration plan. Roles are prompts, not autonomous agents:
+ * every stage uses the configured provider and receives only the current request
+ * plus the preceding draft. No tools or external actions are granted.
+ */
+export function buildCollaborationPlan(message, primaryAgent, mode = "balanced") {
+  if (mode !== "deep") return [];
+  const followUpByAgent = {
+    research: "analyst",
+    analyst: "research",
+    developer: "analyst",
+    planner: "analyst",
+    content: "analyst",
+    translator: "analyst",
+    general: "research"
+  };
+  const reviewerId = followUpByAgent[primaryAgent?.id] || "analyst";
+  const reviewer = AGENTS[reviewerId];
+  return [{
+    id: primaryAgent?.id || "general",
+    label: primaryAgent?.label || AGENTS.general.label,
+    stage: "draft"
+  }, {
+    id: reviewer.id,
+    label: reviewer.label,
+    stage: "review_and_synthesis",
+    instruction: reviewer.instruction
+  }];
+}
