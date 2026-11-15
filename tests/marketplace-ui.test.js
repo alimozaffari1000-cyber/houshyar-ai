@@ -158,3 +158,13 @@ test("local store results expose expandable store profiles and map links without
   assert.match(ui, /localMethods/);
   assert.match(ui, /localOrder/);
 });
+
+
+test("buyer marketplace exposes authenticated order request form and fulfillment choices", async () => {
+  const ui = await readFile(new URL("../src/marketplace.js", import.meta.url), "utf8");
+  assert.match(ui, /data-order-open=/);
+  assert.match(ui, /data-order-form/);
+  assert.match(ui, /orderAddressRequired/);
+  assert.match(ui, /\/api\/orders/);
+  assert.match(ui, /fulfillment/);
+});
