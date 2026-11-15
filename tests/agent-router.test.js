@@ -44,3 +44,23 @@ test("explicit response mode always overrides adaptive selection", () => {
   const creative = "یک شعار خلاق بنویس";
   assert.equal(resolveResponseMode(creative, "creative", routeAgentRequest(creative)), "creative");
 });
+
+import { buildCollaborationPlan } from "../functions/api/_lib/agent-router.js";
+
+test("deep requests receive a bounded two-agent collaboration plan", () => {
+  const developer = routeAgentRequest("یک سامانه را debug کن");
+  const plan = buildCollaborationPlan("درخواست پیچیده", developer, "deep");
+  assert.equal(plan.length, 2);
+  assert.equal(plan[0].id, "developer");
+  assert.equal(plan[1].id, "analyst");
+  assert.equal(plan[1].stage, "review_and_synthesis");
+});
+
+test("non-deep requests do not incur multi-agent calls", () => {
+  assert.deepEqual(buildCollaborationPlan("سلام", routeAgentRequest("سلام"), "fast"), []);
+});
+
+test("research and analysis agents cross-review each other", () => {
+  assert.equal(buildCollaborationPlan("تحقیق جامع", routeAgentRequest("تحقیق جامع"), "deep")[1].id, "analyst");
+  assert.equal(buildCollaborationPlan("تحلیل جامع", routeAgentRequest("تحلیل جامع"), "deep")[1].id, "research");
+});
