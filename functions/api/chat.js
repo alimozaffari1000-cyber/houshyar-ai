@@ -222,7 +222,7 @@ export async function onRequestPost({ request, env }) {
     openai: { fast: env.OPENAI_MODEL_FAST, balanced: env.OPENAI_MODEL, deep: env.OPENAI_MODEL_DEEP, creative: env.OPENAI_MODEL_CREATIVE },
     anthropic: { fast: env.CLAUDE_MODEL_FAST, balanced: env.CLAUDE_MODEL, deep: env.CLAUDE_MODEL_DEEP, creative: env.CLAUDE_MODEL_CREATIVE }
   };
-  const model = validatedImages.attachments.length && providerChoice.provider === "groq"
+  let model = validatedImages.attachments.length && providerChoice.provider === "groq"
     ? env.GROQ_MODEL_VISION
     : (modelProfiles[providerChoice.provider]?.[effectiveMode] || providerChoice.model);
   if (validatedImages.attachments.length && providerChoice.provider === "groq" && !env.GROQ_MODEL_VISION) {
@@ -236,17 +236,31 @@ export async function onRequestPost({ request, env }) {
   if (messages[messages.length - 1]?.role !== "user" || messages[messages.length - 1]?.content !== latest) {
     messages.push({ role: "user", content: latest });
   }
-  if (validatedImages.attachments.length) {
-    const lastUser = [...messages].reverse().find(item => item.role === "user" && item.content === latest);
-    if (lastUser) {
-      lastUser.content = [
-        { type: "text", text: latest },
-        ...validatedImages.attachments.map(image => providerChoice.provider === "anthropic"
-          ? { type: "image", source: { type: "base64", media_type: image.mimeType, data: image.data } }
-          : { type: "image_url", image_url: { url: "data:" + image.mimeType + ";base64," + image.data } })
-      ];
+  const buildMessagesForProvider = targetProvider => {
+    const targetMessages = messages.map(item => ({ ...item }));
+    if (validatedImages.attachments.length) {
+      const lastUser = [...targetMessages].reverse().find(item => item.role === "user" && item.content === latest);
+      if (lastUser) {
+        lastUser.content = [
+          { type: "text", text: latest },
+          ...validatedImages.attachments.map(image => targetProvider === "anthropic"
+            ? { type: "image", source: { type: "base64", media_type: image.mimeType, data: image.data } }
+            : { type: "image_url", image_url: { url: "data:" + image.mimeType + ";base64," + image.data } })
+        ];
+      }
     }
-  }
+    return targetMessages;
+  };
+  messages.splice(0, messages.length, ...buildMessagesForProvider(providerChoice.provider));
+  const availableProviderConfigs = listAvailableProviders(env);
+  const modelForTarget = targetProvider => {
+    if (validatedImages.attachments.length && targetProvider === "groq") return env.GROQ_MODEL_VISION;
+    return modelProfiles[targetProvider]?.[effectiveMode] || availableProviderConfigs.find(item => item.id === targetProvider)?.defaultModel;
+  };
+  const fallbackProviders = () => availableProviderConfigs
+    .filter(item => item.available && item.id !== providerChoice.provider)
+    .filter(item => !validatedImages.attachments.length || item.id !== "groq" || Boolean(env.GROQ_MODEL_VISION))
+    .map(item => item.id);
 
   if (body.compare === true) {
     let compareTargets;
@@ -300,13 +314,26 @@ export async function onRequestPost({ request, env }) {
     const stream = new ReadableStream({
       async start(controller) {
         try {
-          const streamed = await streamModel({
-            provider: providerChoice.provider, env, messages, model,
-            signal: streamController.signal, maxTokens: 1200, temperature: 0.5,
-            onText: text => send(controller, { type: "delta", text })
-          });
+          let streamed = null;
+          let activeProvider = providerChoice.provider;
+          let emittedText = false;
+          const candidates = [providerChoice.provider, ...(requestedProvider === "auto" ? fallbackProviders() : [])];
+          for (const candidate of candidates) {
+            try {
+              streamed = await streamModel({
+                provider: candidate, env, messages: buildMessagesForProvider(candidate), model: candidate === providerChoice.provider ? model : modelForTarget(candidate),
+                signal: streamController.signal, maxTokens: 1200, temperature: 0.5,
+                onText: text => { emittedText = true; send(controller, { type: "delta", text }); }
+              });
+              activeProvider = candidate;
+              break;
+            } catch (error) {
+              if (streamController.signal.aborted || request.signal.aborted || emittedText || requestedProvider !== "auto") throw error;
+            }
+          }
+          if (!streamed) throw new Error("provider_request_failed");
           send(controller, { type: "done", model: streamed.model, usage: streamed.usage,
-            mode: effectiveMode, requestedMode, provider: providerChoice.provider,
+            mode: effectiveMode, requestedMode, provider: activeProvider,
             agent: { id: selectedAgent.id, label: selectedAgent.label, labelEn: selectedAgent.labelEn },
             collaboration: { enabled: false, status: "single_agent", agents: [{ id: selectedAgent.id, label: selectedAgent.label }] } });
         } catch {
@@ -335,10 +362,32 @@ export async function onRequestPost({ request, env }) {
   let collaboration = { enabled: false, agents: [{ id: selectedAgent.id, label: selectedAgent.label }], status: "single_agent" };
   try {
     const plan = collaborationPlan;
-    const primary = await requestModel({
-      provider: providerChoice.provider, env, messages, model,
-      signal: controller.signal, maxTokens: plan.length ? 900 : 1200, temperature: 0.5
-    });
+    let primary;
+    try {
+      primary = await requestModel({
+        provider: providerChoice.provider, env, messages: buildMessagesForProvider(providerChoice.provider), model,
+        signal: controller.signal, maxTokens: plan.length ? 900 : 1200, temperature: 0.5
+      });
+    } catch (primaryError) {
+      if (requestedProvider !== "auto" || controller.signal.aborted) throw primaryError;
+      let recovered = false;
+      for (const candidate of fallbackProviders()) {
+        try {
+          const candidateModel = modelForTarget(candidate);
+          primary = await requestModel({
+            provider: candidate, env, messages: buildMessagesForProvider(candidate), model: candidateModel,
+            signal: controller.signal, maxTokens: plan.length ? 900 : 1200, temperature: 0.5
+          });
+          providerChoice = { provider: candidate, model: candidateModel };
+          model = candidateModel;
+          recovered = true;
+          break;
+        } catch {
+          if (controller.signal.aborted) throw primaryError;
+        }
+      }
+      if (!recovered) throw primaryError;
+    }
     result = primary;
 
     if (plan.length === 2 && !controller.signal.aborted) {
