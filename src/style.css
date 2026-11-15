@@ -629,3 +629,14 @@ button:focus-visible,textarea:focus-visible,select:focus-visible{
 .chat-main main:has(.chat .msg) .toolbox,.chat-main main:has(.chat .msg) .suggestions{display:none}
 .chat-main main:has(.chat .msg) .chat-tools{margin-top:4px}
 @media(max-width:760px){.chat-main .toolbox{margin-top:38px}}
+
+.message-content{margin-top:8px;color:#e6eef9;font-size:14px;line-height:2;overflow-wrap:anywhere}
+.message-content h2,.message-content h3,.message-content h4{margin:16px 0 7px;color:#f2f7ff;line-height:1.6}
+.message-content h2{font-size:19px}.message-content h3{font-size:16px}.message-content h4{font-size:14px}
+.message-content ul{margin:7px 0;padding-inline-start:23px}
+.message-content li{padding:2px 0}
+.message-content blockquote{margin:10px 0;padding:7px 12px;border-inline-start:3px solid #63d9bd;color:#b6c9dc;background:#0c1a2b;border-radius:5px}
+.chat-inline-code{padding:2px 6px;border:1px solid #344a65;border-radius:6px;background:#0a1728;color:#a7f0db;font:12px/1.8 ui-monospace,monospace;direction:ltr;unicode-bidi:embed}
+.chat-code{margin:13px 0;overflow:auto;border:1px solid #344a65;border-radius:12px;background:#071321;direction:ltr;text-align:left}
+.chat-code-head{padding:7px 12px;border-bottom:1px solid #263b56;color:#91a6bf;font:10px ui-monospace,monospace}
+.chat-code code{display:block;padding:13px 15px;color:#d5e8f7;font:12px/1.8 ui-monospace,SFMono-Regular,Consolas,monospace;white-space:pre;tab-size:2}
