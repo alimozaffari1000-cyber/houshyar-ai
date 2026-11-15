@@ -44,3 +44,42 @@ test("private storage is required", async () => {
   const response = await onRequestGet({ request: new Request("https://example.test"), env: { DB: {} }, params: { id: ID } });
   assert.equal(response.status, 503);
 });
+
+
+function privateEnvFor(media, sessionUser) {
+  let reads = 0;
+  return {
+    env: {
+      DB: { prepare(sql) { return { bind() { return { async first() {
+        if (sql.includes("SELECT pm.object_key")) return media;
+        if (sql.includes("SELECT users.id")) return sessionUser;
+        return null;
+      } }; } }; } },
+      MEDIA_BUCKET: { async get(key) { reads += 1; return key === media.objectKey ? { body: new Blob(["private-image"]).stream(), size: 13 } : null; } }
+    },
+    reads: () => reads
+  };
+}
+
+test("suspended store media is never public even when the product is published", async () => {
+  const setup = envFor({ ...published, storeStatus: "suspended" });
+  const response = await onRequestGet({ request: new Request("https://example.test/api/product-media/" + ID), env: setup.env, params: { id: ID } });
+  assert.equal(response.status, 404);
+  assert.equal(setup.reads(), 0);
+});
+
+test("owner can read a draft product image from private storage", async () => {
+  const setup = privateEnvFor({ ...published, productStatus: "draft" }, { id: "seller-1", email: "seller@example.test", role: "user" });
+  const response = await onRequestGet({ request: new Request("https://example.test/api/product-media/" + ID, { headers: { Cookie: "houshyar_session=valid-session-token" } }), env: setup.env, params: { id: ID } });
+  assert.equal(response.status, 200);
+  assert.match(response.headers.get("cache-control"), /private, no-store/);
+  assert.equal(await response.text(), "private-image");
+  assert.equal(setup.reads(), 1);
+});
+
+test("another signed-in user cannot read a draft product image", async () => {
+  const setup = privateEnvFor({ ...published, productStatus: "draft" }, { id: "different-user", email: "other@example.test", role: "user" });
+  const response = await onRequestGet({ request: new Request("https://example.test/api/product-media/" + ID, { headers: { Cookie: "houshyar_session=valid-session-token" } }), env: setup.env, params: { id: ID } });
+  assert.equal(response.status, 404);
+  assert.equal(setup.reads(), 0);
+});
