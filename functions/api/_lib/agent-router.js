@@ -34,7 +34,7 @@ export function resolveResponseMode(message, requestedMode = "auto", agent = nul
   const codeWork = agent?.id === "developer" || /function|class|interface|SELECT|CREATE TABLE/iu.test(text);
   if (complex || codeWork || text.length >= 1400) return "deep";
   if (agent?.id === "content" && /خلاق|ایده.?پردازی|شعار|داستان|creative|brainstorm|slogan|story/iu.test(text)) return "creative";
-  if (text.length <= 90 && !/[؟?].{30,}/u.test(text)) return "fast";
+  if (text.length <= 40 && /^(سلام|درود|hi|hello|hey|مرسی|ممنون|تشکر|خداحافظ|bye|thanks)[!.؟? ]*$/iu.test(text)) return "fast";
   return "balanced";
 }
 
