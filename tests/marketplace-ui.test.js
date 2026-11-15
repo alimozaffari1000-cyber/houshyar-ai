@@ -91,6 +91,20 @@ test("local store discovery UI uses explicit geolocation consent and manual city
   assert.match(ui, /localStock/);
 });
 
+test("seller dashboard exposes editable store discovery profile and explicit location capture", async () => {
+  const ui = await readFile(new URL("../src/marketplace.js", import.meta.url), "utf8");
+  const mine = await readFile(new URL("../functions/api/store/mine.js", import.meta.url), "utf8");
+  assert.match(ui, /data-store-profile/);
+  assert.match(ui, /\/api\/store\/profile/);
+  assert.match(ui, /offersDelivery:form\.elements\.offersDelivery\.checked/);
+  assert.match(ui, /offersPickup:form\.elements\.offersPickup\.checked/);
+  assert.match(ui, /data-store-location/);
+  assert.match(ui, /form\.elements\.latitude\.value = String\(position\.coords\.latitude\)/);
+  assert.match(mine, /public_address AS publicAddress/);
+  assert.match(mine, /offers_delivery AS offersDelivery/);
+  assert.match(mine, /contact_phone AS contactPhone/);
+});
+
 test("marketplace UI explains disabled payment and virtual try-on features", async () => {
   const ui = await readFile(new URL("../src/marketplace.js", import.meta.url), "utf8");
   assert.match(ui, /Checkout, payments, image uploads and virtual try-on are not enabled/);
