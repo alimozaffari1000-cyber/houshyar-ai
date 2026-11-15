@@ -138,6 +138,10 @@ test("buyer product cards expose an on-demand public multi-image gallery", async
   assert.match(ui, /data-product-gallery-items=/);
   assert.match(ui, /\/api\/products\//);
   assert.match(ui, /galleryOpen/);
+  assert.match(ui, /data-product-detail=/);
+  assert.match(ui, /data-product-detail-panel=/);
+  assert.match(ui, /data-detail-search=/);
+  assert.match(ui, /detailStock/);
   assert.match(ui, /galleryLoading/);
   assert.match(ui, /galleryEmpty/);
   assert.match(ui, /stockAvailable/);
