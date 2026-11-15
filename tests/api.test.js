@@ -367,3 +367,33 @@ test("rejects images above the per-file size limit", async () => {
   assert.equal(response.status, 413);
   assert.equal((await response.json()).error, "ATTACHMENT_TOO_LARGE");
 });
+
+test("health endpoint lists OpenAI as an independent configured provider", async () => {
+  const response = await onRequestGet({ env: { OPENAI_API_KEY: "private-openai-key" } });
+  const body = await response.json();
+  assert.equal(response.status, 200);
+  assert.equal(body.aiConfigured, true);
+  assert.deepEqual(body.providers.map(item => [item.id, item.available]), [
+    ["groq", false], ["openai", true], ["anthropic", false]
+  ]);
+  assert.equal(JSON.stringify(body).includes("private-openai-key"), false);
+});
+
+test("chat API routes explicit OpenAI requests to the official endpoint", async () => {
+  const originalFetch = globalThis.fetch;
+  let call;
+  globalThis.fetch = async (url, options) => {
+    call = { url, body: JSON.parse(options.body), authorization: options.headers.Authorization };
+    return new Response(JSON.stringify({ model: "gpt-test", choices: [{ message: { content: "سلام از OpenAI" } }] }), { status: 200 });
+  };
+  try {
+    const response = await onRequestPost({ request: request({ message: "سلام", provider: "openai" }), env: { OPENAI_API_KEY: "private-key", OPENAI_MODEL: "gpt-test" } });
+    const body = await response.json();
+    assert.equal(response.status, 200);
+    assert.equal(body.provider, "openai");
+    assert.equal(body.model, "gpt-test");
+    assert.equal(body.reply, "سلام از OpenAI");
+    assert.equal(call.url, "https://api.openai.com/v1/chat/completions");
+    assert.equal(call.authorization, "Bearer private-key");
+  } finally { globalThis.fetch = originalFetch; }
+});
