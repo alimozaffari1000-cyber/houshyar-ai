@@ -62,7 +62,7 @@ export function initMarketplace(app, { locale = "fa" } = {}) {
         (product.offersPickup ? '<span>' + c.localPickupYes + '</span>' : '');
       const orderUrl = /^https:\/\//i.test(String(product.orderUrl || "")) ? String(product.orderUrl) : "";
       const phone = String(product.contactPhone || "").replace(/[^+0-9(). -]/g, "");
-      return '<article class="marketplace-local-card"><div><span class="marketplace-category">' + escape(product.category || c.store) +
+      return '<article class="marketplace-local-card">' + (product.primaryMediaId ? '<img class="marketplace-local-image" src="/api/product-media/' + encodeURIComponent(product.primaryMediaId) + '" alt="' + escape(product.title) + '" loading="lazy" decoding="async">' : '') + '<div><span class="marketplace-category">' + escape(product.category || c.store) +
         '</span><h4>' + escape(product.title) + '</h4><p>' + escape(product.description || "") + '</p>' +
         '<strong>' + money(product.priceMinor, locale) + ' ' + escape(product.currency || c.currency) + '</strong>' +
         '<small>' + escape(product.storeName || "") + (product.city ? ' · ' + escape(product.city) : '') + '</small>' +
