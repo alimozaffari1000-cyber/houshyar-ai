@@ -16,7 +16,13 @@ export async function onRequestGet({ request, env }) {
       "WHERE o.store_id = ? ORDER BY o.created_at DESC LIMIT 100"
     ).bind(store.id).all();
     return authJson({ orders: Array.isArray(result.results) ? result.results : [] });
-  } catch {
+  } catch (error) {
+    if (String(error?.message || error).includes("INSUFFICIENT_ORDER_STOCK")) {
+      return authJson({ error: "ORDER_NO_LONGER_AVAILABLE" }, 409);
+    }
+    if (String(error?.message || error).includes("ORDER_ITEMS_MISSING")) {
+      return authJson({ error: "ORDER_ITEMS_INVALID" }, 409);
+    }
     return authJson({ error: "STORE_ORDERS_UNAVAILABLE" }, 503);
   }
 }
