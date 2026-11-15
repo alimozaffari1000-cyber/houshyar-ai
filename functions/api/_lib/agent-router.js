@@ -24,8 +24,20 @@ export function routeAgentRequest(message) {
   return { ...agent, executionMode: "single_model_specialist", autonomousTools: false };
 }
 
+/** Select an adaptive response mode without exceeding explicit user choices. */
+export function resolveResponseMode(message, requestedMode = "auto", agent = null) {
+  const allowed = ["fast", "balanced", "deep", "creative"];
+  if (allowed.includes(requestedMode)) return requestedMode;
+  const text = typeof message === "string" ? message.trim() : "";
+  if (!text) return "balanced";
+  const complex = /مرحله.?به.?مرحله|عمیق|جامع|کامل|با جزئیات|مقایسه چند|تحلیل جامع|معماری|امنیت|پژوهش|research|architecture|security|step.?by.?step|in depth|comprehensive|debug|refactor|design a system/iu.test(text);
+  const codeWork = agent?.id === "developer" || /function|class|interface|SELECT|CREATE TABLE/iu.test(text);
+  if (complex || codeWork || text.length >= 1400) return "deep";
+  if (agent?.id === "content" && /خلاق|ایده.?پردازی|شعار|داستان|creative|brainstorm|slogan|story/iu.test(text)) return "creative";
+  if (text.length <= 90 && !/[؟?].{30,}/u.test(text)) return "fast";
+  return "balanced";
+}
+
 export function listAgents() {
-  return Object.values(AGENTS).map(({ id, label, labelEn }) => ({
-    id, label, labelEn, status: "available"
-  }));
+  return Object.values(AGENTS).map(({ id, label, labelEn }) => ({ id, label, labelEn, status: "available" }));
 }
