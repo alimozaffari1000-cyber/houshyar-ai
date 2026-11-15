@@ -25,7 +25,7 @@ function dbFor({ product = { id: "p1" }, media = null } = {}) {
       if (sql.includes("SELECT pm.id")) return media;
       return null;
     },
-    async run() { return { meta: { changes: 1 } }; }
+    async run() { if (sql.includes("INSERT INTO product_media")) inserted += 1; return { meta: { changes: 1 } }; }
   }; } }; } };
 }
 test("media upload fails closed without private R2 binding", async () => {
@@ -51,6 +51,7 @@ test("media upload validates actual image signature, size and product ownership"
   assert.equal(body.media.width,2);
   assert.equal(body.media.height,3);
   assert.equal(stored,1);
+  assert.equal(inserted,1);
 });
 test("media upload rejects spoofed image MIME type", async () => {
   const file = new File(["not really an image"], "fake.png", { type: "image/png" });
@@ -66,4 +67,27 @@ test("media upload enforces product ownership", async () => {
 test("media delete requires authentication", async () => {
   const response = await onRequestDelete({ request: new Request("https://example.test/api/store/products/media", {method:"DELETE",headers:{Origin:"https://example.test","Content-Type":"application/json"},body:JSON.stringify({mediaId:"123e4567-e89b-12d3-a456-426614174000"})}), env:{DB:{prepare(){throw new Error("must not query");}},MEDIA_BUCKET:{}} });
   assert.equal(response.status,401);
+});
+
+test("media upload removes the R2 object if D1 metadata write fails", async () => {
+  let deleted = 0;
+  const db = dbFor();
+  const originalPrepare = db.prepare;
+  db.prepare = sql => {
+    const statement = originalPrepare(sql);
+    if (sql.includes("INSERT INTO product_media")) return { bind() { return { async run() { throw new Error("D1 unavailable"); } }; } };
+    return statement;
+  };
+  const file = new File([imagePng()], "room.png", { type: "image/png" });
+  const response = await onRequestPost({ request: request("https://example.test/api/store/products/media", file), env: { DB: db, MEDIA_BUCKET: { async put() {}, async delete() { deleted += 1; } } } });
+  assert.equal(response.status,503);
+  assert.equal(deleted,1);
+});
+test("media migration defines private object metadata without public URLs", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const migration = await readFile(new URL("../migrations/0005_visual_try_on_foundation.sql", import.meta.url), "utf8");
+  assert.match(migration,/CREATE TABLE IF NOT EXISTS product_media/);
+  assert.match(migration,/object_key TEXT NOT NULL UNIQUE/);
+  assert.match(migration,/content_type/);
+  assert.doesNotMatch(migration,/public_url|https?:/i);
 });
