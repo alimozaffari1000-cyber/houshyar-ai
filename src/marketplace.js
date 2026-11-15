@@ -51,7 +51,6 @@ export function initMarketplace(app, { locale = "fa" } = {}) {
     if (tab === "seller") loadSeller();
   };
   const catalogProducts = new Map();
-  const localStoreProfiles = new Map();
   const productCard = product => { catalogProducts.set(String(product.id), product); return '<article class="marketplace-product" data-product-card="' + escape(product.id) + '">' + (product.primaryMediaId ? '<img class="marketplace-product-image" src="/api/product-media/' + encodeURIComponent(product.primaryMediaId) + '" alt="' + escape(product.title) + '" loading="lazy" decoding="async">' : '<div class="marketplace-product-art" aria-hidden="true">✧</div>') + '<div class="marketplace-product-info">' +
     '<span class="marketplace-category">' + escape(product.category) + '</span><h3>' + escape(product.title) + '</h3><p>' + escape(product.description || "") + '</p><strong>' +
     money(product.priceMinor, locale) + ' ' + escape(product.currency || c.currency) + '</strong><small>' + c.store + ': ' + escape(product.storeName || "") + '</small><small class="marketplace-stock-state">' + c.stockCount + ' : ' + (Number(product.stockCount) > 0 ? c.stockAvailable : c.stockUnavailable) + '</small>' + (product.primaryMediaId ? '<button type="button" class="marketplace-gallery-open" data-product-gallery="' + escape(product.id) + '">' + c.galleryOpen + '</button>' : '') + '<button type="button" class="marketplace-detail-open" data-product-detail="' + escape(product.id) + '">' + c.detailOpen + '</button></div><div class="marketplace-product-gallery" data-product-gallery-items="' + escape(product.id) + '" hidden></div><section class="marketplace-product-detail" data-product-detail-panel="' + escape(product.id) + '" hidden></section></article>'; };
@@ -65,7 +64,6 @@ export function initMarketplace(app, { locale = "fa" } = {}) {
       const orderUrl = /^https:\/\//i.test(String(product.orderUrl || "")) ? String(product.orderUrl) : "";
       const phone = String(product.contactPhone || "").replace(/[^+0-9(). -]/g, "");
       const storeKey = String(product.storeSlug || product.storeId || "");
-      if (storeKey) localStoreProfiles.set(storeKey, product);
       const mapUrl = Number.isFinite(Number(product.latitude)) && Number.isFinite(Number(product.longitude)) &&
         product.latitude !== null && product.longitude !== null
         ? "https://www.google.com/maps?q=" + encodeURIComponent(product.latitude + "," + product.longitude) : "";
