@@ -640,3 +640,9 @@ button:focus-visible,textarea:focus-visible,select:focus-visible{
 .chat-code{margin:13px 0;overflow:auto;border:1px solid #344a65;border-radius:12px;background:#071321;direction:ltr;text-align:left}
 .chat-code-head{padding:7px 12px;border-bottom:1px solid #263b56;color:#91a6bf;font:10px ui-monospace,monospace}
 .chat-code code{display:block;padding:13px 15px;color:#d5e8f7;font:12px/1.8 ui-monospace,SFMono-Regular,Consolas,monospace;white-space:pre;tab-size:2}
+
+
+/* Chat generation cancellation control */
+.cancel-response{display:inline-flex;align-items:center;justify-content:center;margin-top:10px;padding:7px 13px;border:1px solid var(--border,#d7dce3);border-radius:999px;background:transparent;color:inherit;font:inherit;font-size:.88rem;cursor:pointer;transition:background .15s ease,border-color .15s ease}
+.cancel-response:hover{background:rgba(120,130,145,.12);border-color:currentColor}
+.cancel-response:focus-visible{outline:2px solid var(--accent,#64748b);outline-offset:3px}
