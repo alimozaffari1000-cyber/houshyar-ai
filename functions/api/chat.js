@@ -262,6 +262,7 @@ export async function onRequestPost({ request, env }) {
     }
   } catch {
     await releaseQuota();
+    if (request.signal.aborted) return json({ error: "REQUEST_CANCELLED", message: "درخواست توسط کاربر متوقف شد." }, 499);
     if (controller.signal.aborted) {
       return json({ error: "UPSTREAM_TIMEOUT", message: "پاسخ سرویس هوش مصنوعی بیش از زمان مجاز طول کشید." }, 504);
     }
