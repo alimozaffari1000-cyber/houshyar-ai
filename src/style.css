@@ -519,3 +519,15 @@ button:focus-visible,textarea:focus-visible,select:focus-visible{
 .marketplace-store-details b{font-size:11px;color:var(--text-main)}
 .marketplace-store-details small{font-size:10px;color:var(--text-muted)}
 .marketplace-store-details a{width:max-content;color:#83efd1;font-size:10px}
+
+/* Buyer order request form */
+.marketplace-order-open{margin:6px 0;padding:7px 10px;border:1px solid rgba(110,231,196,.28);border-radius:9px;background:rgba(110,231,196,.08);color:#a7f0db;font:inherit;font-size:11px;cursor:pointer}
+.marketplace-order-panel{width:100%;margin-top:10px;padding:12px;border:1px solid rgba(110,231,196,.2);border-radius:12px;background:rgba(8,20,35,.58)}
+.marketplace-order-panel[hidden]{display:none}
+.marketplace-order-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.marketplace-order-form label{display:grid;gap:5px;color:var(--text-muted);font-size:10px}
+.marketplace-order-form input,.marketplace-order-form select,.marketplace-order-form textarea{min-width:0;width:100%;padding:8px;border:1px solid var(--line);border-radius:8px;background:#0b1728;color:#f2f7ff;font:11px Vazirmatn}
+.marketplace-order-form button{justify-self:start;padding:8px 12px;border:0;border-radius:8px;background:#83efd1;color:#09201e;font:600 11px Vazirmatn;cursor:pointer}
+.marketplace-order-form button:disabled{opacity:.5}
+.marketplace-order-form [role=status]{grid-column:1/-1;margin:0;color:#a7f0db;font-size:10px;line-height:1.8}
+@media(max-width:560px){.marketplace-order-form{grid-template-columns:1fr}}
