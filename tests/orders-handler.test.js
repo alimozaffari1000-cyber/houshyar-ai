@@ -125,7 +125,7 @@ test("buyer order rejects totals that exceed safe integer precision", async () =
   assert.equal(DB.log.some(entry => entry.batch), false);
 });
 
-test("buyer order fails closed when the conditional insert detects a currency or catalog mismatch", async () => {
+test("buyer order fails closed when a rechecked catalog constraint no longer matches", async () => {
   const DB = orderDb({ itemChanges: 0 });
   const response = await onRequestPost({ request: request({}), env: { DB } });
   assert.equal(response.status, 409);
