@@ -397,3 +397,38 @@ test("chat API routes explicit OpenAI requests to the official endpoint", async 
     assert.equal(call.authorization, "Bearer private-key");
   } finally { globalThis.fetch = originalFetch; }
 });
+test("auto mode fails over from an unavailable Groq endpoint to OpenAI", async () => {
+  const originalFetch = globalThis.fetch;
+  const called = [];
+  globalThis.fetch = async (url, options) => {
+    called.push(url);
+    if (url.includes("api.groq.com")) return new Response("unavailable", { status: 503 });
+    return new Response(JSON.stringify({ model: "gpt-test", choices: [{ message: { content: "پاسخ جایگزین" } }] }), { status: 200 });
+  };
+  try {
+    const response = await onRequestPost({ request: request({ message: "سلام", provider: "auto" }), env: { GROQ_API_KEY: "groq-key", OPENAI_API_KEY: "openai-key", OPENAI_MODEL: "gpt-test" } });
+    const body = await response.json();
+    assert.equal(response.status, 200);
+    assert.equal(body.provider, "openai");
+    assert.equal(body.reply, "پاسخ جایگزین");
+    assert.deepEqual(called, ["https://api.groq.com/openai/v1/chat/completions", "https://api.openai.com/v1/chat/completions"]);
+  } finally { globalThis.fetch = originalFetch; }
+});
+
+test("auto streaming can fail over before the first text delta", async () => {
+  const originalFetch = globalThis.fetch;
+  const called = [];
+  globalThis.fetch = async (url) => {
+    called.push(url);
+    if (url.includes("api.groq.com")) return new Response("unavailable", { status: 503 });
+    return new Response([`data: {"choices":[{"delta":{"content":"پاسخ زنده"}}]}\n\n`,`data: [DONE]\n\n`].join(""), { status: 200, headers: { "content-type": "text/event-stream" } });
+  };
+  try {
+    const response = await onRequestPost({ request: request({ message: "سلام", provider: "auto", stream: true, collaborate: false }), env: { GROQ_API_KEY: "groq-key", OPENAI_API_KEY: "openai-key", OPENAI_MODEL: "gpt-test" } });
+    const body = await response.text();
+    assert.equal(response.status, 200);
+    assert.match(body, /"type":"delta","text":"پاسخ زنده"/);
+    assert.match(body, /"type":"done".*"provider":"openai"/);
+    assert.equal(called.length, 2);
+  } finally { globalThis.fetch = originalFetch; }
+});
