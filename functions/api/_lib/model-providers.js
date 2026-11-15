@@ -103,38 +103,50 @@ export async function streamModel({ provider, env, messages, model, signal, maxT
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
   let buffer = "", reply = "", usage = null;
+
+  const consumeEvent = block => {
+    const dataLines = block.split(/\r?\n/)
+      .filter(line => line.startsWith("data:"))
+      .map(line => line.slice(5).replace(/^ /, ""));
+    if (!dataLines.length) return;
+    const raw = dataLines.join("\n").trim();
+    if (!raw || raw === "[DONE]") return;
+    let event;
+    try { event = JSON.parse(raw); } catch { return; }
+    let delta = "";
+    if (isClaude) {
+      if (event.type === "content_block_delta" && event.delta?.type === "text_delta") delta = event.delta.text || "";
+      if (event.type === "message_start" && event.message?.usage) {
+        const inputTokens = event.message.usage.input_tokens || 0;
+        usage = { promptTokens: inputTokens, completionTokens: 0, totalTokens: inputTokens };
+      }
+      if (event.type === "message_delta" && event.usage) {
+        const completionTokens = event.usage.output_tokens || 0;
+        const promptTokens = usage?.promptTokens || 0;
+        usage = { promptTokens, completionTokens, totalTokens: promptTokens + completionTokens };
+      }
+    } else {
+      delta = event.choices?.[0]?.delta?.content || "";
+      if (event.usage) usage = {
+        promptTokens: event.usage.prompt_tokens || 0,
+        completionTokens: event.usage.completion_tokens || 0,
+        totalTokens: event.usage.total_tokens || 0
+      };
+    }
+    if (delta) { reply += delta; onText(delta); }
+  };
+
   try {
     while (true) {
       const { value, done } = await reader.read();
       if (done) break;
       buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split(/\r?\n/);
-      buffer = lines.pop() || "";
-      for (const line of lines) {
-        if (!line.startsWith("data:")) continue;
-        const raw = line.slice(5).trim();
-        if (!raw || raw === "[DONE]") continue;
-        let event;
-        try { event = JSON.parse(raw); } catch { continue; }
-        let delta = "";
-        if (isClaude) {
-          if (event.type === "content_block_delta" && event.delta?.type === "text_delta") delta = event.delta.text || "";
-          if (event.type === "message_start" && event.message?.usage) {
-            const inputTokens = event.message.usage.input_tokens || 0;
-            usage = { promptTokens: inputTokens, completionTokens: 0, totalTokens: inputTokens };
-          }
-          if (event.type === "message_delta" && event.usage) {
-            const completionTokens = event.usage.output_tokens || 0;
-            const promptTokens = usage?.promptTokens || 0;
-            usage = { promptTokens, completionTokens, totalTokens: promptTokens + completionTokens };
-          }
-        } else {
-          delta = event.choices?.[0]?.delta?.content || "";
-          if (event.usage) usage = { promptTokens: event.usage.prompt_tokens || 0, completionTokens: event.usage.completion_tokens || 0, totalTokens: event.usage.total_tokens || 0 };
-        }
-        if (delta) { reply += delta; onText(delta); }
-      }
+      const blocks = buffer.split(/\r?\n\r?\n/);
+      buffer = blocks.pop() || "";
+      for (const block of blocks) consumeEvent(block);
     }
+    buffer += decoder.decode();
+    if (buffer.trim()) consumeEvent(buffer);
   } finally {
     reader.releaseLock();
   }
