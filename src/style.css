@@ -504,3 +504,10 @@ button:focus-visible,textarea:focus-visible,select:focus-visible{
 
 /* Buyer stock availability */
 .marketplace-stock-state{display:inline-flex;align-items:center;width:max-content;padding:3px 7px;border:1px solid rgba(110,231,196,.2);border-radius:7px;background:rgba(110,231,196,.06);color:#a7f0db!important;font-size:10px!important}
+
+
+/* Buyer product details */
+.marketplace-detail-open,.marketplace-detail-search{border:1px solid var(--line);border-radius:10px;background:var(--surface-2);color:var(--text-main);padding:8px 12px;font:inherit;font-size:12px;cursor:pointer;margin:8px 0}
+.marketplace-product-detail{grid-column:1/-1;border-top:1px solid var(--line);padding:14px 4px 4px;color:var(--text-main)}
+.marketplace-product-detail h4{margin:0 0 8px}.marketplace-product-detail p{color:var(--text-muted);line-height:1.9;white-space:pre-wrap}
+.marketplace-product-detail dl{display:flex;gap:18px;flex-wrap:wrap;margin:10px 0}.marketplace-product-detail dl div{display:grid;gap:4px}.marketplace-product-detail dt{font-size:10px;color:var(--text-muted)}.marketplace-product-detail dd{margin:0;font-size:12px}
