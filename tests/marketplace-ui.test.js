@@ -71,6 +71,11 @@ test("marketplace UI is connected to home screen and uses authenticated store en
   assert.match(main, /initMarketplace/);
   assert.match(main, /data-open-marketplace/);
   assert.match(ui, /\/api\/store\/products/);
+  assert.match(ui, /\/api\/stores\?/);
+  assert.match(ui, /data-local-locate/);
+  assert.match(ui, /navigator\.geolocation\.getCurrentPosition/);
+  assert.match(ui, /safeExternalUrl/);
+  assert.match(ui, /rel="noopener noreferrer"/);
   assert.match(ui, /\/api\/store\/mine/);
   assert.match(ui, /\/api\/store\/apply/);
   assert.match(ui, /\/api\/store\/products\/publish/);
@@ -82,4 +87,6 @@ test("marketplace UI explains disabled payment and virtual try-on features", asy
   const ui = await readFile(new URL("../src/marketplace.js", import.meta.url), "utf8");
   assert.match(ui, /Checkout, payments, image uploads and virtual try-on are not enabled/);
   assert.match(ui, /پرداخت، سبد خرید، ارسال تصویر و پرو مجازی فعال نیستند/);
+  assert.match(ui, /پیدا کردن فروشگاه‌های نزدیک/);
+  assert.match(ui, /Find nearby stores/);
 });
