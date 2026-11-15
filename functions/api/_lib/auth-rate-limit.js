@@ -1,5 +1,5 @@
 const WINDOW_SECONDS = 900;
-const ACTION_LIMITS = { register: 5, login: 10, verify: 10, resend: 3, "password-reset": 3, "reset-confirm": 5, "store-apply": 3, "product-create": 30, "product-publish": 30, "product-media-upload": 10, "product-media-delete": 10, "admin-store-approve": 10 };
+const ACTION_LIMITS = { register: 5, login: 10, verify: 10, resend: 3, "password-reset": 3, "reset-confirm": 5, "store-apply": 3, "product-create": 30, "product-publish": 30, "product-media-upload": 10, "product-media-delete": 10, "admin-store-approve": 10, "marketplace-order": 10, "store-order-update": 30 };
 async function hash(value) {
   const bytes = new TextEncoder().encode(value);
   const result = await crypto.subtle.digest("SHA-256", bytes);
