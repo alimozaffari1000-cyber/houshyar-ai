@@ -8,6 +8,7 @@ import { attachLearningFeedback } from './learning-ui.js';
 import { initDesignStudio } from './design-studio.js';
 import { initMarketplace } from './marketplace.js';
 import { initVisualCommerce } from './visual-commerce.js';
+import { normalizeChatHistory } from './chat-memory.js';
 
 const app = document.querySelector('#app');
 const RESPONSE_MODE_LABELS = {"fa":["سریع","متعادل","تحلیلی عمیق","خلاق"],"en":["Fast","Balanced","Deep reasoning","Creative"],"de":["Schnell","Ausgewogen","Tiefgehend","Kreativ"],"ar":["سريع","متوازن","استدلال عميق","إبداعي"],"tr":["Hızlı","Dengeli","Derin düşünme","Yaratıcı"],"es":["Rápido","Equilibrado","Razonamiento profundo","Creativo"],"fr":["Rapide","Équilibré","Raisonnement approfondi","Créatif"],"ru":["Быстрый","Сбалансированный","Глубокий анализ","Творческий"],"zh":["快速","均衡","深度推理","创意"],"hi":["तेज़","संतुलित","गहन तर्क","रचनात्मक"],"ur":["تیز","متوازن","گہری سوچ","تخلیقی"],"pt":["Rápido","Equilibrado","Raciocínio profundo","Criativo"]};
@@ -15,7 +16,7 @@ const COMPARE_LABELS = {"fa":"مقایسه دو مدل (مصرف بیشتر)","e
 const RESPONSE_MODE_TITLES = {"fa":"حالت پاسخ","en":"Response mode","de":"Antwortmodus","ar":"وضع الاستجابة","tr":"Yanıt modu","es":"Modo de respuesta","fr":"Mode de réponse","ru":"Режим ответа","zh":"回答模式","hi":"उत्तर मोड","ur":"جواب کا انداز","pt":"Modo de resposta"};
 const CHAT_HISTORY_KEY = 'houshyar.chat.sessions.v1';
 const CANCEL_LABELS = {fa:'توقف پاسخ',en:'Stop generating',de:'Antwort stoppen',ar:'إيقاف الإجابة',tr:'Yanıtı durdur',es:'Detener respuesta',fr:'Arrêter la réponse',ru:'Остановить ответ',zh:'停止生成',hi:'उत्तर रोकें',ur:'جواب روکیں',pt:'Parar resposta'};
-const readChatHistory = () => { try { const value = JSON.parse(localStorage.getItem(CHAT_HISTORY_KEY) || '[]'); return Array.isArray(value) ? value.filter(item => item && typeof item.id === 'string' && Array.isArray(item.messages)).slice(0,20) : []; } catch { return []; } };
+const readChatHistory = () => { try { return normalizeChatHistory(JSON.parse(localStorage.getItem(CHAT_HISTORY_KEY) || '[]')); } catch { return []; } };
 const makeId = () => globalThis.crypto?.randomUUID?.() || 'chat-' + Date.now() + '-' + Math.random().toString(36).slice(2,8);
 const state = { messages: [], busy: false, requestController: null, draft: '', mode: 'auto', compare: false, provider: 'auto', conversations: readChatHistory(), activeConversationId: null, sidebarOpen: false, attachments: [], attachmentNotice: '' };
 const DESIGN_STUDIO_LABELS = {fa:'استودیو طراحی',en:'Design Studio',de:'Designstudio',ar:'استوديو التصميم',tr:'Tasarım Stüdyosu',es:'Estudio de diseño',fr:'Studio de design',ru:'Студия дизайна',zh:'设计工作室',hi:'डिज़ाइन स्टूडियो',ur:'ڈیزائن اسٹوڈیو',pt:'Estúdio de design'};
