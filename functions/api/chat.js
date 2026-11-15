@@ -2,7 +2,7 @@ import { checkChatRateLimit } from "./_lib/chat-rate-limit.js";
 import { getSessionUser } from "./_lib/auth.js";
 import { reserveDailyChat, releaseDailyChat } from "./_lib/daily-quota.js";
 import { routeAgentRequest, resolveResponseMode, buildCollaborationPlan, listAgents } from "./_lib/agent-router.js";
-import { resolveProvider, requestModel, listAvailableProviders } from "./_lib/model-providers.js";
+import { resolveProvider, requestModel, streamModel, listAvailableProviders } from "./_lib/model-providers.js";
 
 const MAX_BODY_BYTES = 32 * 1024;
 const UPSTREAM_TIMEOUT_MS = 20_000;
@@ -208,6 +208,44 @@ export async function onRequestPost({ request, env }) {
     }
   }
 
+  const collaborationPlan = body.collaborate === false ? [] : buildCollaborationPlan(latest, selectedAgent, effectiveMode);
+  if (body.stream === true && body.compare !== true && collaborationPlan.length === 0) {
+    const streamController = new AbortController();
+    if (request.signal.aborted) streamController.abort("client_cancelled");
+    else request.signal.addEventListener("abort", () => streamController.abort("client_cancelled"), { once: true });
+    const streamTimeout = setTimeout(() => streamController.abort("upstream_timeout"), UPSTREAM_TIMEOUT_MS);
+    const encoder = new TextEncoder();
+    const send = (controller, event) => controller.enqueue(encoder.encode("data: " + JSON.stringify(event) + "\\n\\n"));
+    const stream = new ReadableStream({
+      async start(controller) {
+        try {
+          const streamed = await streamModel({
+            provider: providerChoice.provider, env, messages, model,
+            signal: streamController.signal, maxTokens: 1200, temperature: 0.5,
+            onText: text => send(controller, { type: "delta", text })
+          });
+          send(controller, { type: "done", model: streamed.model, usage: streamed.usage,
+            mode: effectiveMode, requestedMode, provider: providerChoice.provider,
+            agent: { id: selectedAgent.id, label: selectedAgent.label, labelEn: selectedAgent.labelEn },
+            collaboration: { enabled: false, status: "single_agent", agents: [{ id: selectedAgent.id, label: selectedAgent.label }] } });
+        } catch {
+          await releaseQuota();
+          send(controller, { type: "error", error: request.signal.aborted ? "REQUEST_CANCELLED" : (streamController.signal.aborted ? "UPSTREAM_TIMEOUT" : "UPSTREAM_ERROR") });
+        } finally {
+          clearTimeout(streamTimeout);
+          try { controller.close(); } catch { /* client already closed */ }
+        }
+      },
+      cancel() { streamController.abort("client_cancelled"); }
+    });
+    return new Response(stream, { status: 200, headers: {
+      "Content-Type": "text/event-stream; charset=utf-8",
+      "Cache-Control": "no-cache, no-transform",
+      "X-Accel-Buffering": "no",
+      "X-Content-Type-Options": "nosniff"
+    } });
+  }
+
   const controller = new AbortController();
   if (request.signal.aborted) controller.abort("client_cancelled");
   else request.signal.addEventListener("abort", () => controller.abort("client_cancelled"), { once: true });
@@ -215,7 +253,7 @@ export async function onRequestPost({ request, env }) {
   let result;
   let collaboration = { enabled: false, agents: [{ id: selectedAgent.id, label: selectedAgent.label }], status: "single_agent" };
   try {
-    const plan = body.collaborate === false ? [] : buildCollaborationPlan(latest, selectedAgent, effectiveMode);
+    const plan = collaborationPlan;
     const primary = await requestModel({
       provider: providerChoice.provider, env, messages, model,
       signal: controller.signal, maxTokens: plan.length ? 900 : 1200, temperature: 0.5
