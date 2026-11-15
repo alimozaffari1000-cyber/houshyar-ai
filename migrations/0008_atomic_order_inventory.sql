@@ -26,6 +26,7 @@ BEGIN
     FROM marketplace_order_items
     WHERE order_id = NEW.id
   )
+  AND store_id = NEW.store_id
   AND status = 'published'
   AND EXISTS (
     SELECT 1 FROM merchant_stores s
