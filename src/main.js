@@ -17,7 +17,7 @@ const CHAT_HISTORY_KEY = 'houshyar.chat.sessions.v1';
 const CANCEL_LABELS = {fa:'توقف پاسخ',en:'Stop generating',de:'Antwort stoppen',ar:'إيقاف الإجابة',tr:'Yanıtı durdur',es:'Detener respuesta',fr:'Arrêter la réponse',ru:'Остановить ответ',zh:'停止生成',hi:'उत्तर रोकें',ur:'جواب روکیں',pt:'Parar resposta'};
 const readChatHistory = () => { try { const value = JSON.parse(localStorage.getItem(CHAT_HISTORY_KEY) || '[]'); return Array.isArray(value) ? value.filter(item => item && typeof item.id === 'string' && Array.isArray(item.messages)).slice(0,20) : []; } catch { return []; } };
 const makeId = () => globalThis.crypto?.randomUUID?.() || 'chat-' + Date.now() + '-' + Math.random().toString(36).slice(2,8);
-const state = { messages: [], busy: false, requestController: null, draft: '', mode: 'auto', compare: false, provider: 'auto', conversations: readChatHistory(), activeConversationId: null, sidebarOpen: false };
+const state = { messages: [], busy: false, requestController: null, draft: '', mode: 'auto', compare: false, provider: 'auto', conversations: readChatHistory(), activeConversationId: null, sidebarOpen: false, attachments: [], attachmentNotice: '' };
 const DESIGN_STUDIO_LABELS = {fa:'استودیو طراحی',en:'Design Studio',de:'Designstudio',ar:'استوديو التصميم',tr:'Tasarım Stüdyosu',es:'Estudio de diseño',fr:'Studio de design',ru:'Студия дизайна',zh:'设计工作室',hi:'डिज़ाइन स्टूडियो',ur:'ڈیزائن اسٹوڈیو',pt:'Estúdio de design'};
 const AUTO_MODE_LABELS = { fa: 'یادگیری خودکار', en: 'Adaptive auto', de: 'Adaptiv automatisch', ar: 'تلقائي متكيف', tr: 'Uyarlanabilir otomatik', es: 'Automático adaptativo', fr: 'Automatique adaptatif', ru: 'Адаптивный авто', zh: '自适应自动', hi: 'अनुकूली ऑटो', ur: 'خودکار موافق', pt: 'Automático adaptativo' };
 const escapeHTML = (value='') => String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -93,8 +93,9 @@ function render() {
     </section>
     <div class="chat-tools"><span>${t('chat',locale)}</span><button id="clear-chat" type="button" ${state.messages.length || state.draft ? '' : 'disabled'}>${t('clear',locale)}</button></div>
     <section class="chat" aria-live="polite" aria-label="${t('chatMessagesLabel',locale)}">${state.messages.map((m,i)=>`<article class="msg ${m.role}"><div class="msg-head"><b>${m.role==='user'?t('you',locale):t('assistant',locale)}</b>${m.agent?'<small class="agent-label"> · '+escapeHTML(m.agent.label)+'</small>':''}${m.collaboration?.enabled?'<small class="collaboration-label"> · '+(m.collaboration.status==='completed'?'بازبینی چندعاملی':'بازبینی ناقص')+'</small>':''}${m.role==='assistant'?'<button type="button" class="copy-reply" data-index="'+i+'" aria-label="'+t('copy',locale)+'">'+t('copy',locale)+'</button>':''}</div><div class="message-content">${formatMessage(m.text)}</div></article>`).join('')}${state.busy?'<article class="msg assistant" role="status"><b>'+t('assistant',locale)+'</b><p>'+t('thinking',locale)+'</p><button type="button" id="cancel-response" class="cancel-response">'+(CANCEL_LABELS[locale]||CANCEL_LABELS.en)+'</button></article>':''}</section>
-    <div class="mode-control"><label for="ai-provider">موتور هوش مصنوعی</label><select id="ai-provider" aria-label="AI provider"><option value="auto" ${state.provider==='auto'?'selected':''}>انتخاب خودکار</option><option value="groq" ${state.provider==='groq'?'selected':''}>Groq</option><option value="anthropic" ${state.provider==='anthropic'?'selected':''}>Claude (Anthropic)</option></select><label class="compare-toggle"><input id="compare-models" type="checkbox" ${state.compare ? "checked" : ""}> ${COMPARE_LABELS[locale] || COMPARE_LABELS.en}</label><label for="response-mode">${RESPONSE_MODE_TITLES[locale] || "Response mode"}</label><select id="response-mode" aria-label="Response mode">${["auto","fast","balanced","deep","creative"].map((mode,i)=>'<option value="'+mode+'" '+(state.mode===mode?'selected':'')+'>'+(mode === 'auto' ? (AUTO_MODE_LABELS[locale] || AUTO_MODE_LABELS.en) : RESPONSE_MODE_LABELS[locale][i-1])+'</option>').join('')}</select></div>\n    <form id="chat-form"><textarea id="prompt" aria-label="${t('messageInputLabel',locale)}" rows="1" maxlength="6000" placeholder="${t('placeholder',locale)}" required>${escapeHTML(state.draft)}</textarea><button id="send" type="submit" ${state.busy?'disabled':''}>${t('send',locale)}</button></form>
-    <p class="input-hint">${t('hint',locale)}</p>
+    <div class="mode-control"><label for="ai-provider">موتور هوش مصنوعی</label><select id="ai-provider" aria-label="AI provider"><option value="auto" ${state.provider==='auto'?'selected':''}>انتخاب خودکار</option><option value="groq" ${state.provider==='groq'?'selected':''}>Groq</option><option value="anthropic" ${state.provider==='anthropic'?'selected':''}>Claude (Anthropic)</option></select><label class="compare-toggle"><input id="compare-models" type="checkbox" ${state.compare ? "checked" : ""}> ${COMPARE_LABELS[locale] || COMPARE_LABELS.en}</label><label for="response-mode">${RESPONSE_MODE_TITLES[locale] || "Response mode"}</label><select id="response-mode" aria-label="Response mode">${["auto","fast","balanced","deep","creative"].map((mode,i)=>'<option value="'+mode+'" '+(state.mode===mode?'selected':'')+'>'+(mode === 'auto' ? (AUTO_MODE_LABELS[locale] || AUTO_MODE_LABELS.en) : RESPONSE_MODE_LABELS[locale][i-1])+'</option>').join('')}</select></div>\n    <div class="attachment-list" id="attachment-list" aria-live="polite">${state.attachments.map((item,index)=>'<span class="attachment-chip">📎 '+escapeHTML(item.name)+' <button type="button" data-remove-attachment="'+index+'" aria-label="حذف پیوست">×</button></span>').join('')}${state.attachmentNotice?'<span class="attachment-notice">'+escapeHTML(state.attachmentNotice)+'</span>':''}</div>
+    <form id="chat-form"><input id="chat-file-input" type="file" accept="image/jpeg,image/png,image/webp,image/gif,.txt,.md,.csv" multiple hidden><button id="attach-file" type="button" class="attach-file" aria-label="${locale==='fa'?'افزودن تصویر یا فایل':'Attach image or file'}" title="${locale==='fa'?'افزودن تصویر یا فایل':'Attach image or file'}">＋</button><textarea id="prompt" aria-label="${t('messageInputLabel',locale)}" rows="1" maxlength="6000" placeholder="${t('placeholder',locale)}">${escapeHTML(state.draft)}</textarea><button id="send" type="submit" ${state.busy?'disabled':''}>${t('send',locale)}</button></form>
+    <p class="input-hint">${t('hint',locale)} · ${locale==='fa'?'تصویر تا ۲ مگابایت؛ فایل متنی تا ۴ کیلوبایت':'Images up to 2 MB; text files up to 4 KB'}</p>
     <p class="notice">${t('notice',locale)}</p></main>
       </div>
     </div>
@@ -136,6 +137,31 @@ function render() {
   app.querySelector('#compare-models').addEventListener('change', event => { state.compare = event.target.checked === true; });
   app.querySelector('#ai-provider').addEventListener('change', event => { state.provider = ['auto','groq','anthropic'].includes(event.target.value) ? event.target.value : 'auto'; });
   app.querySelector('#chat-form').addEventListener('submit',submitMessage);
+  app.querySelector('#attach-file').addEventListener('click',()=>app.querySelector('#chat-file-input').click());
+  app.querySelector('#chat-file-input').addEventListener('change',async event=>{
+    state.attachmentNotice='';
+    for(const file of Array.from(event.target.files||[])){
+      if(state.attachments.length>=4){state.attachmentNotice=getLocale()==='fa'?'حداکثر ۴ پیوست مجاز است.':'Maximum 4 attachments.';break;}
+      const isImage=['image/jpeg','image/png','image/webp','image/gif'].includes(file.type);
+      if(isImage){
+        if(file.size>2*1024*1024){state.attachmentNotice=getLocale()==='fa'?'حجم هر تصویر باید حداکثر ۲ مگابایت باشد.':'Each image must be 2 MB or less.';continue;}
+        if(state.attachments.filter(item=>item.kind==='image').length>=2){state.attachmentNotice=getLocale()==='fa'?'حداکثر ۲ تصویر مجاز است.':'Maximum 2 images.';continue;}
+        const data=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result||''));reader.onerror=reject;reader.readAsDataURL(file);});
+        state.attachments.push({kind:'image',name:file.name,mimeType:file.type,data});
+      }else if(['text/plain','text/markdown','text/csv'].includes(file.type)||/\.(txt|md|csv)$/i.test(file.name)){
+        if(file.size>4096){state.attachmentNotice=getLocale()==='fa'?'فایل متنی باید حداکثر ۴ کیلوبایت باشد.':'Text files must be 4 KB or less.';continue;}
+        try{state.attachments.push({kind:'text',name:file.name,content:await file.text()});}
+        catch{state.attachmentNotice=getLocale()==='fa'?'خواندن فایل ناموفق بود.':'Could not read file.';}
+      }else{
+        state.attachmentNotice=getLocale()==='fa'?'این نوع فایل پشتیبانی نمی‌شود.':'Unsupported file type.';
+      }
+    }
+    event.target.value='';
+    render();
+  });
+  app.querySelectorAll('[data-remove-attachment]').forEach(button=>button.addEventListener('click',()=>{
+    state.attachments.splice(Number(button.dataset.removeAttachment),1);render();
+  }));
   app.querySelector('#cancel-response')?.addEventListener('click',()=>state.requestController?.abort());
   app.querySelector('#clear-chat').addEventListener('click',()=>{if(state.busy)return;state.messages=[];state.draft='';state.activeConversationId=null;render();});
   app.querySelectorAll('.copy-reply').forEach(button=>button.addEventListener('click',async()=>{const reply=state.messages[Number(button.dataset.index)]?.text;if(!reply)return;try{await navigator.clipboard.writeText(reply);button.textContent=t('copyDone',getLocale());}catch{button.textContent=t('copyFailed',getLocale());}}));
@@ -143,8 +169,16 @@ function render() {
 
 async function submitMessage(event) {
   event.preventDefault();
-  const input=app.querySelector('#prompt'); const text=input.value.trim();
-  if(!text || state.busy) return;
+  const input=app.querySelector('#prompt');
+  const promptText=input.value.trim();
+  if((!promptText && !state.attachments.length) || state.busy) return;
+  const imageAttachments=state.attachments.filter(item=>item.kind==='image');
+  const textAttachments=state.attachments.filter(item=>item.kind==='text');
+  const textContent=textAttachments.map(item=>'\n\n--- فایل: '+item.name+' ---\n'+item.content).join('');
+  const imageLabels=imageAttachments.map(item=>'[تصویر پیوست‌شده: '+item.name+']').join('\n');
+  const text=(promptText || (imageAttachments.length?'این تصویر را بررسی و توصیف کن.':'فایل پیوست‌شده را بررسی کن.'))+textContent+(imageLabels?'\n'+imageLabels:'');
+  const imagePayload=imageAttachments.map(item=>({mimeType:item.mimeType,data:item.data.split(',').pop()}));
+  state.attachments=[];state.attachmentNotice='';
   state.draft='';
   const learningMode = state.mode === 'auto' ? recommendLearningMode(text) : state.mode;
   state.messages.push({role:'user',text});
@@ -152,7 +186,7 @@ async function submitMessage(event) {
   state.busy=true; state.requestController=new AbortController(); render(); scrollChat();
   let streamingMessage = null;
   try {
-    const response=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json','Accept':'text/event-stream, application/json'},signal:state.requestController.signal,body:JSON.stringify({message:text,history:state.messages.slice(-11),mode:state.mode,compare:state.compare,provider:state.provider,stream:true})});
+    const response=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json','Accept':'text/event-stream, application/json'},signal:state.requestController.signal,body:JSON.stringify({message:text,history:state.messages.slice(-11),mode:state.mode,compare:state.compare,provider:state.provider,stream:true,attachments:imagePayload})});
     if(!response.ok) {
       const data=await response.json().catch(()=>({}));
       const errorKeys={AI_NOT_CONFIGURED:'errorAiNotConfigured',BODY_TOO_LARGE:'errorBodyTooLarge',MESSAGE_TOO_LONG:'errorMessageTooLong',UPSTREAM_TIMEOUT:'errorUpstreamTimeout',UPSTREAM_ERROR:'errorUpstreamUnavailable',UPSTREAM_UNAVAILABLE:'errorUpstreamUnavailable',COMPARE_NOT_CONFIGURED:'errorAiNotConfigured',PROVIDER_NOT_CONFIGURED:'errorAiNotConfigured',COMPARISON_FAILED:'errorUpstreamUnavailable',REQUEST_CANCELLED:'errorGeneric'};
