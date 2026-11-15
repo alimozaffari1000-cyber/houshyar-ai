@@ -6,9 +6,9 @@ import { onRequestPost as applyForStore } from "../functions/api/store/apply.js"
 import { onRequestPost as publishProduct } from "../functions/api/store/products/publish.js";
 import { onRequestPost as approveStore } from "../functions/api/admin/stores/approve.js";
 
-const req = (url, body, origin = "https://example.test") => new Request(url, {
+const req = (url, body, origin = "https://example.test", cookie = "") => new Request(url, {
   method: "POST",
-  headers: { "Content-Type": "application/json", Origin: origin },
+  headers: { "Content-Type": "application/json", Origin: origin, ...(cookie ? { Cookie: cookie } : {}) },
   body: JSON.stringify(body)
 });
 
@@ -86,4 +86,65 @@ test("merchant endpoints reject cross-origin requests", async () => {
   });
   assert.equal(response.status, 403);
   assert.equal((await response.json()).error, "ORIGIN_NOT_ALLOWED");
+});
+
+function authenticatedDb({ user = { id: "user-1", email: "seller@example.test", role: "user" }, store = null, onRun = async () => ({ meta: { changes: 1 } }) } = {}) {
+  return {
+    prepare(sql) {
+      return {
+        bind(...values) {
+          return {
+            async first() {
+              if (sql.includes("INSERT INTO api_rate_limits")) return { request_count: 1 };
+              if (sql.includes("SELECT users.id")) return user;
+              if (sql.includes("SELECT id, status FROM merchant_stores")) return store;
+              return null;
+            },
+            async run() { return onRun(sql, values); }
+          };
+        }
+      };
+    },
+    async batch(statements) { return Promise.all(statements.map(async statement => statement.run())); }
+  };
+}
+
+test("authenticated seller cannot create products until store approval", async () => {
+  const db = authenticatedDb({ store: { id: "store-1", status: "pending" } });
+  const response = await onRequestPost({
+    request: req("https://example.test/api/store/products", { title: "Cotton Shirt", category: "fashion", priceMinor: 1250000 }, "https://example.test", "houshyar_session=valid-session"),
+    env: { DB: db }
+  });
+  assert.equal(response.status, 403);
+  assert.equal((await response.json()).error, "STORE_NOT_APPROVED");
+});
+
+test("authenticated non-admin cannot approve a merchant store", async () => {
+  const db = authenticatedDb({ user: { id: "user-1", email: "seller@example.test", role: "user" } });
+  const response = await approveStore({
+    request: req("https://example.test/api/admin/stores/approve", { storeId: "123e4567-e89b-12d3-a456-426614174000" }, "https://example.test", "houshyar_session=valid-session"),
+    env: { DB: db }
+  });
+  assert.equal(response.status, 403);
+  assert.equal((await response.json()).error, "ADMIN_REQUIRED");
+});
+
+test("approved seller creates a draft product with integer pricing", async () => {
+  let insertedSql = "";
+  let insertedValues = [];
+  const db = authenticatedDb({
+    store: { id: "store-1", status: "active" },
+    onRun: async (sql, values) => { insertedSql = sql; insertedValues = values; return { meta: { changes: 1 } }; }
+  });
+  const response = await onRequestPost({
+    request: req("https://example.test/api/store/products", { title: "Cotton Shirt", slug: "cotton-shirt", category: "fashion", priceMinor: 1250000, currency: "IRR", stockCount: 4 }, "https://example.test", "houshyar_session=valid-session"),
+    env: { DB: db }
+  });
+  const body = await response.json();
+  assert.equal(response.status, 201);
+  assert.equal(body.product.status, "draft");
+  assert.equal(body.product.priceMinor, 1250000);
+  assert.match(insertedSql, /'draft'/);
+  assert.ok(insertedValues.includes(1250000));
+  assert.ok(insertedValues.includes("IRR"));
 });
