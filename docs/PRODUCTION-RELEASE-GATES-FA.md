@@ -1,35 +1,41 @@
 # چک‌لیست انتشار امن هوش‌یار
 
-آخرین بازبینی: ۲۰ آبان ۱۴۰۵
+آخرین بازبینی: ۲۴ آبان ۱۴۰۵
 ادغام کد به معنی آماده‌بودن سرویس برای کاربران واقعی نیست.
 
 ## ۱. وضعیت کد و CI
 
-- [x] PR شماره ۳۸ شامل پایه D1، حساب، نشست، جداسازی داده، محدودیت نرخ، سهمیه روزانه و تأیید ایمیل/بازیابی رمز در شاخه main ادغام شده است.
+- [x] پایه D1، حساب، نشست، جداسازی داده، محدودیت نرخ، سهمیه روزانه و تأیید ایمیل/بازیابی رمز در شاخه main وجود دارد.
 - [x] workflowهای QA، امنیت، کیفیت و نگهداری D1 در مخزن تعریف شده‌اند.
 - [ ] اجرای سبز همه workflowها روی آخرین commit شاخه main بررسی شود.
 - [ ] هر تغییر بعدی در شاخه جدا، با تست و بازبینی، سپس PR به main ارائه شود.
 
 ## ۲. آماده‌سازی Cloudflare Pages
 
-- [ ] مخزن alimozaffari1000-cyber/houshyar-ai به‌عنوان Pages متصل شود، نه Workers Builds.
+- [ ] مخزن alimozaffari1000-cyber/houshyar-ai به‌عنوان Pages متصل باشد، نه Workers Builds.
 - [ ] Branch برابر main باشد.
 - [ ] Root directory برابر / باشد.
 - [ ] Build command برابر npm run build باشد.
 - [ ] Output directory برابر dist باشد.
-- [ ] Secret سمت سرور GROQ_API_KEY تنظیم شود.
+- [ ] Secret سمت سرور GROQ_API_KEY در محیط Production تنظیم شود.
 - [ ] پس از Deploy، دامنه pages.dev و مسیر /api/chat آزمایش شوند.
+- [ ] Pages Preview و Production از bindingهای D1 مستقل استفاده کنند؛ نام هر دو binding دقیقاً DB باشد.
 
 ## ۳. پایگاه D1 و migrationها
 
-- [ ] ساخت D1 اختصاصی برای محیط staging و production.
-- [ ] binding دقیق DB به Pages Functions متصل شود.
-- [ ] قبل از migration از داده‌های موجود backup تهیه شود.
-- [ ] migrationهای 0001، 0002، 0003 و 0004 به‌ترتیب در staging اجرا و نتیجه بررسی شوند.
-- [ ] migration 0004 بازارگاه فقط پس از تأیید schema، تست مالکیت فروشگاه/محصول و backup معتبر اجرا شود.
-- [ ] پس از تأیید staging، migrationها با backup معتبر روی production اعمال شوند.
-- [ ] برای workflow پاک‌سازی D1، سه GitHub secret با نام‌های CLOUDFLARE_API_TOKEN، CLOUDFLARE_ACCOUNT_ID و CLOUDFLARE_D1_DATABASE_NAME فقط پس از تأیید مقصد و سطح دسترسی تنظیم شوند.
-- [ ] پاک‌سازی دوره‌ای D1 با حداقل سطح دسترسی و در محیط آزمایشی بررسی شود.
+- [ ] ساخت دو D1 مستقل با نام‌های مشخص برای staging و production.
+- [ ] binding دقیق DB در Pages Preview به D1 آزمایشی متصل شود.
+- [ ] binding دقیق DB در Pages Production به D1 اصلی متصل شود.
+- [ ] قبل از هر migration روی دیتابیس مقصد، backup تهیه و امکان بازیابی بررسی شود.
+- [ ] migrationهای زیر به‌ترتیب در staging اجرا و نتیجه بررسی شوند:
+  - migrations/0001_identity_usage_security.sql
+  - migrations/0002_daily_usage_quotas.sql
+  - migrations/0003_email_verification_password_reset.sql
+  - migrations/0004_marketplace_foundation.sql
+- [ ] تست ثبت‌نام، نشست، سهمیه، مالکیت فروشگاه و محصول، فهرست عمومی و تأیید مدیر در staging موفق باشد.
+- [ ] فقط پس از تأیید staging و backup معتبر، migrationهای ثبت‌نشده روی production اجرا شوند.
+- [ ] برای workflow پاک‌سازی D1، سه GitHub secret با نام‌های CLOUDFLARE_API_TOKEN، CLOUDFLARE_ACCOUNT_ID و CLOUDFLARE_D1_DATABASE_NAME با حداقل سطح دسترسی تنظیم و آزمایش شوند.
+- [ ] پاک‌سازی دوره‌ای D1 ابتدا در محیط آزمایشی بررسی شود.
 
 ## ۴. ایمیل و فعال‌سازی حساب
 
@@ -61,3 +67,5 @@
 6. بازبینی امنیتی و حقوقی انجام شده باشد.
 
 **هشدار:** تست‌های خودکار جایگزین تست نفوذ، بازبینی حقوقی یا ارزیابی امنیت محیط واقعی نیستند. تا تکمیل موارد بالا، قابلیت حساب و سهمیه را در production فعال نکنید.
+
+راهنمای گام‌به‌گام اتصال D1 به Pages: [docs/PAGES-D1-SETUP-FA.md](./PAGES-D1-SETUP-FA.md)
