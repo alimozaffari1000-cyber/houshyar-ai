@@ -646,3 +646,13 @@ button:focus-visible,textarea:focus-visible,select:focus-visible{
 .cancel-response{display:inline-flex;align-items:center;justify-content:center;margin-top:10px;padding:7px 13px;border:1px solid var(--border,#d7dce3);border-radius:999px;background:transparent;color:inherit;font:inherit;font-size:.88rem;cursor:pointer;transition:background .15s ease,border-color .15s ease}
 .cancel-response:hover{background:rgba(120,130,145,.12);border-color:currentColor}
 .cancel-response:focus-visible{outline:2px solid var(--accent,#64748b);outline-offset:3px}
+
+
+.attachment-list{display:flex;flex-wrap:wrap;align-items:center;gap:7px;margin:8px 2px 0;min-height:0}
+.attachment-chip{display:inline-flex;align-items:center;gap:7px;padding:5px 9px;border:1px solid #344a65;border-radius:9px;background:#122239;color:#c5d8e9;font-size:10px;max-width:100%;overflow-wrap:anywhere}
+.attachment-chip button{border:0;background:transparent;color:#f1a5a5;font-size:15px;line-height:1;cursor:pointer}
+.attachment-notice{color:#f2b879;font-size:10px}
+.chat-main .attach-file{align-self:center;flex:0 0 38px;width:38px;height:38px;border:1px solid #3a506b;border-radius:11px;background:#1c3049;color:#b6cbe0;font-size:23px;cursor:pointer}
+.chat-main .attach-file:hover{background:#263f5d}
+.chat-main #prompt{min-width:0}
+@media(max-width:420px){.chat-main .attach-file{flex-basis:32px;width:32px;height:32px}}
