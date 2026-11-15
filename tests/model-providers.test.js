@@ -83,3 +83,57 @@ test("chat API can serve Claude without requiring a Groq key", async () => {
     globalThis.fetch = originalFetch;
   }
 });
+
+
+test("Groq streaming adapter emits text deltas and reports the selected model", async () => {
+  const originalFetch = globalThis.fetch;
+  let sentBody;
+  globalThis.fetch = async (_url, init) => {
+    sentBody = JSON.parse(init.body);
+    return new Response([
+      'data: {"choices":[{"delta":{"content":"سلام "}}]}\\n\\n',
+      'data: {"choices":[{"delta":{"content":"هوش‌یار"}}]}\\n\\n',
+      'data: [DONE]\\n\\n'
+    ].join(""), { status: 200, headers: { "content-type": "text/event-stream" } });
+  };
+  try {
+    const { streamModel } = await import("../functions/api/_lib/model-providers.js");
+    const deltas = [];
+    const result = await streamModel({
+      provider: "groq", env: { GROQ_API_KEY: "stream-test" },
+      messages: [{ role: "user", content: "سلام" }],
+      onText: value => deltas.push(value)
+    });
+    assert.equal(sentBody.stream, true);
+    assert.deepEqual(deltas, ["سلام ", "هوش‌یار"]);
+    assert.equal(result.reply, "سلام هوش‌یار");
+  } finally { globalThis.fetch = originalFetch; }
+});
+
+test("Claude streaming adapter parses content_block_delta events", async () => {
+  const originalFetch = globalThis.fetch;
+  let sentBody;
+  globalThis.fetch = async (_url, init) => {
+    sentBody = JSON.parse(init.body);
+    return new Response([
+      'event: content_block_delta\\n',
+      'data: {"type":"content_block_delta","delta":{"type":"text_delta","text":"پاسخ "}}\\n\\n',
+      'event: content_block_delta\\n',
+      'data: {"type":"content_block_delta","delta":{"type":"text_delta","text":"زنده"}}\\n\\n',
+      'data: {"type":"message_stop"}\\n\\n'
+    ].join(""), { status: 200, headers: { "content-type": "text/event-stream" } });
+  };
+  try {
+    const { streamModel } = await import("../functions/api/_lib/model-providers.js");
+    const deltas = [];
+    const result = await streamModel({
+      provider: "anthropic", env: { CLAUDE_API_KEY: "stream-test" },
+      messages: [{ role: "system", content: "قواعد" }, { role: "user", content: "سلام" }],
+      onText: value => deltas.push(value)
+    });
+    assert.equal(sentBody.stream, true);
+    assert.equal(sentBody.system, "قواعد");
+    assert.deepEqual(deltas, ["پاسخ ", "زنده"]);
+    assert.equal(result.reply, "پاسخ زنده");
+  } finally { globalThis.fetch = originalFetch; }
+});
