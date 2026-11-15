@@ -254,7 +254,8 @@ export async function onRequestPost({ request, env }) {
   messages.splice(0, messages.length, ...buildMessagesForProvider(providerChoice.provider));
   const availableProviderConfigs = listAvailableProviders(env);
   const modelForTarget = targetProvider => {
-    if (validatedImages.attachments.length && targetProvider === "groq") return env.GROQ_MODEL_VISION;\n    if (validatedImages.attachments.length && targetProvider === "openai" && env.OPENAI_MODEL_VISION) return env.OPENAI_MODEL_VISION;
+    if (validatedImages.attachments.length && targetProvider === "groq") return env.GROQ_MODEL_VISION;
+    if (validatedImages.attachments.length && targetProvider === "openai" && env.OPENAI_MODEL_VISION) return env.OPENAI_MODEL_VISION;
     return modelProfiles[targetProvider]?.[effectiveMode] || availableProviderConfigs.find(item => item.id === targetProvider)?.defaultModel;
   };
   const fallbackProviders = () => availableProviderConfigs
