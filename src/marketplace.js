@@ -62,7 +62,7 @@ export function initMarketplace(app, { locale = "fa" } = {}) {
     const orderUrl = safeExternalUrl(item.orderUrl);
     const phone = String(item.contactPhone || "").replace(/[^+0-9]/g, "");
     const methods = [item.offersDelivery ? c.deliveryYes : "", item.offersPickup ? c.pickupYes : ""].filter(Boolean).join(" · ");
-    const distance = Number.isFinite(item.distanceKm) ? '<small>' + money(item.distanceKm, locale) + ' ' + c.distance + '</small>' : "";
+    const distance = Number.isFinite(item.distanceKm) ? '<small>' + new Intl.NumberFormat(locale === "fa" ? "fa-IR" : locale || "en", { maximumFractionDigits:1 }).format(item.distanceKm) + ' ' + c.distance + '</small>' : "";
     return '<article class="local-store-card"><div class="local-store-meta"><span>' + escape(item.category || c.store) + '</span>' + distance + '</div><h4>' + escape(item.title) + '</h4><p>' + escape(item.description || "") + '</p><strong>' + money(item.priceMinor, locale) + ' ' + escape(item.currency || c.currency) + '</strong><div class="local-store-name">' + escape(item.storeName) + ' · ' + escape([item.city,item.region].filter(Boolean).join("، ")) + '</div><div class="local-store-methods">' + escape(methods) + '</div><div class="local-store-actions">' + (orderUrl ? '<a href="' + escape(orderUrl) + '" target="_blank" rel="noopener noreferrer">' + c.order + '</a>' : "") + (phone ? '<a href="tel:' + escape(phone) + '">' + c.call + '</a>' : "") + '</div></article>';
   };
   async function loadLocalStores() {
