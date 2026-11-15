@@ -137,3 +137,33 @@ test("Claude streaming adapter parses content_block_delta events", async () => {
     assert.equal(result.reply, "پاسخ زنده");
   } finally { globalThis.fetch = originalFetch; }
 });
+
+
+test("streaming parser handles chunk boundaries, CRLF separators, and a final event without a blank line", async () => {
+  const originalFetch = globalThis.fetch;
+  const encoder = new TextEncoder();
+  const chunks = [
+    'data: {"choices":[{"delta":{"content":"تکه اول "}}]}\r',
+    '\n\r\ndata: {"choices":[{"delta":{"content":"تکه دوم"}}]}'
+  ];
+  globalThis.fetch = async () => new Response(new ReadableStream({
+    start(controller) {
+      for (const chunk of chunks) controller.enqueue(encoder.encode(chunk));
+      controller.close();
+    }
+  }), { status: 200, headers: { "content-type": "text/event-stream" } });
+  try {
+    const { streamModel } = await import("../functions/api/_lib/model-providers.js");
+    const deltas = [];
+    const result = await streamModel({
+      provider: "groq",
+      env: { GROQ_API_KEY: "stream-test" },
+      messages: [{ role: "user", content: "آزمایش" }],
+      onText: value => deltas.push(value)
+    });
+    assert.deepEqual(deltas, ["تکه اول ", "تکه دوم"]);
+    assert.equal(result.reply, "تکه اول تکه دوم");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
