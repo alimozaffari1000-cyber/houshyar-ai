@@ -156,7 +156,7 @@ export function initMarketplace(app, { locale = "fa" } = {}) {
     const galleryButton = event.target.closest("[data-product-gallery]");
     if (galleryButton) {
       const productId = galleryButton.dataset.productGallery;
-      const gallery = overlay.querySelector('[data-product-gallery-items="' + CSS.escape(productId) + '"]');
+      const gallery = Array.from(overlay.querySelectorAll("[data-product-gallery-items]")).find(node => node.dataset.productGalleryItems === productId);
       if (gallery && gallery.hidden) {
         gallery.hidden = false; gallery.textContent = c.galleryLoading; galleryButton.disabled = true;
         try {
@@ -167,7 +167,6 @@ export function initMarketplace(app, { locale = "fa" } = {}) {
       } else if (gallery) gallery.hidden = true;
       return;
     }
-    if (event.target === overlay) { overlay.hidden = true; document.body.classList.remove("marketplace-open"); }
     if (event.target === overlay) { overlay.hidden = true; document.body.classList.remove("marketplace-open"); }
     const account = event.target.closest("[data-market-account]");
     if (account) { overlay.hidden = true; document.body.classList.remove("marketplace-open"); app.querySelector("#account-open")?.click(); }
