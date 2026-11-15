@@ -18,8 +18,11 @@ function validateImageAttachments(value) {
   let totalBytes = 0;
   for (const item of value) {
     if (!item || typeof item !== "object" || !ALLOWED_IMAGE_TYPES.has(item.mimeType) ||
-        typeof item.data !== "string" || item.data.length > Math.ceil(MAX_IMAGE_BYTES * 4 / 3) + 8) {
+        typeof item.data !== "string") {
       return { attachments: [], error: "INVALID_ATTACHMENTS" };
+    }
+    if (item.data.length > Math.ceil(MAX_IMAGE_BYTES * 4 / 3) + 8) {
+      return { attachments: [], error: "ATTACHMENT_TOO_LARGE" };
     }
     const encoded = item.data.replace(/^data:[^,]+,/, "");
     if (!/^[A-Za-z0-9+/]+={0,2}$/.test(encoded) || encoded.length % 4 === 1) {
