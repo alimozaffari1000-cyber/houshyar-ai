@@ -8,6 +8,7 @@ export function initWorkspace(app,{getMessages,onLoadConversation,onUsePrompt}){
  let tab="history";
  const panel=document.createElement("section");panel.className="workspace-overlay";panel.hidden=true;panel.setAttribute("aria-label",t("workspaceTitle"));
  panel.innerHTML='<div class="workspace-card" role="dialog" aria-modal="true" aria-labelledby="workspace-heading"><header class="workspace-head"><div><h2 id="workspace-heading">'+t("workspaceTitle")+'</h2><p>'+t("workspaceSubtitle")+'</p></div><button type="button" data-action="close" aria-label="'+t("workspaceClose")+'">✕</button></header><div class="workspace-tabs"><button type="button" data-tab="history">'+t("workspaceHistory")+'</button><button type="button" data-tab="projects">'+t("workspaceProjects")+'</button></div><div class="workspace-credit"><strong>'+t("workspaceQuotaTitle")+'</strong><p>'+t("workspaceQuotaPending")+'</p></div><div class="workspace-notice">'+t("workspaceLocalNotice")+'</div><p class="workspace-feedback" role="status"></p><div class="workspace-content"></div></div>';
+ app.querySelector(".workspace-overlay")?.remove();
  app.append(panel);
  const content=panel.querySelector(".workspace-content"),feedback=panel.querySelector(".workspace-feedback");
  function render(){
