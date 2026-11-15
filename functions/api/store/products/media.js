@@ -117,3 +117,22 @@ export async function onRequestDelete({ request, env }) {
     return authJson({ error: "MEDIA_DELETE_UNAVAILABLE" }, 503);
   }
 }
+
+
+export async function onRequestGet({ request, env }) {
+  if (!env.DB) return authJson({ error: "DATABASE_NOT_CONFIGURED" }, 503);
+  const user = await getSessionUser(env.DB, request);
+  if (!user) return authJson({ error: "AUTH_REQUIRED" }, 401);
+  try {
+    const store = await env.DB.prepare("SELECT id FROM merchant_stores WHERE user_id = ? LIMIT 1").bind(user.id).first();
+    if (!store) return authJson({ media: [] });
+    const result = await env.DB.prepare(
+      "SELECT pm.id, pm.product_id AS productId, pm.content_type AS contentType, pm.width, pm.height, pm.media_role AS role, pm.sort_order AS sortOrder, pm.created_at AS createdAt " +
+      "FROM product_media pm JOIN products p ON p.id = pm.product_id WHERE p.store_id = ? " +
+      "ORDER BY pm.product_id, pm.sort_order ASC, pm.created_at ASC LIMIT 500"
+    ).bind(store.id).all();
+    return authJson({ media: Array.isArray(result.results) ? result.results : [] });
+  } catch {
+    return authJson({ error: "MEDIA_LIST_UNAVAILABLE" }, 503);
+  }
+}
