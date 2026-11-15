@@ -249,3 +249,37 @@ test('returns 504 when the upstream deadline aborts the request', async () => {
     globalThis.clearTimeout = originalClearTimeout;
   }
 });
+
+
+test('propagates browser cancellation to the upstream AI request', async () => {
+  const originalFetch = globalThis.fetch;
+  const client = new AbortController();
+  let upstreamSignal;
+  globalThis.fetch = async (_url, options) => {
+    upstreamSignal = options.signal;
+    return await new Promise((resolve, reject) => {
+      if (options.signal.aborted) return reject(new Error('aborted'));
+      options.signal.addEventListener('abort', () => reject(new Error('aborted')), { once: true });
+    });
+  };
+  try {
+    const pending = onRequestPost({
+      request: new Request('https://example.test/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: 'یک پاسخ طولانی بده' }),
+        signal: client.signal
+      }),
+      env: { GROQ_API_KEY: 'test-key' }
+    });
+    for (let i = 0; i < 10 && !upstreamSignal; i++) await Promise.resolve();
+    assert.ok(upstreamSignal instanceof AbortSignal);
+    client.abort();
+    const response = await pending;
+    assert.equal(upstreamSignal.aborted, true);
+    assert.equal(response.status, 504);
+    assert.equal((await response.json()).error, 'UPSTREAM_TIMEOUT');
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
