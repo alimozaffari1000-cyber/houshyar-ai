@@ -58,6 +58,6 @@ export function initVisualCommerce(root,{locale="fa"}={}) {
       overlay.querySelector('[data-visual-remove="'+key+'"]').hidden=false;
       status.textContent=c.ready;
     });
-    overlay.querySelector('[data-visual-remove="'+key+'"]').addEventListener("click",()=>{release(key);status.textContent=c.need;});
+    overlay.querySelector('[data-visual-remove="'+key+'"]').addEventListener("click",event=>{event.preventDefault();event.stopPropagation();release(key);status.textContent=c.need;});
   }
 }
