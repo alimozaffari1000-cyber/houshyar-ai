@@ -31,7 +31,7 @@ export async function onRequestGet({ request, env, params }) {
       "Content-Type": media.contentType,
       "X-Content-Type-Options": "nosniff",
       "Content-Security-Policy": "default-src 'none'; sandbox",
-      "Cache-Control": isPublic ? "public, max-age=300, s-maxage=3600" : "private, no-store",
+      "Cache-Control": isPublic ? "public, max-age=60, s-maxage=60" : "private, no-store",
       "Content-Length": String(object.size || 0)
     });
     if (object.httpEtag) headers.set("ETag", object.httpEtag);
