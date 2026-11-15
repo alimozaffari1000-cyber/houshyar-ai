@@ -96,7 +96,7 @@ async function readJsonLimited(request) {
   }
 
   try {
-    return { body: JSON.parse(new TextDecoder().decode(bytes)) };
+    return { body: JSON.parse(new TextDecoder().decode(bytes)), bytes: total };
   } catch {
     return { error: "INVALID_JSON" };
   }
@@ -115,6 +115,9 @@ export async function onRequestPost({ request, env }) {
   }
   if (parsed.error) return json({ error: "INVALID_JSON", message: "درخواست معتبر نیست." }, 400);
   const body = parsed.body;
+  if ((!Array.isArray(body?.attachments) || body.attachments.length === 0) && parsed.bytes > 32 * 1024) {
+    return json({ error: "BODY_TOO_LARGE", message: "حجم درخواست بیش از حد مجاز است." }, 413);
+  }
   if (!body || typeof body !== "object" || Array.isArray(body)) {
     return json({ error: "INVALID_BODY", message: "ساختار درخواست معتبر نیست." }, 400);
   }
