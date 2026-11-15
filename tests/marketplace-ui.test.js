@@ -46,7 +46,7 @@ test("seller dashboard returns only the signed-in user's store and products", as
   assert.equal(body.store.id, "store-1");
   assert.equal(body.products[0].id, "product-1");
   assert.match(DB.statements[1], /WHERE user_id = \?/);
-  assert.match(DB.statements[2], /WHERE p\\.store_id = \\?/);
+  assert.match(DB.statements[2], /WHERE p\.store_id = \?/);
   assert.match(response.headers.get("cache-control"), /no-store/);
 });
 
