@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { onRequestPost, onRequestDelete } from "../functions/api/store/products/media.js";
+import { onRequestGet, onRequestPost, onRequestDelete } from "../functions/api/store/products/media.js";
 
 const imagePng = () => {
   const bytes = new Uint8Array(24);
@@ -90,4 +90,26 @@ test("media migration defines private object metadata without public URLs", asyn
   assert.match(migration,/object_key TEXT NOT NULL UNIQUE/);
   assert.match(migration,/content_type/);
   assert.doesNotMatch(migration,/public_url|https?:/i);
+});
+
+test("media gallery listing is private and scoped to the signed-in seller", async () => {
+  const queries = [];
+  const DB = { prepare(sql) { queries.push(sql); return { bind() { return {
+    async first() {
+      if (sql.includes("SELECT users.id")) return { id:"u1", email:"seller@example.test", role:"user" };
+      if (sql.includes("SELECT id FROM merchant_stores")) return { id:"s1" };
+      return null;
+    },
+    async all() { return { results:[{ id:"m1", productId:"p1", contentType:"image/png" }] }; }
+  }; } }; } };
+  const response = await onRequestGet({ request:new Request("https://example.test/api/store/products/media", { headers:{Cookie:"houshyar_session=session"} }), env:{DB} });
+  const body = await response.json();
+  assert.equal(response.status,200);
+  assert.equal(body.media.length,1);
+  assert.equal(body.media[0].id,"m1");
+  assert.match(queries[2],/WHERE p\\.store_id = \\?/);
+});
+test("media gallery listing requires authentication", async () => {
+  const response = await onRequestGet({ request:new Request("https://example.test/api/store/products/media"), env:{DB:{prepare(){throw new Error("must not query");}}} });
+  assert.equal(response.status,401);
 });
