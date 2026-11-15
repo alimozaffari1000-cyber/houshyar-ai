@@ -1,6 +1,24 @@
 import { getSessionUser, originAllowed } from "./_lib/auth.js";
 import { authJson, readAuthBody, enforceAuthRateLimit } from "./_lib/auth-flow.js";
 
+export async function onRequestGet({ request, env }) {
+  if (!env.DB) return authJson({ error: "DATABASE_NOT_CONFIGURED" }, 503);
+  const user = await getSessionUser(env.DB, request);
+  if (!user) return authJson({ error: "AUTH_REQUIRED" }, 401);
+  try {
+    const result = await env.DB.prepare(
+      "SELECT o.id, o.status, o.fulfillment, o.total_minor AS totalMinor, o.currency_code AS currency, " +
+      "o.created_at AS createdAt, o.updated_at AS updatedAt, i.product_title AS productTitle, " +
+      "i.quantity, i.unit_price_minor AS unitPriceMinor, i.line_total_minor AS lineTotalMinor " +
+      "FROM marketplace_orders o JOIN marketplace_order_items i ON i.order_id = o.id " +
+      "WHERE o.buyer_id = ? ORDER BY o.created_at DESC LIMIT 100"
+    ).bind(user.id).all();
+    return authJson({ orders: Array.isArray(result.results) ? result.results : [] });
+  } catch {
+    return authJson({ error: "BUYER_ORDERS_UNAVAILABLE" }, 503);
+  }
+}
+
 export async function onRequestPost({ request, env }) {
   if (!env.DB) return authJson({ error: "DATABASE_NOT_CONFIGURED" }, 503);
   if (!originAllowed(request)) return authJson({ error: "ORIGIN_NOT_ALLOWED" }, 403);
