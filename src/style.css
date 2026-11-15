@@ -611,3 +611,21 @@ button:focus-visible,textarea:focus-visible,select:focus-visible{
 .chat-main .msg-head .copy-reply{margin-inline-start:auto}
 .chat-main .msg[role=status] p:after{content:"";display:inline-block;width:5px;height:5px;margin-inline-start:7px;border-radius:50%;background:#83efd1;animation:chat-pulse 1s infinite alternate}
 @keyframes chat-pulse{from{opacity:.25;transform:scale(.7)}to{opacity:1;transform:scale(1.15)}}
+
+/* Put the conversation composer before the service catalog, like a dedicated AI chat app. */
+.chat-main main{display:flex;flex-direction:column}
+.chat-main .welcome{order:1}
+.chat-main .chat-tools{order:2}
+.chat-main .chat{order:3}
+.chat-main .mode-control{order:4}
+.chat-main #chat-form{order:5}
+.chat-main .input-hint{order:6}
+.chat-main .notice{order:7}
+.chat-main .toolbox{order:8;margin-top:56px}
+.chat-main .suggestions{order:9}
+.chat-main main:not(:has(.chat .msg)) .chat-tools{display:none}
+.chat-main main:not(:has(.chat .msg)) .chat{min-height:0;max-height:0;padding:0;margin:0;overflow:hidden}
+.chat-main main:not(:has(.chat .msg)) .mode-control{margin-top:25px}
+.chat-main main:has(.chat .msg) .toolbox,.chat-main main:has(.chat .msg) .suggestions{display:none}
+.chat-main main:has(.chat .msg) .chat-tools{margin-top:4px}
+@media(max-width:760px){.chat-main .toolbox{margin-top:38px}}
