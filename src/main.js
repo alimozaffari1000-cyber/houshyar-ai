@@ -189,7 +189,7 @@ async function submitMessage(event) {
     const response=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json','Accept':'text/event-stream, application/json'},signal:state.requestController.signal,body:JSON.stringify({message:text,history:state.messages.slice(-11),mode:state.mode,compare:state.compare,provider:state.provider,stream:true,attachments:imagePayload})});
     if(!response.ok) {
       const data=await response.json().catch(()=>({}));
-      const errorKeys={AI_NOT_CONFIGURED:'errorAiNotConfigured',BODY_TOO_LARGE:'errorBodyTooLarge',MESSAGE_TOO_LONG:'errorMessageTooLong',UPSTREAM_TIMEOUT:'errorUpstreamTimeout',UPSTREAM_ERROR:'errorUpstreamUnavailable',UPSTREAM_UNAVAILABLE:'errorUpstreamUnavailable',COMPARE_NOT_CONFIGURED:'errorAiNotConfigured',PROVIDER_NOT_CONFIGURED:'errorAiNotConfigured',COMPARISON_FAILED:'errorUpstreamUnavailable',REQUEST_CANCELLED:'errorGeneric'};
+      const errorKeys={AI_NOT_CONFIGURED:'errorAiNotConfigured',BODY_TOO_LARGE:'errorBodyTooLarge',MESSAGE_TOO_LONG:'errorMessageTooLong',UPSTREAM_TIMEOUT:'errorUpstreamTimeout',UPSTREAM_ERROR:'errorUpstreamUnavailable',UPSTREAM_UNAVAILABLE:'errorUpstreamUnavailable',COMPARE_NOT_CONFIGURED:'errorAiNotConfigured',PROVIDER_NOT_CONFIGURED:'errorAiNotConfigured',COMPARISON_FAILED:'errorUpstreamUnavailable',REQUEST_CANCELLED:'errorGeneric',INVALID_ATTACHMENTS:'errorInvalidAttachments',ATTACHMENT_TOO_LARGE:'errorAttachmentTooLarge',VISION_NOT_CONFIGURED:'errorVisionNotConfigured'};
       throw new Error(t(errorKeys[data.error] || 'errorGeneric',getLocale()));
     }
     if(response.headers.get('content-type')?.includes('text/event-stream')) {
