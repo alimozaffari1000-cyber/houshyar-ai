@@ -131,6 +131,9 @@ export async function onRequestPost({ request, env }) {
     const tooLarge = validatedImages.error === "ATTACHMENT_TOO_LARGE";
     return json({ error: validatedImages.error, message: tooLarge ? "حجم تصویر از حد مجاز بیشتر است." : "فایل تصویری معتبر یا مجاز نیست." }, tooLarge ? 413 : 400);
   }
+  if (validatedImages.attachments.length && body.compare === true) {
+    return json({ error: "COMPARE_UNSUPPORTED_WITH_ATTACHMENTS", message: "مقایسه هم‌زمان مدل‌ها برای پیام دارای تصویر در این نسخه فعال نیست." }, 400);
+  }
 
   // Enable only after the D1 migration and DB binding have been configured.
   if (env.CHAT_RATE_LIMIT_ENABLED === "true") {
