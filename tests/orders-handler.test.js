@@ -108,3 +108,27 @@ test("buyer order preflight rejects a suspended store", async () => {
   assert.equal(response.status, 409);
   assert.equal(DB.log.some(entry => entry.batch), false);
 });
+
+test("buyer order rejects fulfillment that the store does not offer", async () => {
+  const DB = orderDb({ product: { offersPickup: 0 } });
+  const response = await onRequestPost({ request: request({ fulfillment: "pickup" }), env: { DB } });
+  assert.equal(response.status, 409);
+  assert.equal((await response.json()).error, "ORDER_NOT_AVAILABLE");
+  assert.equal(DB.log.some(entry => entry.batch), false);
+});
+
+test("buyer order rejects totals that exceed safe integer precision", async () => {
+  const DB = orderDb({ product: { priceMinor: Number.MAX_SAFE_INTEGER } });
+  const response = await onRequestPost({ request: request({ quantity: 2 }), env: { DB } });
+  assert.equal(response.status, 400);
+  assert.equal((await response.json()).error, "INVALID_ORDER_TOTAL");
+  assert.equal(DB.log.some(entry => entry.batch), false);
+});
+
+test("buyer order fails closed when the conditional insert detects a currency or catalog mismatch", async () => {
+  const DB = orderDb({ itemChanges: 0 });
+  const response = await onRequestPost({ request: request({}), env: { DB } });
+  assert.equal(response.status, 409);
+  assert.equal((await response.json()).error, "ORDER_NOT_AVAILABLE");
+  assert.ok(DB.log.some(entry => entry.sql?.startsWith("DELETE FROM marketplace_orders")));
+});
