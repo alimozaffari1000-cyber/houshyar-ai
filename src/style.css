@@ -531,3 +531,10 @@ button:focus-visible,textarea:focus-visible,select:focus-visible{
 .marketplace-order-form button:disabled{opacity:.5}
 .marketplace-order-form [role=status]{grid-column:1/-1;margin:0;color:#a7f0db;font-size:10px;line-height:1.8}
 @media(max-width:560px){.marketplace-order-form{grid-template-columns:1fr}}
+
+/* Seller order inbox */
+.marketplace-orders-list{padding-top:12px;border-top:1px solid var(--line)}
+.marketplace-order-row{align-items:flex-start;flex-wrap:wrap}
+.marketplace-order-row>div{display:grid;gap:5px;min-width:0;flex:1 1 220px}
+.marketplace-order-row small{overflow-wrap:anywhere}
+.marketplace-order-row button{font-size:10px}
