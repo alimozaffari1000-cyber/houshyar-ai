@@ -1,5 +1,5 @@
 import { getSessionUser, originAllowed } from "../_lib/auth.js";
-import { authJson, readAuthBody } from "../_lib/auth-flow.js";
+import { authJson, readAuthBody, enforceAuthRateLimit } from "../_lib/auth-flow.js";
 
 const slugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
@@ -39,6 +39,8 @@ export async function onRequestPost({ request, env }) {
   if (!originAllowed(request)) return authJson({ error: "ORIGIN_NOT_ALLOWED" }, 403);
   const user = await getSessionUser(env.DB, request);
   if (!user) return authJson({ error: "AUTH_REQUIRED" }, 401);
+  const limited = await enforceAuthRateLimit({ env, request, action: "product-create", email: user.email, limit: 30 });
+  if (limited) return limited;
   const parsed = await readAuthBody(request);
   if (parsed.error) return authJson({ error: parsed.error }, parsed.status);
   const body = parsed.body;
