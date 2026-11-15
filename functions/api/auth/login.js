@@ -5,6 +5,7 @@ const json = (body, status = 200, headers = {}) => new Response(JSON.stringify(b
 export async function onRequestPost({ request, env }) {
   if (env.AUTH_ENABLED !== "true") return json({ error: "AUTH_NOT_CONFIGURED" }, 503);
   if (!env.DB) return json({ error: "DATABASE_NOT_CONFIGURED" }, 503);
+  if (typeof env.AUTH_PEPPER !== "string" || new TextEncoder().encode(env.AUTH_PEPPER).byteLength < 32) return json({ error: "AUTH_SECURITY_NOT_CONFIGURED" }, 503);
   if (!originAllowed(request)) return json({ error: "ORIGIN_NOT_ALLOWED" }, 403);
   if (!isJsonContentType(request.headers.get("content-type"))) return json({ error: "UNSUPPORTED_MEDIA_TYPE" }, 415);
   const declaredLength = Number(request.headers.get("content-length"));
@@ -30,7 +31,7 @@ export async function onRequestPost({ request, env }) {
   const password = typeof body?.password === "string" ? body.password : "";
   if (!validEmail(email) || password.length > 128) return json({ error: "INVALID_CREDENTIALS", message: "ایمیل یا رمز عبور نادرست است." }, 401);
   const user = await env.DB.prepare("SELECT id, email_normalized, password_hash, password_salt, password_iterations, role FROM users WHERE email_normalized = ? AND status = 'active' LIMIT 1").bind(email).first();
-  const valid = user ? await verifyPassword(password, user.password_salt, user.password_hash, user.password_iterations) : false;
+  const valid = user ? await verifyPassword(password, user.password_salt, user.password_hash, user.password_iterations, env.AUTH_PEPPER) : false;
   if (!valid) return json({ error: "INVALID_CREDENTIALS", message: "ایمیل یا رمز عبور نادرست است." }, 401);
   const now = Math.floor(Date.now() / 1000);
   await env.DB.prepare("UPDATE users SET last_login_at = ?, updated_at = ? WHERE id = ?").bind(now, now, user.id).run();
