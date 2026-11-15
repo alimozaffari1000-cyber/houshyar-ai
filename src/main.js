@@ -174,7 +174,8 @@ async function submitMessage(event) {
           let eventData; try{eventData=JSON.parse(line.slice(5).trim());}catch{continue;}
           if(eventData.type==='delta') {
             streamingMessage.text+=eventData.text||'';
-            const target=app.querySelector('.msg.assistant:not([role="status"]) .message-content:last-of-type');
+            const targets=app.querySelectorAll('.msg.assistant:not([role="status"]) .message-content');
+            const target=targets[targets.length-1];
             if(target) target.innerHTML=formatMessage(streamingMessage.text);
             scrollChat();
           } else if(eventData.type==='done') {
