@@ -184,6 +184,7 @@ test("seller dashboard loads and renders incoming marketplace orders with guarde
 
 test("buyer order history is reachable in Persian and English marketplace UI and renders lifecycle states", async () => {
   const ui = await readFile(new URL("../src/marketplace.js", import.meta.url), "utf8");
+  const api = await readFile(new URL("../functions/api/orders.js", import.meta.url), "utf8");
   assert.match(ui, /data-market-tab="buyer-orders"/);
   assert.match(ui, /data-market-view="buyer-orders"/);
   assert.match(ui, /buyerOrders:"سفارش‌های من"/);
@@ -193,5 +194,5 @@ test("buyer order history is reachable in Persian and English marketplace UI and
   assert.match(ui, /orderAccepted/);
   assert.match(ui, /orderRejected/);
   assert.match(ui, /orderCompleted/);
-  assert.match(ui, /WHERE o\.buyer_id = \?/);
+  assert.match(api, /WHERE o\.buyer_id = \?/);
 });
