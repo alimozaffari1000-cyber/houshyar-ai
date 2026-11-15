@@ -360,7 +360,7 @@ test("rejects images above the per-file size limit", async () => {
   const response = await onRequestPost({
     request: request({
       message: "عکس را ببین",
-      attachments: [{ mimeType: "image/jpeg", data: "A".repeat(2 * 1024 * 1024) }]
+      attachments: [{ mimeType: "image/jpeg", data: "A".repeat(2_800_000) }]
     }),
     env: { CLAUDE_API_KEY: "claude-test" }
   });
