@@ -50,9 +50,9 @@ export function initMarketplace(app, { locale = "fa" } = {}) {
     say("");
     if (tab === "seller") loadSeller();
   };
-  const productCard = product => '<article class="marketplace-product">' + (product.primaryMediaId ? '<img class="marketplace-product-image" src="/api/product-media/' + encodeURIComponent(product.primaryMediaId) + '" alt="' + escape(product.title) + '" loading="lazy" decoding="async">' : '<div class="marketplace-product-art" aria-hidden="true">✧</div>') + '<div class="marketplace-product-info">' +
+  const productCard = product => '<article class="marketplace-product" data-product-card="' + escape(product.id) + '">' + (product.primaryMediaId ? '<img class="marketplace-product-image" src="/api/product-media/' + encodeURIComponent(product.primaryMediaId) + '" alt="' + escape(product.title) + '" loading="lazy" decoding="async">' : '<div class="marketplace-product-art" aria-hidden="true">✧</div>') + '<div class="marketplace-product-info">' +
     '<span class="marketplace-category">' + escape(product.category) + '</span><h3>' + escape(product.title) + '</h3><p>' + escape(product.description || "") + '</p><strong>' +
-    money(product.priceMinor, locale) + ' ' + escape(product.currency || c.currency) + '</strong><small>' + c.store + ': ' + escape(product.storeName || "") + '</small></div></article>';
+    money(product.priceMinor, locale) + ' ' + escape(product.currency || c.currency) + '</strong><small>' + c.store + ': ' + escape(product.storeName || "") + '</small>' + (product.primaryMediaId ? '<button type="button" class="marketplace-gallery-open" data-product-gallery="' + escape(product.id) + '">' + c.galleryOpen + '</button>' : '') + '</div><div class="marketplace-product-gallery" data-product-gallery-items="' + escape(product.id) + '" hidden></div></article>';
   function renderLocalResults(products) {
     if (!products.length) { localResultsNode.innerHTML = '<p class="marketplace-local-empty">' + c.localNoResults + '</p>'; return; }
     localResultsNode.innerHTML = products.map(product => {
@@ -152,7 +152,22 @@ export function initMarketplace(app, { locale = "fa" } = {}) {
   }
   trigger.addEventListener("click", () => { overlay.hidden = false; document.body.classList.add("marketplace-open"); showTab("browse"); loadCatalog(true); });
   overlay.querySelector("[data-market-close]").addEventListener("click", () => { overlay.hidden = true; document.body.classList.remove("marketplace-open"); });
-  overlay.addEventListener("click", event => {
+  overlay.addEventListener("click", async event => {
+    const galleryButton = event.target.closest("[data-product-gallery]");
+    if (galleryButton) {
+      const productId = galleryButton.dataset.productGallery;
+      const gallery = overlay.querySelector('[data-product-gallery-items="' + CSS.escape(productId) + '"]');
+      if (gallery && gallery.hidden) {
+        gallery.hidden = false; gallery.textContent = c.galleryLoading; galleryButton.disabled = true;
+        try {
+          const data = await request("/api/products/" + encodeURIComponent(productId) + "/media");
+          gallery.innerHTML = (data.media || []).map(item => '<a href="/api/product-media/' + encodeURIComponent(item.id) + '" target="_blank" rel="noopener noreferrer"><img src="/api/product-media/' + encodeURIComponent(item.id) + '" alt="" loading="lazy" decoding="async"></a>').join("") || '<span>' + c.galleryEmpty + '</span>';
+        } catch { gallery.textContent = c.requestFailed; }
+        finally { galleryButton.disabled = false; }
+      } else if (gallery) gallery.hidden = true;
+      return;
+    }
+    if (event.target === overlay) { overlay.hidden = true; document.body.classList.remove("marketplace-open"); }
     if (event.target === overlay) { overlay.hidden = true; document.body.classList.remove("marketplace-open"); }
     const account = event.target.closest("[data-market-account]");
     if (account) { overlay.hidden = true; document.body.classList.remove("marketplace-open"); app.querySelector("#account-open")?.click(); }
