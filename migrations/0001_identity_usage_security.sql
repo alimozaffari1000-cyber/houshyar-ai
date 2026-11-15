@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS users (
   email_normalized TEXT NOT NULL UNIQUE,
   password_hash TEXT NOT NULL,
   password_salt TEXT NOT NULL,
-  password_iterations INTEGER NOT NULL DEFAULT 310000,
+  password_iterations INTEGER NOT NULL DEFAULT 100000,
   status TEXT NOT NULL DEFAULT 'active'
     CHECK (status IN ('pending', 'active', 'suspended', 'deleted')),
   role TEXT NOT NULL DEFAULT 'user'
