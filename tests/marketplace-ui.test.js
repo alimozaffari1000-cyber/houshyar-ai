@@ -168,3 +168,13 @@ test("buyer marketplace exposes authenticated order request form and fulfillment
   assert.match(ui, /\/api\/orders/);
   assert.match(ui, /fulfillment/);
 });
+
+
+test("seller dashboard loads and renders incoming marketplace orders with guarded status actions", async () => {
+  const ui = await readFile(new URL("../src/marketplace.js", import.meta.url), "utf8");
+  assert.match(ui, /request\("\/api\/store\/orders"\)/);
+  assert.match(ui, /data-order-status=/);
+  assert.match(ui, /orderAccept/);
+  assert.match(ui, /orderReject/);
+  assert.match(ui, /orderComplete/);
+});
