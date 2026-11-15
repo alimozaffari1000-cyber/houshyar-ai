@@ -36,3 +36,15 @@ test("verification and recovery use distinct throttling buckets", async () => {
   assert.ok(keys.some(key => key.startsWith("auth:password-reset:")));
   assert.ok(keys.some(key => key.startsWith("auth:reset-confirm:")));
 });
+
+test("marketplace order and seller status actions use independent rate-limit buckets", async () => {
+  const keys = [];
+  const db = { prepare(sql) { return { bind(...args) { keys.push(args[0]); return { first: async () => ({ request_count: 1 }) }; } }; } };
+  for (const action of ["marketplace-order", "store-order-update"]) {
+    const result = await checkAuthRateLimit({ db, action, email: "seller@example.com", clientIp: "203.0.113.9", now: 1800000000 });
+    assert.equal(result.allowed, true);
+  }
+  assert.ok(keys.some(key => key.startsWith("auth:marketplace-order:")));
+  assert.ok(keys.some(key => key.startsWith("auth:store-order-update:")));
+  assert.ok(keys.every(key => !key.startsWith("auth:login:")));
+});
