@@ -107,7 +107,7 @@ test("media gallery listing is private and scoped to the signed-in seller", asyn
   assert.equal(response.status,200);
   assert.equal(body.media.length,1);
   assert.equal(body.media[0].id,"m1");
-  assert.match(queries[2],/WHERE p\\.store_id = \\?/);
+  assert.match(queries[2], /WHERE p\.store_id = \?/);
 });
 test("media gallery listing requires authentication", async () => {
   const response = await onRequestGet({ request:new Request("https://example.test/api/store/products/media"), env:{DB:{prepare(){throw new Error("must not query");}}} });
