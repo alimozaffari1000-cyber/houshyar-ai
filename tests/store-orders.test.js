@@ -130,3 +130,24 @@ test("seller receives a conflict when inventory is no longer sufficient at accep
   assert.equal(response.status, 409);
   assert.equal((await response.json()).error, "ORDER_NO_LONGER_AVAILABLE");
 });
+
+
+test("seller receives a conflict when an accepted order has no item rows", async () => {
+  const DB = ordersDb({ updateError: new Error("D1_ERROR: trigger failed: ORDER_ITEMS_MISSING") });
+  const response = await onRequestPatch({
+    request: sellerRequest("/api/store/orders", "PATCH", { orderId: "123e4567-e89b-12d3-a456-426614174000", status: "accepted" }),
+    env: { DB }
+  });
+  assert.equal(response.status, 409);
+  assert.equal((await response.json()).error, "ORDER_ITEMS_INVALID");
+});
+
+test("seller order update keeps unexpected database errors fail-closed", async () => {
+  const DB = ordersDb({ updateError: new Error("unexpected database failure") });
+  const response = await onRequestPatch({
+    request: sellerRequest("/api/store/orders", "PATCH", { orderId: "123e4567-e89b-12d3-a456-426614174000", status: "accepted" }),
+    env: { DB }
+  });
+  assert.equal(response.status, 503);
+  assert.equal((await response.json()).error, "STORE_ORDERS_UNAVAILABLE");
+});
