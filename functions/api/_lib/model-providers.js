@@ -119,8 +119,14 @@ export async function streamModel({ provider, env, messages, model, signal, maxT
         let delta = "";
         if (isClaude) {
           if (event.type === "content_block_delta" && event.delta?.type === "text_delta") delta = event.delta.text || "";
+          if (event.type === "message_start" && event.message?.usage) {
+            const inputTokens = event.message.usage.input_tokens || 0;
+            usage = { promptTokens: inputTokens, completionTokens: 0, totalTokens: inputTokens };
+          }
           if (event.type === "message_delta" && event.usage) {
-            usage = { promptTokens: 0, completionTokens: event.usage.output_tokens || 0, totalTokens: event.usage.output_tokens || 0 };
+            const completionTokens = event.usage.output_tokens || 0;
+            const promptTokens = usage?.promptTokens || 0;
+            usage = { promptTokens, completionTokens, totalTokens: promptTokens + completionTokens };
           }
         } else {
           delta = event.choices?.[0]?.delta?.content || "";
