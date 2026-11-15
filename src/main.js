@@ -125,12 +125,12 @@ async function submitMessage(event) {
   const input=app.querySelector('#prompt'); const text=input.value.trim();
   if(!text || state.busy) return;
   state.draft='';
-  const learningMode = state.mode;
+  const learningMode = state.mode === 'auto' ? recommendLearningMode(text) : state.mode;
   state.messages.push({role:'user',text});
   saveCurrentConversation();
   state.busy=true; render(); scrollChat();
   try {
-    const response=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:text,history:state.messages.slice(-11),mode:learningMode,compare:state.compare,provider:state.provider})});
+    const response=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:text,history:state.messages.slice(-11),mode:state.mode,compare:state.compare,provider:state.provider})});
     const data=await response.json().catch(()=>({}));
     if(!response.ok) {
       const errorKeys={AI_NOT_CONFIGURED:'errorAiNotConfigured',BODY_TOO_LARGE:'errorBodyTooLarge',MESSAGE_TOO_LONG:'errorMessageTooLong',UPSTREAM_TIMEOUT:'errorUpstreamTimeout',UPSTREAM_ERROR:'errorUpstreamUnavailable',UPSTREAM_UNAVAILABLE:'errorUpstreamUnavailable',COMPARE_NOT_CONFIGURED:'errorAiNotConfigured',PROVIDER_NOT_CONFIGURED:'errorAiNotConfigured',COMPARISON_FAILED:'errorUpstreamUnavailable'};
