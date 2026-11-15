@@ -335,3 +335,38 @@ button:focus-visible,textarea:focus-visible,select:focus-visible{
 .learning-feedback{display:flex;align-items:center;flex-wrap:wrap;gap:7px;margin-top:12px;padding-top:9px;border-top:1px solid rgba(145,180,218,.12);color:#8198b4;font-size:10px}
 .learning-feedback button{border:1px solid rgba(145,180,218,.2);border-radius:8px;padding:5px 9px;background:rgba(255,255,255,.025);color:#b9cbe0;font:10px Vazirmatn;cursor:pointer}
 .learning-feedback button.selected{border-color:#58d9bd;color:#83efd1;background:rgba(85,213,181,.08)}
+
+
+/* Original Houshyar Design Studio */
+.design-studio-overlay{position:fixed;inset:0;z-index:50;display:grid;place-items:center;padding:14px;background:rgba(2,8,18,.86);backdrop-filter:blur(12px)}
+.design-studio-overlay[hidden]{display:none}
+.design-studio-card{width:min(100%,850px);max-height:92vh;overflow:auto;padding:22px;border:1px solid rgba(145,180,218,.24);border-radius:24px;background:linear-gradient(145deg,#172a43,#0e1a2d);box-shadow:0 30px 100px rgba(0,0,0,.55)}
+.design-studio-head{display:flex;justify-content:space-between;gap:18px;align-items:flex-start}
+.design-studio-kicker{color:#83efd1;font-size:9px;letter-spacing:2px;font-weight:700}
+.design-studio-head h2{margin:5px 0;font-size:22px;color:#f1f7ff}
+.design-studio-head p{margin:0;color:#9aacc5;font-size:11px;line-height:1.8}
+.design-studio-head>button{flex:0 0 34px;width:34px;height:34px;border:1px solid var(--line);border-radius:10px;background:#ffffff08;color:#e9f3ff;font-size:22px;cursor:pointer}
+.design-studio-categories{display:flex;align-items:center;gap:10px;margin:20px 0 12px;color:#a9bdd4;font-size:11px}
+.design-studio-categories select,.design-studio-form input,.design-studio-form select,.design-studio-form textarea{min-width:0;border:1px solid rgba(145,180,218,.22);border-radius:10px;background:#0b1728;color:#edf5ff;padding:10px;font:11px Vazirmatn}
+.design-studio-categories select{max-width:210px}
+.design-studio-gallery{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px}
+.design-template{display:flex;flex-direction:column;align-items:flex-start;gap:6px;min-height:112px;padding:12px;text-align:start;border:1px solid rgba(145,180,218,.16);border-radius:14px;background:rgba(255,255,255,.025);color:#eaf3ff;cursor:pointer}
+.design-template[hidden]{display:none}
+.design-template:hover,.design-template.selected{border-color:#6ee7c4;background:rgba(110,231,196,.08)}
+.design-template-icon{display:grid;place-items:center;width:27px;height:27px;border-radius:9px;background:rgba(110,231,196,.1);color:#83efd1;font-size:16px}
+.design-template strong{font-size:11px}
+.design-template small{color:#91a6bf;font-size:9px;line-height:1.7}
+.design-studio-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px;margin-top:18px}
+.design-studio-form label{display:grid;gap:6px;color:#b9cbe0;font-size:10px}
+.design-studio-form input,.design-studio-form select,.design-studio-form textarea{width:100%}
+.design-studio-form textarea{resize:vertical;max-height:120px}
+.design-studio-form .studio-wide{grid-column:1/-1}
+.design-studio-generate{grid-column:1/-1;min-height:43px;border:0;border-radius:11px;background:linear-gradient(120deg,#83efd1,#61cfc9);color:#09201e;font:700 12px Vazirmatn;cursor:pointer}
+.design-studio-output{margin-top:16px;padding:14px;border:1px solid rgba(110,231,196,.2);border-radius:14px;background:#091626}
+.design-studio-output[hidden]{display:none}
+.design-studio-output-head{display:flex;justify-content:space-between;align-items:center;gap:12px;color:#a7f0db;font-size:11px}
+.design-studio-output-head button{border:1px solid rgba(110,231,196,.3);border-radius:8px;padding:6px 10px;background:#6ee7c414;color:#baf7e8;font:10px Vazirmatn;cursor:pointer}
+.design-studio-output pre{margin:12px 0 0;white-space:pre-wrap;overflow-wrap:anywhere;color:#dce8f7;font:11px/2 Vazirmatn}
+.design-studio-note{margin:13px 0 0;color:#8196b1;font-size:9px;line-height:1.8}
+@media(max-width:650px){.design-studio-card{padding:16px;border-radius:18px}.design-studio-gallery{grid-template-columns:repeat(2,minmax(0,1fr))}.design-template{min-height:100px}.design-studio-head h2{font-size:18px}}
+@media(max-width:390px){.design-studio-form{grid-template-columns:1fr}.design-studio-form .studio-wide,.design-studio-generate{grid-column:auto}.design-studio-categories{align-items:flex-start;flex-direction:column}}

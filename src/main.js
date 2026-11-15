@@ -5,12 +5,14 @@ import { translate as t, getLocale, setLocale, localeOptions } from './i18n.js';
 import { initWorkspace } from './workspace.js';
 import { classifyLearningTask, recommendLearningMode } from './learning-core.js';
 import { attachLearningFeedback } from './learning-ui.js';
+import { initDesignStudio } from './design-studio.js';
 
 const app = document.querySelector('#app');
 const RESPONSE_MODE_LABELS = {"fa":["سریع","متعادل","تحلیلی عمیق","خلاق"],"en":["Fast","Balanced","Deep reasoning","Creative"],"de":["Schnell","Ausgewogen","Tiefgehend","Kreativ"],"ar":["سريع","متوازن","استدلال عميق","إبداعي"],"tr":["Hızlı","Dengeli","Derin düşünme","Yaratıcı"],"es":["Rápido","Equilibrado","Razonamiento profundo","Creativo"],"fr":["Rapide","Équilibré","Raisonnement approfondi","Créatif"],"ru":["Быстрый","Сбалансированный","Глубокий анализ","Творческий"],"zh":["快速","均衡","深度推理","创意"],"hi":["तेज़","संतुलित","गहन तर्क","रचनात्मक"],"ur":["تیز","متوازن","گہری سوچ","تخلیقی"],"pt":["Rápido","Equilibrado","Raciocínio profundo","Criativo"]};
 const COMPARE_LABELS = {"fa":"مقایسه دو مدل (مصرف بیشتر)","en":"Compare two models (higher usage)","de":"Zwei Modelle vergleichen (mehr Verbrauch)","ar":"مقارنة نموذجين (استهلاك أعلى)","tr":"İki modeli karşılaştır (daha fazla kullanım)","es":"Comparar dos modelos (mayor consumo)","fr":"Comparer deux modèles (consommation accrue)","ru":"Сравнить две модели (больше затрат)","zh":"比较两个模型（消耗更多）","hi":"दो मॉडल तुलना करें (अधिक उपयोग)","ur":"دو ماڈلز کا موازنہ (زیادہ استعمال)","pt":"Comparar dois modelos (maior consumo)"};
 const RESPONSE_MODE_TITLES = {"fa":"حالت پاسخ","en":"Response mode","de":"Antwortmodus","ar":"وضع الاستجابة","tr":"Yanıt modu","es":"Modo de respuesta","fr":"Mode de réponse","ru":"Режим ответа","zh":"回答模式","hi":"उत्तर मोड","ur":"جواب کا انداز","pt":"Modo de resposta"};
 const state = { messages: [], busy: false, draft: '', mode: 'auto', compare: false, provider: 'auto' };
+const DESIGN_STUDIO_LABELS = {fa:'استودیو طراحی',en:'Design Studio',de:'Designstudio',ar:'استوديو التصميم',tr:'Tasarım Stüdyosu',es:'Estudio de diseño',fr:'Studio de design',ru:'Студия дизайна',zh:'设计工作室',hi:'डिज़ाइन स्टूडियो',ur:'ڈیزائن اسٹوڈیو',pt:'Estúdio de design'};
 const AUTO_MODE_LABELS = { fa: 'یادگیری خودکار', en: 'Adaptive auto', de: 'Adaptiv automatisch', ar: 'تلقائي متكيف', tr: 'Uyarlanabilir otomatik', es: 'Automático adaptativo', fr: 'Automatique adaptatif', ru: 'Адаптивный авто', zh: '自适应自动', hi: 'अनुकूली ऑटो', ur: 'خودکار موافق', pt: 'Automático adaptativo' };
 const escapeHTML = (value='') => String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const scrollChat = () => {
@@ -33,6 +35,7 @@ function render() {
       <button type="button" data-prompt="${escapeHTML(t('toolTranslatePrompt',locale))}"><span>文</span><b>${t('toolTranslate',locale)}</b></button>
       <button type="button" data-prompt="${escapeHTML(t('toolImagePrompt',locale))}"><span>✧</span><b>${t('toolImage',locale)}</b></button>
       <button type="button" data-prompt="${escapeHTML(t('toolStudyPrompt',locale))}"><span>◎</span><b>${t('toolStudy',locale)}</b></button>
+      <button type="button" data-open-design-studio><span>✦</span><b>${DESIGN_STUDIO_LABELS[locale] || DESIGN_STUDIO_LABELS.en}</b></button>
     </div></section>
     <section class="suggestions" aria-label="${t('suggestionsLabel',locale)}">
       <button type="button" data-prompt="${escapeHTML(t('promptIdea',locale))}">💡 ${t('idea',locale)} <small>${t('ideaDesc',locale)}</small></button>
@@ -47,6 +50,7 @@ function render() {
     <p class="notice">${t('notice',locale)}</p></main>
     <footer>${t('footer',locale)}</footer>`;
   attachLearningFeedback(app.querySelector('.chat'), state.messages, locale);
+  initDesignStudio(app, { locale });
   app.querySelector('#locale-select').addEventListener('change', event => { setLocale(event.target.value); render(); });
   initAccountPanel(app);
   initAuthFlows(app);
