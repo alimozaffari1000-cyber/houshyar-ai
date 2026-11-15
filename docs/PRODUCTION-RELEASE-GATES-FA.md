@@ -7,7 +7,9 @@
 
 - [x] پایه D1، حساب، نشست، جداسازی داده، محدودیت نرخ، سهمیه روزانه و تأیید ایمیل/بازیابی رمز در شاخه main وجود دارد.
 - [x] workflowهای QA، امنیت، کیفیت و نگهداری D1 در مخزن تعریف شده‌اند.
-- [ ] اجرای سبز همه workflowها روی آخرین commit شاخه main بررسی شود.
+- [x] اجرای سبز workflowهای Guardian، Security Watch و Quality روی commit `3b948929de5a76244407a9eb85514faa69213a4a` در ۱۵ نوامبر ۲۰۲۶ بررسی شد؛ `npm run agent:check`، `npm run qa`، `npm run build`، اسکن امنیت و ممیزی کیفیت همگی در Actions موفق بودند.
+  - [Guardian](https://github.com/alimozaffari1000-cyber/houshyar-ai/actions/runs/43689454769) · [Security Watch](https://github.com/alimozaffari1000-cyber/houshyar-ai/actions/runs/43689454747) · [Quality](https://github.com/alimozaffari1000-cyber/houshyar-ai/actions/runs/43689454775)
+- [ ] انتشار Production در Cloudflare Pages و پاسخ زنده دامنه اصلی `houshyar-ai.pages.dev` تأیید شود.
 - [ ] هر تغییر بعدی در شاخه جدا، با تست و بازبینی، سپس PR به main ارائه شود.
 
 ## ۲. آماده‌سازی Cloudflare Pages
@@ -19,6 +21,8 @@
 - [ ] Output directory برابر dist باشد.
 - [ ] Secret سمت سرور GROQ_API_KEY در محیط Production تنظیم شود.
 - [ ] پس از Deploy، دامنه pages.dev و مسیر /api/chat آزمایش شوند.
+
+**تفکیک Preview و Production:** پیام `Deploy successful` داخل یک Pull Request فقط موفقیت همان Preview URL را ثابت می‌کند؛ به‌تنهایی اثبات نمی‌کند که دامنه اصلی `houshyar-ai.pages.dev` از آخرین commit شاخه `main` منتشر و قابل دسترسی است. برای تأیید انتشار عمومی، در Cloudflare Pages باید Deployment مربوط به شاخه Production (`main`) موفق باشد و دامنه اصلی جداگانه باز شود. خطای Worker Builds را با وضعیت Pages اشتباه نگیرید؛ بررسی اتصال تکراری در [issue 59](https://github.com/alimozaffari1000-cyber/houshyar-ai/issues/59) ثبت شده است.
 - [ ] Pages Preview و Production از bindingهای D1 مستقل استفاده کنند؛ نام هر دو binding دقیقاً DB باشد.
 
 ## ۳. پایگاه D1 و migrationها
