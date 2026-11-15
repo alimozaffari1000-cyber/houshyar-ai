@@ -15,7 +15,7 @@ const request = (url, file, cookie = "houshyar_session=session") => {
   if (file) body.set("file", file);
   return new Request(url, { method: "POST", headers: { Origin: "https://example.test", Cookie: cookie }, body });
 };
-function dbFor({ product = { id: "p1" }, media = null } = {}) {
+function dbFor({ product = { id: "p1" }, media = null, onRun = () => {} } = {}) {
   return { prepare(sql) { return { bind(...values) { return {
     async first() {
       if (sql.includes("SELECT users.id")) return { id: "u1", email: "seller@example.test", role: "user" };
@@ -25,7 +25,7 @@ function dbFor({ product = { id: "p1" }, media = null } = {}) {
       if (sql.includes("SELECT pm.id")) return media;
       return null;
     },
-    async run() { if (sql.includes("INSERT INTO product_media")) inserted += 1; return { meta: { changes: 1 } }; }
+    async run() { onRun(sql, values); return { meta: { changes: 1 } }; }
   }; } }; } };
 }
 test("media upload fails closed without private R2 binding", async () => {
@@ -45,7 +45,7 @@ test("media upload validates actual image signature, size and product ownership"
   let stored = 0, inserted = 0;
   const bucket = { async put() { stored += 1; }, async delete() {} };
   const file = new File([imagePng()], "room.png", { type: "image/png" });
-  const response = await onRequestPost({ request: request("https://example.test/api/store/products/media", file), env: { DB: dbFor(), MEDIA_BUCKET: bucket } });
+  const response = await onRequestPost({ request: request("https://example.test/api/store/products/media", file), env: { DB: dbFor({onRun:sql=>{if(sql.includes("INSERT INTO product_media")) inserted += 1;}}), MEDIA_BUCKET: bucket } });
   const body = await response.json();
   assert.equal(response.status,201);
   assert.equal(body.media.width,2);
