@@ -605,3 +605,9 @@ button:focus-visible,textarea:focus-visible,select:focus-visible{
 @media(prefers-reduced-motion:reduce){.chat-sidebar{transition:none}.chat-main .chat{scroll-behavior:auto}}
 /* Keep the opening view uncluttered; once a conversation starts, prioritize messages. */
 .chat-main main:has(.chat .msg) .welcome,.chat-main main:has(.chat .msg) .toolbox,.chat-main main:has(.chat .msg) .suggestions{display:none}
+
+.collaboration-label{display:inline-flex;align-items:center;padding:3px 7px;border:1px solid rgba(110,231,196,.22);border-radius:7px;background:rgba(110,231,196,.07);color:#a7f0db;font-size:9px}
+.chat-main .msg-head{justify-content:flex-start;flex-wrap:wrap}
+.chat-main .msg-head .copy-reply{margin-inline-start:auto}
+.chat-main .msg[role=status] p:after{content:"";display:inline-block;width:5px;height:5px;margin-inline-start:7px;border-radius:50%;background:#83efd1;animation:chat-pulse 1s infinite alternate}
+@keyframes chat-pulse{from{opacity:.25;transform:scale(.7)}to{opacity:1;transform:scale(1.15)}}
