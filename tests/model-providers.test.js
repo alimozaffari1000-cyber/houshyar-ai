@@ -91,9 +91,9 @@ test("Groq streaming adapter emits text deltas and reports the selected model", 
   globalThis.fetch = async (_url, init) => {
     sentBody = JSON.parse(init.body);
     return new Response([
-      'data: {"choices":[{"delta":{"content":"سلام "}}]}\\n\\n',
-      'data: {"choices":[{"delta":{"content":"هوش‌یار"}}]}\\n\\n',
-      'data: [DONE]\\n\\n'
+      'data: {"choices":[{"delta":{"content":"سلام "}}]}\n\n',
+      'data: {"choices":[{"delta":{"content":"هوش‌یار"}}]}\n\n',
+      'data: [DONE]\n\n'
     ].join(""), { status: 200, headers: { "content-type": "text/event-stream" } });
   };
   try {
@@ -116,11 +116,11 @@ test("Claude streaming adapter parses content_block_delta events", async () => {
   globalThis.fetch = async (_url, init) => {
     sentBody = JSON.parse(init.body);
     return new Response([
-      'event: content_block_delta\\n',
-      'data: {"type":"content_block_delta","delta":{"type":"text_delta","text":"پاسخ "}}\\n\\n',
-      'event: content_block_delta\\n',
-      'data: {"type":"content_block_delta","delta":{"type":"text_delta","text":"زنده"}}\\n\\n',
-      'data: {"type":"message_stop"}\\n\\n'
+      'event: content_block_delta\n',
+      'data: {"type":"content_block_delta","delta":{"type":"text_delta","text":"پاسخ "}}\n\n',
+      'event: content_block_delta\n',
+      'data: {"type":"content_block_delta","delta":{"type":"text_delta","text":"زنده"}}\n\n',
+      'data: {"type":"message_stop"}\n\n'
     ].join(""), { status: 200, headers: { "content-type": "text/event-stream" } });
   };
   try {
