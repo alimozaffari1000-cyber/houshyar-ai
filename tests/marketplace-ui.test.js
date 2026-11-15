@@ -130,3 +130,12 @@ test("seller dashboard exposes private product image upload with client-side siz
   assert.match(ui, /5 \* 1024 \* 1024/);
   assert.match(ui, /new FormData\(\)/);
 });
+
+
+test("buyer product cards expose an on-demand public multi-image gallery", async () => {
+  const ui = await readFile(new URL("../src/marketplace.js", import.meta.url), "utf8");
+  assert.match(ui, /data-product-gallery=/);
+  assert.match(ui, /data-product-gallery-items=/);
+  assert.match(ui, /\/api\/products\//);
+  assert.match(ui, /galleryOpen/);
+});
