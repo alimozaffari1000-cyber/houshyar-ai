@@ -50,7 +50,7 @@ export function initMarketplace(app, { locale = "fa" } = {}) {
     say("");
     if (tab === "seller") loadSeller();
   };
-  const productCard = product => '<article class="marketplace-product"><div class="marketplace-product-art" aria-hidden="true">✧</div><div class="marketplace-product-info">' +
+  const productCard = product => '<article class="marketplace-product">' + (product.primaryMediaId ? '<img class="marketplace-product-image" src="/api/product-media/' + encodeURIComponent(product.primaryMediaId) + '" alt="' + escape(product.title) + '" loading="lazy" decoding="async">' : '<div class="marketplace-product-art" aria-hidden="true">✧</div>') + '<div class="marketplace-product-info">' +
     '<span class="marketplace-category">' + escape(product.category) + '</span><h3>' + escape(product.title) + '</h3><p>' + escape(product.description || "") + '</p><strong>' +
     money(product.priceMinor, locale) + ' ' + escape(product.currency || c.currency) + '</strong><small>' + c.store + ': ' + escape(product.storeName || "") + '</small></div></article>';
   function renderLocalResults(products) {
@@ -116,7 +116,7 @@ export function initMarketplace(app, { locale = "fa" } = {}) {
     const store = data.store;
     if (!store) { renderApplication(); return; }
     const stateText = store.status === "active" ? c.active : store.status === "suspended" ? c.suspended : c.pending;
-    const rows = (data.products || []).map(product => '<article class="marketplace-seller-product"><div><b>' + escape(product.title) + '</b><small>' +
+    const rows = (data.products || []).map(product => '<article class="marketplace-seller-product">' + (product.primaryMediaId ? '<img class="marketplace-seller-thumb" src="/api/product-media/' + encodeURIComponent(product.primaryMediaId) + '" alt="' + escape(product.title) + '" loading="lazy" decoding="async">' : '<span class="marketplace-seller-thumb marketplace-seller-thumb-empty" aria-hidden="true">✧</span>') + '<div><b>' + escape(product.title) + '</b><small>' +
       escape(product.category) + ' · ' + money(product.priceMinor, locale) + ' ' + escape(product.currency) + '</small></div><span class="marketplace-state">' +
       (product.status === "published" ? c.published : c.draft) + '</span>' +
       (product.status === "draft" && store.status === "active" ? '<button type="button" data-publish="' + escape(product.id) + '">' + c.publish + '</button>' : '') +
