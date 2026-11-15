@@ -150,15 +150,52 @@ async function submitMessage(event) {
   state.messages.push({role:'user',text});
   saveCurrentConversation();
   state.busy=true; state.requestController=new AbortController(); render(); scrollChat();
+  let streamingMessage = null;
   try {
-    const response=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},signal:state.requestController.signal,body:JSON.stringify({message:text,history:state.messages.slice(-11),mode:state.mode,compare:state.compare,provider:state.provider})});
-    const data=await response.json().catch(()=>({}));
+    const response=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json','Accept':'text/event-stream, application/json'},signal:state.requestController.signal,body:JSON.stringify({message:text,history:state.messages.slice(-11),mode:state.mode,compare:state.compare,provider:state.provider,stream:true})});
     if(!response.ok) {
-      const errorKeys={AI_NOT_CONFIGURED:'errorAiNotConfigured',BODY_TOO_LARGE:'errorBodyTooLarge',MESSAGE_TOO_LONG:'errorMessageTooLong',UPSTREAM_TIMEOUT:'errorUpstreamTimeout',UPSTREAM_ERROR:'errorUpstreamUnavailable',UPSTREAM_UNAVAILABLE:'errorUpstreamUnavailable',COMPARE_NOT_CONFIGURED:'errorAiNotConfigured',PROVIDER_NOT_CONFIGURED:'errorAiNotConfigured',COMPARISON_FAILED:'errorUpstreamUnavailable'};
+      const data=await response.json().catch(()=>({}));
+      const errorKeys={AI_NOT_CONFIGURED:'errorAiNotConfigured',BODY_TOO_LARGE:'errorBodyTooLarge',MESSAGE_TOO_LONG:'errorMessageTooLong',UPSTREAM_TIMEOUT:'errorUpstreamTimeout',UPSTREAM_ERROR:'errorUpstreamUnavailable',UPSTREAM_UNAVAILABLE:'errorUpstreamUnavailable',COMPARE_NOT_CONFIGURED:'errorAiNotConfigured',PROVIDER_NOT_CONFIGURED:'errorAiNotConfigured',COMPARISON_FAILED:'errorUpstreamUnavailable',REQUEST_CANCELLED:'errorGeneric'};
       throw new Error(t(errorKeys[data.error] || 'errorGeneric',getLocale()));
     }
-    state.messages.push({role:'assistant',text:data.reply || 'پاسخ خالی از سرویس دریافت شد.',agent:data.agent || null,collaboration:data.collaboration || null,provider:data.provider || null,responseId:makeId(),category:data.agent?.id || classifyLearningTask(text),mode:learningMode});
+    if(response.headers.get('content-type')?.includes('text/event-stream')) {
+      streamingMessage={role:'assistant',text:'',agent:null,collaboration:null,provider:state.provider,responseId:makeId(),category:classifyLearningTask(text),mode:learningMode};
+      state.messages.push(streamingMessage); render(); scrollChat();
+      const reader=response.body.getReader(), decoder=new TextDecoder();
+      let buffer='';
+      while(true) {
+        const {value,done}=await reader.read();
+        if(done) break;
+        buffer+=decoder.decode(value,{stream:true});
+        const events=buffer.split(/\r?\n\r?\n/); buffer=events.pop()||'';
+        for(const raw of events) {
+          const line=raw.split(/\r?\n/).find(part=>part.startsWith('data:'));
+          if(!line) continue;
+          let eventData; try{eventData=JSON.parse(line.slice(5).trim());}catch{continue;}
+          if(eventData.type==='delta') {
+            streamingMessage.text+=eventData.text||'';
+            const target=app.querySelector('.msg.assistant:not([role="status"]) .message-content:last-of-type');
+            if(target) target.innerHTML=formatMessage(streamingMessage.text);
+            scrollChat();
+          } else if(eventData.type==='done') {
+            streamingMessage.agent=eventData.agent||null;
+            streamingMessage.collaboration=eventData.collaboration||null;
+            streamingMessage.provider=eventData.provider||null;
+            streamingMessage.model=eventData.model||null;
+            streamingMessage.usage=eventData.usage||null;
+          } else if(eventData.type==='error') {
+            const errorKeys={UPSTREAM_TIMEOUT:'errorUpstreamTimeout',UPSTREAM_ERROR:'errorUpstreamUnavailable',REQUEST_CANCELLED:'errorGeneric'};
+            throw new Error(t(errorKeys[eventData.error]||'errorGeneric',getLocale()));
+          }
+        }
+      }
+      if(!streamingMessage.text.trim()) throw new Error(t('errorGeneric',getLocale()));
+    } else {
+      const data=await response.json().catch(()=>({}));
+      state.messages.push({role:'assistant',text:data.reply || 'پاسخ خالی از سرویس دریافت شد.',agent:data.agent || null,collaboration:data.collaboration || null,provider:data.provider || null,responseId:makeId(),category:data.agent?.id || classifyLearningTask(text),mode:learningMode});
+    }
   } catch(error) {
+    if(streamingMessage && !streamingMessage.text.trim()) state.messages=state.messages.filter(message=>message!==streamingMessage);
     if(error?.name==='AbortError') state.messages.push({role:'assistant',text:getLocale()==='fa'?'پاسخ به درخواست شما متوقف شد.':(getLocale()==='de'?'Die Antwort wurde gestoppt.':(getLocale()==='fr'?'La réponse a été arrêtée.':'The response was stopped.'))});
     else state.messages.push({role:'assistant',text:error.message || t('errorGeneric',getLocale())});
   } finally { state.busy=false; state.requestController=null; saveCurrentConversation(); render(); scrollChat(); }
