@@ -1,7 +1,7 @@
 import { checkChatRateLimit } from "./_lib/chat-rate-limit.js";
 import { getSessionUser } from "./_lib/auth.js";
 import { reserveDailyChat, releaseDailyChat } from "./_lib/daily-quota.js";
-import { routeAgentRequest, resolveResponseMode } from "./_lib/agent-router.js";
+import { routeAgentRequest, resolveResponseMode, buildCollaborationPlan, listAgents } from "./_lib/agent-router.js";
 import { resolveProvider, requestModel, listAvailableProviders } from "./_lib/model-providers.js";
 
 const MAX_BODY_BYTES = 32 * 1024;
@@ -211,11 +211,53 @@ export async function onRequestPost({ request, env }) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort("upstream_timeout"), UPSTREAM_TIMEOUT_MS);
   let result;
+  let collaboration = { enabled: false, agents: [{ id: selectedAgent.id, label: selectedAgent.label }], status: "single_agent" };
   try {
-    result = await requestModel({
+    const plan = body.collaborate === false ? [] : buildCollaborationPlan(latest, selectedAgent, effectiveMode);
+    const primary = await requestModel({
       provider: providerChoice.provider, env, messages, model,
-      signal: controller.signal, maxTokens: 1200, temperature: 0.5
+      signal: controller.signal, maxTokens: plan.length ? 900 : 1200, temperature: 0.5
     });
+    result = primary;
+
+    if (plan.length === 2 && !controller.signal.aborted) {
+      const reviewer = listAgents().find(agent => agent.id === plan[1].id);
+      const reviewMessages = [
+        { role: "system", content: messages[0].content + "\\n\\nنقش بازبین همکار: " + plan[1].instruction +
+          "\\nپیش‌نویس عامل اول را مستقل ارزیابی کن؛ خطاهای factual، تناقض‌ها، جاافتادگی‌ها و ریسک‌ها را اصلاح کن. زنجیره فکر خصوصی را افشا نکن. فقط پاسخ نهاییِ اصلاح‌شده و قابل ارائه به کاربر را بنویس." },
+        ...messages.slice(1),
+        { role: "assistant", content: primary.reply },
+        { role: "user", content: "این پیش‌نویس را بازبینی کن و نسخه نهایی دقیق‌تر را ارائه بده. اگر بخشی نامطمئن است، محدودیت آن را صریح بیان کن." }
+      ];
+      try {
+        const reviewed = await requestModel({
+          provider: providerChoice.provider, env, messages: reviewMessages, model,
+          signal: controller.signal, maxTokens: 1400, temperature: 0.3
+        });
+        result = {
+          ...reviewed,
+          usage: primary.usage && reviewed.usage ? {
+            promptTokens: primary.usage.promptTokens + reviewed.usage.promptTokens,
+            completionTokens: primary.usage.completionTokens + reviewed.usage.completionTokens,
+            totalTokens: primary.usage.totalTokens + reviewed.usage.totalTokens
+          } : reviewed.usage || primary.usage
+        };
+        collaboration = {
+          enabled: true,
+          status: "completed",
+          agents: plan.map(item => ({ id: item.id, label: item.label })),
+          stages: ["draft", "review_and_synthesis"]
+        };
+      } catch {
+        // Preserve the first useful answer if the review stage fails or times out.
+        collaboration = {
+          enabled: true,
+          status: "partial",
+          agents: plan.slice(0, 1).map(item => ({ id: item.id, label: item.label })),
+          reason: "review_stage_unavailable"
+        };
+      }
+    }
   } catch {
     await releaseQuota();
     if (controller.signal.aborted) {
@@ -232,7 +274,8 @@ export async function onRequestPost({ request, env }) {
     provider: providerChoice.provider,
     model: result.model,
     usage: result.usage,
-    agent: { id: selectedAgent.id, label: selectedAgent.label, labelEn: selectedAgent.labelEn }
+    agent: { id: selectedAgent.id, label: selectedAgent.label, labelEn: selectedAgent.labelEn },
+    collaboration
   });
 }
 
