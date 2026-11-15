@@ -72,7 +72,7 @@ test("SQLite integration: competing sellers cannot both accept the last unit", a
 });
 
 test("SQLite integration: failed multi-product acceptance rolls back every stock update", async () => {
-  const db = makeDatabase();
+  const db = await makeDatabase();
   try {
     db.prepare("UPDATE products SET stock_count=3 WHERE id='product-1'").run();
     db.prepare("UPDATE products SET stock_count=0 WHERE id='product-2'").run();
@@ -87,7 +87,6 @@ test("SQLite integration: failed multi-product acceptance rolls back every stock
       VALUES ('item-multi-a','order-multi','product-1','Product One',1,100,100),
              ('item-multi-b','order-multi','product-2','Product Two',1,100,100)
     `).run();
-    await applyInventoryMigration(db);
 
     assert.throws(
       () => db.prepare("UPDATE marketplace_orders SET status='accepted' WHERE id='order-multi'").run(),
@@ -101,11 +100,10 @@ test("SQLite integration: failed multi-product acceptance rolls back every stock
 });
 
 test("SQLite integration: rejection and completion never cause a second stock deduction", async () => {
-  const db = makeDatabase();
+  const db = await makeDatabase();
   try {
     addOrder(db, { id: "order-rejected" });
     addOrder(db, { id: "order-accepted" });
-    await applyInventoryMigration(db);
 
     db.prepare("UPDATE marketplace_orders SET status='rejected' WHERE id='order-rejected'").run();
     assert.equal(db.prepare("SELECT stock_count AS n FROM products WHERE id='product-1'").get().n, 1);
@@ -120,10 +118,9 @@ test("SQLite integration: rejection and completion never cause a second stock de
 });
 
 test("SQLite integration: order items cannot deduct stock from another seller's store", async () => {
-  const db = makeDatabase();
+  const db = await makeDatabase();
   try {
     addOrder(db, { id: "order-cross-store", storeId: "store-1", productId: "product-2" });
-    await applyInventoryMigration(db);
     assert.throws(
       () => db.prepare("UPDATE marketplace_orders SET status='accepted' WHERE id='order-cross-store'").run(),
       /INSUFFICIENT_ORDER_STOCK/
