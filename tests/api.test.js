@@ -290,8 +290,8 @@ test('chat API returns server-sent events when streaming is requested', async ()
   globalThis.fetch = async (_url, options) => {
     assert.equal(JSON.parse(options.body).stream, true);
     return new Response([
-      'data: {"choices":[{"delta":{"content":"سلام"}}]}\\n\\n',
-      'data: [DONE]\\n\\n'
+      'data: {"choices":[{"delta":{"content":"سلام"}}]}\n\n',
+      'data: [DONE]\n\n'
     ].join(""), { status: 200, headers: { "content-type": "text/event-stream" } });
   };
   try {
