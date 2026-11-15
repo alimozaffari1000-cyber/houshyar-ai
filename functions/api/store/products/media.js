@@ -1,5 +1,5 @@
-import { getSessionUser, originAllowed } from "../../../_lib/auth.js";
-import { authJson, readAuthBody, enforceAuthRateLimit } from "../../../_lib/auth-flow.js";
+import { getSessionUser, originAllowed } from "../../_lib/auth.js";
+import { authJson, readAuthBody, enforceAuthRateLimit } from "../../_lib/auth-flow.js";
 
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
