@@ -57,7 +57,8 @@ export async function requestModel({ provider, env, messages, model, signal, max
   }
   const config = openAICompatibleConfig(provider, env);
   const selectedModel = modelForProvider(provider, env, model);
-  const requestBody = provider === "openai"\n    ? { model: selectedModel, messages, max_completion_tokens: maxTokens }\n    : { model: selectedModel, messages, temperature, max_tokens: maxTokens };\n  const response = await fetch(config.url, { method: "POST", headers: config.headers, body: JSON.stringify(requestBody), signal });
+  const requestBody = provider === "openai"
+    ? { model: selectedModel, messages, max_completion_tokens: maxTokens }\n    : { model: selectedModel, messages, temperature, max_tokens: maxTokens };\n  const response = await fetch(config.url, { method: "POST", headers: config.headers, body: JSON.stringify(requestBody), signal });
   if (!response.ok) throw new Error("provider_request_failed");
   const data = await response.json();
   const reply = data?.choices?.[0]?.message?.content;
