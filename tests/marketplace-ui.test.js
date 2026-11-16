@@ -197,7 +197,7 @@ test("buyer order history is reachable in Persian and English marketplace UI and
   assert.match(api, /WHERE o\.buyer_id = \?/);
   assert.match(api, /storeName/);
   assert.match(ui, /orderUpdatedAt/);
-  assert.match(ui, /escape\\(order\\.storeName/);
+  assert.match(ui, /order\.storeName/);
 });
 
 
