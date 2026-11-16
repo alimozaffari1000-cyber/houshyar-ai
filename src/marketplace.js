@@ -292,7 +292,7 @@ export function initMarketplace(app, { locale = "fa" } = {}) {
         let localPanel = card.querySelector("[data-order-panel]");
         if (!localPanel) { localPanel = document.createElement("section"); localPanel.className = "marketplace-order-panel"; localPanel.dataset.orderPanel = productId; card.append(localPanel); }
         localPanel.hidden = !localPanel.hidden;
-        if (!localPanel.hidden) localPanel.innerHTML = orderFormMarkup(productId, null);
+        if (!localPanel.hidden) localPanel.innerHTML = orderFormMarkup(productId, catalogProducts.get(productId) || null);
         orderOpen.textContent = localPanel.hidden ? c.orderRequest : c.detailClose;
       }
       return;
