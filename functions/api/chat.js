@@ -368,7 +368,7 @@ export async function onRequestPost({ request, env }) {
     try {
       primary = await requestModel({
         provider: providerChoice.provider, env, messages: buildMessagesForProvider(providerChoice.provider), model,
-        signal: controller.signal, maxTokens: plan.length ? 900 : 1200, temperature: 0.5
+        signal: controller.signal, maxTokens: plan.length ? 900 : 1200, temperature: 0.5, googleSearch: body.googleSearch === true && providerChoice.provider === "gemini"
       });
     } catch (primaryError) {
       if (requestedProvider !== "auto" || controller.signal.aborted) throw primaryError;
@@ -404,7 +404,7 @@ export async function onRequestPost({ request, env }) {
       try {
         const reviewed = await requestModel({
           provider: providerChoice.provider, env, messages: reviewMessages.map(item => item.role === "user" && Array.isArray(item.content) ? { ...item, content: buildMessagesForProvider(providerChoice.provider).find(message => message.role === "user" && Array.isArray(message.content))?.content || item.content } : item), model,
-          signal: controller.signal, maxTokens: 1400, temperature: 0.3
+          signal: controller.signal, maxTokens: 1400, temperature: 0.3, googleSearch: body.googleSearch === true && providerChoice.provider === "gemini"
         });
         result = {
           ...reviewed,
