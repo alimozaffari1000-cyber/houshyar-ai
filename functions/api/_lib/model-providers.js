@@ -135,7 +135,8 @@ export async function streamModel({ provider, env, messages, model, signal, maxT
   const conversation = messages.filter(item => item.role !== "system");
   const endpoint = isGemini
     ? "https://generativelanguage.googleapis.com/v1beta/models/" + encodeURIComponent(selectedModel) + ":streamGenerateContent?alt=sse"
-    : (isClaude ? "https://api.anthropic.com/v1/messages" : config.url);\n  const response = await fetch(endpoint, {
+    : (isClaude ? "https://api.anthropic.com/v1/messages" : config.url);
+  const response = await fetch(endpoint, {
     method: "POST",
     headers: isGemini ? { "x-goog-api-key": env.GEMINI_API_KEY, "content-type": "application/json" } : (isClaude ? { "x-api-key": env.CLAUDE_API_KEY, "anthropic-version": "2023-06-01", "content-type": "application/json" } : config.headers),
     body: JSON.stringify(isGemini ? geminiRequestBody(messages, { maxTokens, temperature, googleSearch }) : (isClaude ? { model: selectedModel, max_tokens: maxTokens, system, messages: conversation, stream: true } : (provider === "openai" ? { model: selectedModel, messages, max_completion_tokens: maxTokens, stream: true } : { model: selectedModel, messages, temperature, max_completion_tokens: maxTokens, stream: true }))),
