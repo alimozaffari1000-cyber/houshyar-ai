@@ -209,6 +209,10 @@ test("buyer marketplace provides a same-store multi-item cart and submits the it
   assert.match(ui, /items:Array/);
   assert.match(ui, /priceMinor:item\\.priceMinor/);
   assert.match(ui, /cartPriceChanged/);
+  assert.match(ui, /cartTotalInvalid/);
+  assert.match(ui, /!offersDelivery && !offersPickup/);
+  assert.match(ui, /priceMinor:item\\.priceMinor/);
+  assert.match(ui, /cartPriceChanged/);
   assert.match(ui, /!offersDelivery && !offersPickup/);
   assert.match(ui, /cart\.clear\(\)/);
 });
@@ -245,4 +249,22 @@ test("multi-item order payload confirms the displayed product price and server r
   assert.match(api, /requiresPriceConfirmation/);
   assert.match(api, /ORDER_PRICE_CHANGED/);
   assert.match(api, /Number\(product\.priceMinor\) !== item\.expectedPriceMinor/);
+});
+
+
+test("multi-item order payload confirms the displayed product price and server rejects stale prices", async () => {
+  const ui = await readFile(new URL("../src/marketplace.js", import.meta.url), "utf8");
+  const api = await readFile(new URL("../functions/api/orders.js", import.meta.url), "utf8");
+  assert.match(ui, /priceMinor:item\.priceMinor/);
+  assert.match(api, /requiresPriceConfirmation/);
+  assert.match(api, /ORDER_PRICE_CHANGED/);
+  assert.match(api, /Number\(product\.priceMinor\) !== item\.expectedPriceMinor/);
+});
+
+test("buyer cart styling is responsive and confirmation remains visible after submission", async () => {
+  const ui = await readFile(new URL("../src/marketplace.js", import.meta.url), "utf8");
+  const css = await readFile(new URL("../src/style.css", import.meta.url), "utf8");
+  assert.match(ui, /renderCart\(\); say\(c\.orderCreated\)/);
+  assert.match(css, /\.marketplace-cart-row/);
+  assert.match(css, /@media\(max-width:560px\)/);
 });
