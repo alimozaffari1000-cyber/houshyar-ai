@@ -33,3 +33,10 @@ test("order requests are explicitly not represented as online payments or stock 
   assert.match(ui, /not online payments and do not reserve stock/);
   assert.match(api, /status: "requested"/);
 });
+
+
+test("order item insert requires the preflight price snapshot to remain unchanged", async () => {
+  const source = await readFile(new URL("../functions/api/orders.js", import.meta.url), "utf8");
+  assert.match(source, /p\\.price_minor = \\?/);
+  assert.match(source, /product\\.priceMinor, product\\.currency/);
+});
