@@ -106,7 +106,7 @@ async function readJsonLimited(request) {
 }
 
 export async function onRequestPost({ request, env }) {
-  if (!env.GROQ_API_KEY && !env.OPENAI_API_KEY && !env.CLAUDE_API_KEY) return json({ error: "AI_NOT_CONFIGURED", message: "هیچ ارائه‌دهنده هوش مصنوعی پیکربندی نشده است." }, 503);
+  if (!env.GROQ_API_KEY && !env.OPENAI_API_KEY && !env.CLAUDE_API_KEY && !env.GEMINI_API_KEY) return json({ error: "AI_NOT_CONFIGURED", message: "هیچ ارائه‌دهنده هوش مصنوعی پیکربندی نشده است." }, 503);
   const contentType = (request.headers.get("content-type") || "").split(";", 1)[0].trim().toLowerCase();
   if (contentType !== "application/json") {
     return json({ error: "UNSUPPORTED_MEDIA_TYPE", message: "نوع محتوای درخواست باید JSON باشد." }, 415);
@@ -207,10 +207,10 @@ export async function onRequestPost({ request, env }) {
   const requestedMode = body.mode == null ? "auto" : (["auto", "fast", "balanced", "deep", "creative"].includes(body.mode) ? body.mode : "balanced");
   const selectedAgent = routeAgentRequest(latest);
   const effectiveMode = resolveResponseMode(latest, requestedMode, selectedAgent);
-  const requestedProvider = ["auto", "groq", "openai", "anthropic"].includes(body.provider) ? body.provider : "auto";
+  const requestedProvider = ["auto", "groq", "openai", "anthropic", "gemini"].includes(body.provider) ? body.provider : "auto";
   let providerChoice = resolveProvider(env, requestedProvider, effectiveMode);
   if (validatedImages.attachments.length && requestedProvider === "auto") {
-    const imageProvider = env.CLAUDE_API_KEY ? "anthropic" : (env.OPENAI_API_KEY ? "openai" : (env.GROQ_API_KEY ? "groq" : "auto"));
+    const imageProvider = env.GEMINI_API_KEY ? "gemini" : (env.CLAUDE_API_KEY ? "anthropic" : (env.OPENAI_API_KEY ? "openai" : (env.GROQ_API_KEY ? "groq" : "auto")));
     providerChoice = resolveProvider(env, imageProvider, effectiveMode);
   }
   if (providerChoice.error) {
@@ -220,7 +220,7 @@ export async function onRequestPost({ request, env }) {
   const modelProfiles = {
     groq: { fast: env.GROQ_MODEL_FAST, balanced: env.GROQ_MODEL, deep: env.GROQ_MODEL_DEEP, creative: env.GROQ_MODEL_CREATIVE },
     openai: { fast: env.OPENAI_MODEL_FAST, balanced: env.OPENAI_MODEL, deep: env.OPENAI_MODEL_DEEP, creative: env.OPENAI_MODEL_CREATIVE },
-    anthropic: { fast: env.CLAUDE_MODEL_FAST, balanced: env.CLAUDE_MODEL, deep: env.CLAUDE_MODEL_DEEP, creative: env.CLAUDE_MODEL_CREATIVE }
+    anthropic: { fast: env.CLAUDE_MODEL_FAST, balanced: env.CLAUDE_MODEL, deep: env.CLAUDE_MODEL_DEEP, creative: env.CLAUDE_MODEL_CREATIVE },\n    gemini: { fast: env.GEMINI_MODEL_FAST, balanced: env.GEMINI_MODEL, deep: env.GEMINI_MODEL_DEEP, creative: env.GEMINI_MODEL_CREATIVE }
   };
   let model = validatedImages.attachments.length && providerChoice.provider === "groq"
     ? env.GROQ_MODEL_VISION
@@ -283,7 +283,7 @@ export async function onRequestPost({ request, env }) {
       try {
         const result = await requestModel({
           provider: target.provider, env, messages, model: target.model,
-          signal: compareController.signal, maxTokens: 1200, temperature: 0.5
+          signal: compareController.signal, maxTokens: 1200, temperature: 0.5, googleSearch: body.googleSearch === true && target.provider === "gemini"
         });
         return { provider: target.provider, model: result.model, reply: result.reply, usage: result.usage };
       } finally { clearTimeout(compareTimeout); }
@@ -323,7 +323,7 @@ export async function onRequestPost({ request, env }) {
             try {
               streamed = await streamModel({
                 provider: candidate, env, messages: buildMessagesForProvider(candidate), model: candidate === providerChoice.provider ? model : modelForTarget(candidate),
-                signal: streamController.signal, maxTokens: 1200, temperature: 0.5,
+                signal: streamController.signal, maxTokens: 1200, temperature: 0.5, googleSearch: body.googleSearch === true && candidate === "gemini",
                 onText: text => { emittedText = true; send(controller, { type: "delta", text }); }
               });
               activeProvider = candidate;
@@ -336,7 +336,7 @@ export async function onRequestPost({ request, env }) {
           send(controller, { type: "done", model: streamed.model, usage: streamed.usage,
             mode: effectiveMode, requestedMode, provider: activeProvider,
             agent: { id: selectedAgent.id, label: selectedAgent.label, labelEn: selectedAgent.labelEn },
-            collaboration: { enabled: false, status: "single_agent", agents: [{ id: selectedAgent.id, label: selectedAgent.label }] } });
+            collaboration: { enabled: false, status: "single_agent", agents: [{ id: selectedAgent.id, label: selectedAgent.label }] }, sources: streamed.sources || [] });
         } catch {
           await releaseQuota();
           send(controller, { type: "error", error: request.signal.aborted ? "REQUEST_CANCELLED" : (streamController.signal.aborted ? "UPSTREAM_TIMEOUT" : "UPSTREAM_ERROR") });
