@@ -1,4 +1,4 @@
-const ALLOWED_PROVIDERS = new Set(["groq", "openai", "anthropic"]);
+const ALLOWED_PROVIDERS = new Set(["groq", "openai", "anthropic", "gemini"]);
 
 export function normalizeProviderStatus(payload) {
   if (!payload || typeof payload !== "object" || !Array.isArray(payload.providers)) {
