@@ -113,3 +113,40 @@ test("media gallery listing requires authentication", async () => {
   const response = await onRequestGet({ request:new Request("https://example.test/api/store/products/media"), env:{DB:{prepare(){throw new Error("must not query");}}} });
   assert.equal(response.status,401);
 });
+
+
+test("media delete preserves D1 metadata when R2 deletion fails", async () => {
+  const events = [];
+  const DB = dbFor({
+    media: { id: "123e4567-e89b-12d3-a456-426614174000", object_key: "products/p1/media1" },
+    onRun: sql => { if (sql.includes("DELETE FROM product_media")) events.push("d1-delete"); }
+  });
+  const response = await onRequestDelete({
+    request: new Request("https://example.test/api/store/products/media", {
+      method: "DELETE",
+      headers: { Origin: "https://example.test", Cookie: "houshyar_session=session", "Content-Type": "application/json" },
+      body: JSON.stringify({ mediaId: "123e4567-e89b-12d3-a456-426614174000" })
+    }),
+    env: { DB, MEDIA_BUCKET: { async delete() { events.push("r2-delete"); throw new Error("R2 unavailable"); } } }
+  });
+  assert.equal(response.status, 503);
+  assert.deepEqual(events, ["r2-delete"]);
+});
+
+test("media delete removes the R2 object before deleting its D1 metadata", async () => {
+  const events = [];
+  const DB = dbFor({
+    media: { id: "123e4567-e89b-12d3-a456-426614174000", object_key: "products/p1/media1" },
+    onRun: sql => { if (sql.includes("DELETE FROM product_media")) events.push("d1-delete"); }
+  });
+  const response = await onRequestDelete({
+    request: new Request("https://example.test/api/store/products/media", {
+      method: "DELETE",
+      headers: { Origin: "https://example.test", Cookie: "houshyar_session=session", "Content-Type": "application/json" },
+      body: JSON.stringify({ mediaId: "123e4567-e89b-12d3-a456-426614174000" })
+    }),
+    env: { DB, MEDIA_BUCKET: { async delete() { events.push("r2-delete"); } } }
+  });
+  assert.equal(response.status, 200);
+  assert.deepEqual(events, ["r2-delete", "d1-delete"]);
+});
