@@ -74,7 +74,7 @@ test("marketplace UI is connected to home screen and uses authenticated store en
   assert.match(ui, /\/api\/store\/mine/);
   assert.match(ui, /\/api\/store\/apply/);
   assert.match(ui, /\/api\/store\/products\/publish/);
-  assert.match(ui, /escape\(product\.title\)/);
+  assert.match(ui, /order\.storeName/);
   assert.match(ui, /credentials:"same-origin"/);
 });
 
