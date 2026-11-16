@@ -5,7 +5,7 @@ import { onRequestPost, onRequestGet } from "../functions/api/chat.js";
 
 test("provider availability reflects server-side secrets only", () => {
   assert.deepEqual(listAvailableProviders({ GROQ_API_KEY: "g" }).map(item => [item.id, item.available]), [
-    ["groq", true], ["openai", false], ["anthropic", false]
+    ["groq", true], ["openai", false], ["anthropic", false], ["gemini", false]
   ]);
   assert.equal(resolveProvider({ CLAUDE_API_KEY: "c" }, "auto", "balanced").provider, "anthropic");
 });
@@ -173,7 +173,7 @@ test("streaming parser handles chunk boundaries, CRLF separators, and a final ev
 test("OpenAI provider is independently configurable and selected by auto mode", () => {
   const providers = listAvailableProviders({ OPENAI_API_KEY: "openai-secret" });
   assert.deepEqual(providers.map(item => [item.id, item.available]), [
-    ["groq", false], ["openai", true], ["anthropic", false]
+    ["groq", false], ["openai", true], ["anthropic", false], ["gemini", false]
   ]);
   assert.equal(resolveProvider({ OPENAI_API_KEY: "openai-secret" }).provider, "openai");
   assert.equal(resolveProvider({ OPENAI_API_KEY: "openai-secret", OPENAI_MODEL: "custom-gpt" }).model, "custom-gpt");
