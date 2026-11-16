@@ -207,11 +207,11 @@ test("buyer marketplace provides a same-store multi-item cart and submits the it
   assert.match(ui, /cartStoreMismatch/);
   assert.match(ui, /cartQtyInvalid/);
   assert.match(ui, /items:Array/);
-  assert.match(ui, /priceMinor:item\\.priceMinor/);
+  assert.match(ui, /priceMinor:item\.priceMinor/);
   assert.match(ui, /cartPriceChanged/);
   assert.match(ui, /cartTotalInvalid/);
   assert.match(ui, /!offersDelivery && !offersPickup/);
-  assert.match(ui, /priceMinor:item\\.priceMinor/);
+  assert.match(ui, /priceMinor:item\.priceMinor/);
   assert.match(ui, /cartPriceChanged/);
   assert.match(ui, /!offersDelivery && !offersPickup/);
   assert.match(ui, /cart\.clear\(\)/);
