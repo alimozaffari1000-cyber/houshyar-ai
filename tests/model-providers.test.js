@@ -246,3 +246,73 @@ test("Groq non-streaming requests use the current max_completion_tokens paramete
     assert.equal(Object.hasOwn(sentBody, "max_tokens"), false);
   } finally { globalThis.fetch = originalFetch; }
 });
+
+
+test("Gemini adapter converts chat roles, image attachments, and optional Google Search grounding", async () => {
+  const originalFetch = globalThis.fetch;
+  let call;
+  globalThis.fetch = async (url, options) => {
+    call = { url, headers: options.headers, body: JSON.parse(options.body) };
+    return new Response(JSON.stringify({
+      modelVersion: "gemini-test",
+      candidates: [{
+        content: { parts: [{ text: "پاسخ از Gemini" }] },
+        groundingMetadata: { groundingChunks: [{ web: { title: "Google documentation", uri: "https://ai.google.dev/" } }] }
+      }],
+      usageMetadata: { promptTokenCount: 8, candidatesTokenCount: 5, totalTokenCount: 13 }
+    }), { status: 200, headers: { "content-type": "application/json" } });
+  };
+  try {
+    const result = await requestModel({
+      provider: "gemini",
+      env: { GEMINI_API_KEY: "gemini-secret", GEMINI_MODEL: "gemini-test" },
+      messages: [
+        { role: "system", content: "قواعد سیستم" },
+        { role: "user", content: [{ type: "text", text: "این تصویر چیست؟" }, { type: "image_url", image_url: { url: "data:image/png;base64,aGVsbG8=" } }] },
+        { role: "assistant", content: "پاسخ قبلی" }
+      ],
+      googleSearch: true
+    });
+    assert.equal(call.url, "https://generativelanguage.googleapis.com/v1beta/models/gemini-test:generateContent");
+    assert.equal(call.headers["x-goog-api-key"], "gemini-secret");
+    assert.equal(call.body.systemInstruction.parts[0].text, "قواعد سیستم");
+    assert.equal(call.body.contents[0].role, "user");
+    assert.deepEqual(call.body.contents[0].parts[1].inlineData, { mimeType: "image/png", data: "aGVsbG8=" });
+    assert.equal(call.body.contents[1].role, "model");
+    assert.deepEqual(call.body.tools, [{ google_search: {} }]);
+    assert.equal(result.reply, "پاسخ از Gemini");
+    assert.equal(result.sources[0].url, "https://ai.google.dev/");
+    assert.deepEqual(result.usage, { promptTokens: 8, completionTokens: 5, totalTokens: 13 });
+    assert.equal(JSON.stringify(result).includes("gemini-secret"), false);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("Gemini streaming adapter emits text chunks and returns Google grounding sources", async () => {
+  const originalFetch = globalThis.fetch;
+  let requestBody;
+  globalThis.fetch = async (_url, options) => {
+    requestBody = JSON.parse(options.body);
+    return new Response([
+      'data: {"candidates":[{"content":{"parts":[{"text":"جریان "}]}}]}\\n\\n',
+      'data: {"candidates":[{"content":{"parts":[{"text":"جمینای"}]},"groundingMetadata":{"groundingChunks":[{"web":{"title":"Source","uri":"https://example.com"}}]}}],"usageMetadata":{"promptTokenCount":2,"candidatesTokenCount":3,"totalTokenCount":5}}\\n\\n'
+    ].join(""), { status: 200, headers: { "content-type": "text/event-stream" } });
+  };
+  try {
+    const { streamModel } = await import("../functions/api/_lib/model-providers.js");
+    const deltas = [];
+    const result = await streamModel({
+      provider: "gemini", env: { GEMINI_API_KEY: "stream-secret" },
+      messages: [{ role: "user", content: "سلام" }],
+      googleSearch: true, onText: value => deltas.push(value)
+    });
+    assert.equal(requestBody.tools[0].google_search !== undefined, true);
+    assert.deepEqual(deltas, ["جریان ", "جمینای"]);
+    assert.equal(result.reply, "جریان جمینای");
+    assert.equal(result.sources[0].url, "https://example.com");
+    assert.equal(result.usage.totalTokens, 5);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
