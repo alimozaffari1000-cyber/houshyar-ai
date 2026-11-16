@@ -279,3 +279,18 @@ test("local discovery order form preserves the store fulfillment options", async
   assert.match(ui, /const delivery = product\?\.offersDelivery !== false && product\?\.offersDelivery !== 0/);
   assert.match(ui, /const pickup = product\?\.offersPickup !== false && product\?\.offersPickup !== 0/);
 });
+
+
+test("marketplace refreshes active order tabs and announces newly received or changed orders", async () => {
+  const ui = await readFile(new URL("../src/marketplace.js", import.meta.url), "utf8");
+  assert.match(ui, /newOrderNotice/);
+  assert.match(ui, /orderChangedNotice/);
+  assert.match(ui, /notifyOrderChanges\("seller", orders\)/);
+  assert.match(ui, /notifyOrderChanges\("buyer", orders\)/);
+  assert.match(ui, /setInterval\(\(\) => \{/);
+  assert.match(ui, /30000\)/);
+  assert.match(ui, /clearInterval\(orderPollTimer\)/);
+  assert.match(ui, /loadSeller\(\{ silent:true \}\)/);
+  assert.match(ui, /loadBuyerOrders\(\{ silent:true \}\)/);
+  assert.match(ui, /role="status" aria-live="polite"/);
+});
