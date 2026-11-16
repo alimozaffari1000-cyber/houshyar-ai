@@ -105,6 +105,8 @@ test("Groq streaming adapter emits text deltas and reports the selected model", 
       onText: value => deltas.push(value)
     });
     assert.equal(sentBody.stream, true);
+    assert.equal(sentBody.max_completion_tokens, 1200);
+    assert.equal(Object.hasOwn(sentBody, "max_tokens"), false);
     assert.deepEqual(deltas, ["سلام ", "هوش‌یار"]);
     assert.equal(result.reply, "سلام هوش‌یار");
   } finally { globalThis.fetch = originalFetch; }
@@ -228,4 +230,19 @@ test("Groq default model uses a currently supported production model", () => {
   const providers = listAvailableProviders({ GROQ_API_KEY: "groq-secret" });
   assert.equal(providers.find(item => item.id === "groq").defaultModel, "openai/gpt-oss-120b");
   assert.equal(resolveProvider({ GROQ_API_KEY: "groq-secret" }).model, "openai/gpt-oss-120b");
+});
+
+
+test("Groq non-streaming requests use the current max_completion_tokens parameter", async () => {
+  const originalFetch = globalThis.fetch;
+  let sentBody;
+  globalThis.fetch = async (_url, init) => {
+    sentBody = JSON.parse(init.body);
+    return new Response(JSON.stringify({ choices: [{ message: { content: "پاسخ آزمایشی" } }] }), { status: 200 });
+  };
+  try {
+    await requestModel({ provider: "groq", env: { GROQ_API_KEY: "test-key" }, messages: [{ role: "user", content: "سلام" }] });
+    assert.equal(sentBody.max_completion_tokens, 1200);
+    assert.equal(Object.hasOwn(sentBody, "max_tokens"), false);
+  } finally { globalThis.fetch = originalFetch; }
 });
