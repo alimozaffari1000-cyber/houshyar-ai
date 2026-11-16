@@ -224,3 +224,12 @@ test("public product catalog supplies store and fulfillment metadata required by
   assert.match(api, /s\.offers_delivery AS offersDelivery/);
   assert.match(api, /s\.offers_pickup AS offersPickup/);
 });
+
+
+test("seller dashboard groups multi-item order lines under one status action", async () => {
+  const ui = await readFile(new URL("../src/marketplace.js", import.meta.url), "utf8");
+  assert.match(ui, /const groupedOrders = new Map\(\)/);
+  assert.match(ui, /groupedOrders\.size \? Array\.from\(groupedOrders\.values\(\)\)/);
+  assert.match(ui, /order\.items\.map\(item => escape\(item\.title\)/);
+  assert.match(ui, /data-order-status="accepted"/);
+});
