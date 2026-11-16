@@ -33,6 +33,7 @@ function formatMessage(value='') {
     return '__HOUSHYAR_CODE_BLOCK_' + index + '__';
   });
   html = html
+    .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>')
     .replace(/`([^`\n]+)`/g, '<code class="chat-inline-code">$1</code>')
     .replace(/^### (.+)$/gm, '<h4>$1</h4>')
     .replace(/^## (.+)$/gm, '<h3>$1</h3>')
