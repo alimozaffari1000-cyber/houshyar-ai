@@ -131,3 +131,29 @@ test("chat API rate limiting ignores spoofed X-Forwarded-For and uses the Cloudf
   assert.equal(firstDb.captured().values[0], secondDb.captured().values[0]);
   assert.notEqual(firstDb.captured().values[0], thirdDb.captured().values[0]);
 });
+
+test("malformed D1 limiter response fails closed before calling the AI provider", async () => {
+  const originalFetch = globalThis.fetch;
+  let providerCalled = false;
+  globalThis.fetch = async () => {
+    providerCalled = true;
+    return new Response(JSON.stringify({ choices: [{ message: { content: "should not happen" } }] }), { status: 200 });
+  };
+
+  try {
+    const response = await onRequestPost({
+      request: request(),
+      env: {
+        GROQ_API_KEY: "test",
+        CHAT_RATE_LIMIT_ENABLED: "true",
+        DB: fakeDb("21")
+      }
+    });
+
+    assert.equal(response.status, 503);
+    assert.equal((await response.json()).error, "RATE_LIMIT_UNAVAILABLE");
+    assert.equal(providerCalled, false);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
