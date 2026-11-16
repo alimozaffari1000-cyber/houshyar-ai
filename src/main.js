@@ -9,6 +9,7 @@ import { initDesignStudio } from './design-studio.js';
 import { initMarketplace } from './marketplace.js';
 import { initVisualCommerce } from './visual-commerce.js';
 import { normalizeChatHistory } from './chat-memory.js';
+import { readChatPreferences, saveChatPreferences } from './chat-preferences.js';
 
 const app = document.querySelector('#app');
 const RESPONSE_MODE_LABELS = {"fa":["سریع","متعادل","تحلیلی عمیق","خلاق"],"en":["Fast","Balanced","Deep reasoning","Creative"],"de":["Schnell","Ausgewogen","Tiefgehend","Kreativ"],"ar":["سريع","متوازن","استدلال عميق","إبداعي"],"tr":["Hızlı","Dengeli","Derin düşünme","Yaratıcı"],"es":["Rápido","Equilibrado","Razonamiento profundo","Creativo"],"fr":["Rapide","Équilibré","Raisonnement approfondi","Créatif"],"ru":["Быстрый","Сбалансированный","Глубокий анализ","Творческий"],"zh":["快速","均衡","深度推理","创意"],"hi":["तेज़","संतुलित","गहन तर्क","रचनात्मक"],"ur":["تیز","متوازن","گہری سوچ","تخلیقی"],"pt":["Rápido","Equilibrado","Raciocínio profundo","Criativo"]};
@@ -18,7 +19,9 @@ const CHAT_HISTORY_KEY = 'houshyar.chat.sessions.v1';
 const CANCEL_LABELS = {fa:'توقف پاسخ',en:'Stop generating',de:'Antwort stoppen',ar:'إيقاف الإجابة',tr:'Yanıtı durdur',es:'Detener respuesta',fr:'Arrêter la réponse',ru:'Остановить ответ',zh:'停止生成',hi:'उत्तर रोकें',ur:'جواب روکیں',pt:'Parar resposta'};
 const readChatHistory = () => { try { return normalizeChatHistory(JSON.parse(localStorage.getItem(CHAT_HISTORY_KEY) || '[]')); } catch { return []; } };
 const makeId = () => globalThis.crypto?.randomUUID?.() || 'chat-' + Date.now() + '-' + Math.random().toString(36).slice(2,8);
-const state = { messages: [], busy: false, requestController: null, draft: '', mode: 'auto', compare: false, provider: 'auto', conversations: readChatHistory(), activeConversationId: null, sidebarOpen: false, attachments: [], attachmentNotice: '' };
+const chatPreferences = readChatPreferences();
+const state = { messages: [], busy: false, requestController: null, draft: '', mode: chatPreferences.mode, compare: chatPreferences.compare, provider: chatPreferences.provider, conversations: readChatHistory(), activeConversationId: null, sidebarOpen: false, attachments: [], attachmentNotice: '' };
+const persistChatPreferences = () => saveChatPreferences({ provider: state.provider, mode: state.mode, compare: state.compare });
 const DESIGN_STUDIO_LABELS = {fa:'استودیو طراحی',en:'Design Studio',de:'Designstudio',ar:'استوديو التصميم',tr:'Tasarım Stüdyosu',es:'Estudio de diseño',fr:'Studio de design',ru:'Студия дизайна',zh:'设计工作室',hi:'डिज़ाइन स्टूडियो',ur:'ڈیزائن اسٹوڈیو',pt:'Estúdio de design'};
 const AUTO_MODE_LABELS = { fa: 'یادگیری خودکار', en: 'Adaptive auto', de: 'Adaptiv automatisch', ar: 'تلقائي متكيف', tr: 'Uyarlanabilir otomatik', es: 'Automático adaptativo', fr: 'Automatique adaptatif', ru: 'Адаптивный авто', zh: '自适应自动', hi: 'अनुकूली ऑटो', ur: 'خودکار موافق', pt: 'Automático adaptativo' };
 const escapeHTML = (value='') => String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -134,9 +137,9 @@ function render() {
   prompt.addEventListener('input',()=>{state.draft=prompt.value;resize();});
   prompt.addEventListener('keydown',event=>{if(event.key==='Enter'&&!event.shiftKey&&!event.isComposing){event.preventDefault();app.querySelector('#chat-form').requestSubmit();}});
   resize();
-  app.querySelector('#response-mode').addEventListener('change', event => { state.mode = ['auto','fast','balanced','deep','creative'].includes(event.target.value) ? event.target.value : 'auto'; });
-  app.querySelector('#compare-models').addEventListener('change', event => { state.compare = event.target.checked === true; });
-  app.querySelector('#ai-provider').addEventListener('change', event => { state.provider = ['auto','groq','openai','anthropic'].includes(event.target.value) ? event.target.value : 'auto'; });
+  app.querySelector('#response-mode').addEventListener('change', event => { state.mode = ['auto','fast','balanced','deep','creative'].includes(event.target.value) ? event.target.value : 'auto'; persistChatPreferences(); });
+  app.querySelector('#compare-models').addEventListener('change', event => { state.compare = event.target.checked === true; persistChatPreferences(); });
+  app.querySelector('#ai-provider').addEventListener('change', event => { state.provider = ['auto','groq','openai','anthropic'].includes(event.target.value) ? event.target.value : 'auto'; persistChatPreferences(); });
   app.querySelector('#chat-form').addEventListener('submit',submitMessage);
   app.querySelector('#attach-file').addEventListener('click',()=>app.querySelector('#chat-file-input').click());
   app.querySelector('#chat-file-input').addEventListener('change',async event=>{
