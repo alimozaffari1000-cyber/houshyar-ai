@@ -218,9 +218,7 @@ export function initMarketplace(app, { locale = "fa" } = {}) {
       (store.status === "active" ? '<div class="marketplace-seller-list marketplace-orders-list"><h3>' + c.sellerOrders + '</h3>' +
       (groupedOrders.size ? Array.from(groupedOrders.values()).map(order => '<article class="marketplace-seller-product marketplace-order-row"><div><b>' + order.items.map(item => escape(item.title) + ' × ' + escape(item.quantity)).join('، ') + '</b>' +
         '<small>' + c.orderCustomer + ': ' + escape(order.customerName) + ' · ' + escape(order.customerPhone) + '</small>' +
-        '<small>' + c.store + ': ' + escape(order.storeName || "") + '</small>' +
-      '<small>' + c.orderPlacedAt + ': ' + escape(new Date(Number(order.createdAt) * 1000).toLocaleString(locale === "fa" ? "fa-IR" : locale || "en")) + '</small>' +
-      '<small>' + c.orderUpdatedAt + ': ' + escape(new Date(Number(order.updatedAt) * 1000).toLocaleString(locale === "fa" ? "fa-IR" : locale || "en")) + '</small>' +
+        '<small>' + c.orderPlacedAt + ': ' + escape(new Date(Number(order.createdAt) * 1000).toLocaleString(locale === "fa" ? "fa-IR" : locale || "en")) + '</small>' +
         '<small>' + c.orderUpdatedAt + ': ' + escape(new Date(Number(order.updatedAt) * 1000).toLocaleString(locale === "fa" ? "fa-IR" : locale || "en")) + '</small>' +
         '<small>' + c.orderFulfillment + ': ' + (order.fulfillment === "delivery" ? c.orderDelivery : c.orderPickup) + '</small>' +
         (order.deliveryAddress ? '<small>' + escape(order.deliveryAddress) + '</small>' : '') +
@@ -241,7 +239,9 @@ export function initMarketplace(app, { locale = "fa" } = {}) {
     }
     buyerOrdersNode.innerHTML = '<div class="marketplace-seller-list">' + Array.from(grouped.values()).map(order =>
       '<article class="marketplace-seller-product marketplace-order-row"><div><b>' + order.items.map(item => escape(item.title) + ' × ' + escape(item.quantity)).join('، ') + '</b>' +
+      '<small>' + c.store + ': ' + escape(order.storeName || "") + '</small>' +
       '<small>' + c.orderPlacedAt + ': ' + escape(new Date(Number(order.createdAt) * 1000).toLocaleString(locale === "fa" ? "fa-IR" : locale || "en")) + '</small>' +
+      '<small>' + c.orderUpdatedAt + ': ' + escape(new Date(Number(order.updatedAt) * 1000).toLocaleString(locale === "fa" ? "fa-IR" : locale || "en")) + '</small>' +
       '<small>' + c.orderFulfillment + ': ' + (order.fulfillment === "delivery" ? c.orderDelivery : c.orderPickup) + '</small>' +
       '<small>' + money(order.totalMinor, locale) + ' ' + escape(order.currency) + '</small></div><span class="marketplace-state">' +
       (order.status === "requested" ? c.orderRequested : order.status === "accepted" ? c.orderAccepted : order.status === "rejected" ? c.orderRejected : c.orderCompleted) +
