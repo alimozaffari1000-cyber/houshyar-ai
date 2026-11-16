@@ -374,7 +374,7 @@ test("health endpoint lists OpenAI as an independent configured provider", async
   assert.equal(response.status, 200);
   assert.equal(body.aiConfigured, true);
   assert.deepEqual(body.providers.map(item => [item.id, item.available]), [
-    ["groq", false], ["openai", true], ["anthropic", false]
+    ["groq", false], ["openai", true], ["anthropic", false], ["gemini", false]
   ]);
   assert.equal(JSON.stringify(body).includes("private-openai-key"), false);
 });
