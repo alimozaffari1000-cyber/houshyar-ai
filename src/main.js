@@ -252,7 +252,7 @@ async function submitMessage(event) {
             streamingMessage.model=eventData.model||null;
             streamingMessage.usage=eventData.usage||null;
             streamingMessage.sources=Array.isArray(eventData.sources)?eventData.sources:[];
-            if(streamingMessage.sources.length){ streamingMessage.text += '\n\n' + (getLocale()==='fa'?'منابع گوگل:':'Google sources:') + '\n' + streamingMessage.sources.map((source,index)=>'['+(index+1)+'] '+source.title+' — '+source.url).join('\n'); const targets=app.querySelectorAll('.msg.assistant:not([role="status"]) .message-content'); const target=targets[targets.length-1]; if(target) target.innerHTML=formatMessage(streamingMessage.text); }
+            if(streamingMessage.sources.length){ streamingMessage.text += '\n\n' + (getLocale()==='fa'?'منابع گوگل:':'Google sources:') + '\n' + streamingMessage.sources.map((source,index)=>'['+source.title+']('+source.url+')').join('\n'); const targets=app.querySelectorAll('.msg.assistant:not([role="status"]) .message-content'); const target=targets[targets.length-1]; if(target) target.innerHTML=formatMessage(streamingMessage.text); }
           } else if(eventData.type==='error') {
             const errorKeys={UPSTREAM_TIMEOUT:'errorUpstreamTimeout',UPSTREAM_ERROR:'errorUpstreamUnavailable',REQUEST_CANCELLED:'errorGeneric'};
             throw new Error(t(errorKeys[eventData.error]||'errorGeneric',getLocale()));
