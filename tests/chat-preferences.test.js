@@ -11,7 +11,7 @@ function memoryStorage(initial = {}) {
 }
 
 test("chat preferences use safe defaults for missing or malformed data", () => {
-  assert.deepEqual(normalizeChatPreferences(null), { provider: "auto", mode: "auto", compare: false });
+  assert.deepEqual(normalizeChatPreferences(null), { provider: "auto", mode: "auto", compare: false, googleSearch: false });
   assert.deepEqual(normalizeChatPreferences({ provider: "unknown", mode: "turbo", compare: "yes" }), {
     provider: "auto", mode: "auto", compare: false
   });
@@ -19,7 +19,7 @@ test("chat preferences use safe defaults for missing or malformed data", () => {
 
 test("chat preferences preserve valid provider, response mode and comparison choice", () => {
   const storage = memoryStorage();
-  const preferences = { provider: "anthropic", mode: "deep", compare: true };
+  const preferences = { provider: "gemini", mode: "deep", compare: true, googleSearch: true };
   assert.equal(saveChatPreferences(preferences, storage), true);
   assert.deepEqual(readChatPreferences(storage), preferences);
 });
