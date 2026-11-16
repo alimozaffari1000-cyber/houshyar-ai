@@ -165,7 +165,7 @@ test("buyer multi-item order rejects products from different stores", async () =
   const secondId = "223e4567-e89b-12d3-a456-426614174000";
   const DB = orderDb({ product: [{}, { storeId: "other-store" }] });
   const response = await onRequestPost({
-    request: request({ items: [{ productId: PRODUCT_ID, quantity: 1 }, { productId: secondId, quantity: 1 }] }),
+    request: request({ items: [{ productId: PRODUCT_ID, quantity: 1, priceMinor: 2500 }, { productId: secondId, quantity: 1, priceMinor: 2500 }] }),
     env: { DB }
   });
   assert.equal(response.status, 409);
