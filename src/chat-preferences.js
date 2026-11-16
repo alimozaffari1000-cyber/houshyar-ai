@@ -1,6 +1,6 @@
 const STORAGE_KEY = "houshyar.chat.preferences.v1";
 const DEFAULTS = Object.freeze({ provider: "auto", mode: "auto", compare: false });
-const PROVIDERS = new Set(["auto", "groq", "openai", "anthropic"]);
+const PROVIDERS = new Set(["auto", "groq", "openai", "anthropic", "gemini"]);
 const MODES = new Set(["auto", "fast", "balanced", "deep", "creative"]);
 
 export function normalizeChatPreferences(value) {
@@ -8,7 +8,8 @@ export function normalizeChatPreferences(value) {
   return {
     provider: PROVIDERS.has(value.provider) ? value.provider : DEFAULTS.provider,
     mode: MODES.has(value.mode) ? value.mode : DEFAULTS.mode,
-    compare: value.compare === true
+    compare: value.compare === true,
+    googleSearch: value.googleSearch === true
   };
 }
 
