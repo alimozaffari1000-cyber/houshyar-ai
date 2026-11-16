@@ -150,3 +150,19 @@ test("media delete removes the R2 object before deleting its D1 metadata", async
   assert.equal(response.status, 200);
   assert.deepEqual(events, ["r2-delete", "d1-delete"]);
 });
+
+
+test("media upload rejects images exceeding the total pixel budget", async () => {
+  const bytes = imagePng();
+  new DataView(bytes.buffer).setUint32(16, 7000);
+  new DataView(bytes.buffer).setUint32(20, 7000);
+  let stored = 0;
+  const file = new File([bytes], "oversized-dimensions.png", { type: "image/png" });
+  const response = await onRequestPost({
+    request: request("https://example.test/api/store/products/media", file),
+    env: { DB: dbFor(), MEDIA_BUCKET: { async put() { stored += 1; }, async delete() {} } }
+  });
+  assert.equal(response.status, 400);
+  assert.equal((await response.json()).error, "INVALID_IMAGE_DIMENSIONS");
+  assert.equal(stored, 0);
+});
