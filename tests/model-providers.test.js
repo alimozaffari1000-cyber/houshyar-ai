@@ -316,3 +316,32 @@ test("Gemini streaming adapter emits text chunks and returns Google grounding so
     globalThis.fetch = originalFetch;
   }
 });
+
+
+test("chat API selects Gemini in auto mode when Google Search is requested and Gemini is configured", async () => {
+  const originalFetch = globalThis.fetch;
+  let call;
+  globalThis.fetch = async (url, options) => {
+    call = { url, body: JSON.parse(options.body) };
+    return new Response(JSON.stringify({
+      modelVersion: "gemini-test",
+      candidates: [{ content: { parts: [{ text: "پاسخ جست‌وجوشده" }] } }]
+    }), { status: 200, headers: { "content-type": "application/json" } });
+  };
+  try {
+    const request = new Request("https://houshyar.example/api/chat", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ message: "خبر امروز چیست؟", provider: "auto", googleSearch: true, stream: false })
+    });
+    const response = await onRequestPost({ request, env: { GEMINI_API_KEY: "gemini-test-key" } });
+    const data = await response.json();
+    assert.equal(response.status, 200);
+    assert.match(call.url, /generativelanguage\.googleapis\.com/);
+    assert.deepEqual(call.body.tools, [{ google_search: {} }]);
+    assert.equal(data.provider, "gemini");
+    assert.equal(data.reply, "پاسخ جست‌وجوشده");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
