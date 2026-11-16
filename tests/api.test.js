@@ -116,7 +116,7 @@ test('forwards chat to Groq and returns the assistant reply', async () => {
 test('selects a configured model profile from server-side settings', async () => {
  const originalFetch=globalThis.fetch; let sent;
  globalThis.fetch=async(_url,options)=>{sent=JSON.parse(options.body);return new Response(JSON.stringify({choices:[{message:{content:'پاسخ'}}],usage:{prompt_tokens:12,completion_tokens:8,total_tokens:20}}),{status:200});};
- try { const response=await onRequestPost({request:request({message:'تحلیل کن',mode:'deep'}),env:{GROQ_API_KEY:'test-key',GROQ_MODEL:'base-model',GROQ_MODEL_DEEP:'reasoning-model'}}); const body=await response.json(); assert.equal(response.status,200);assert.equal(sent.model,'reasoning-model');assert.equal(body.mode,'deep');assert.equal(body.model,'reasoning-model');assert.equal(body.usage.totalTokens,20); }
+ try { const response=await onRequestPost({request:request({message:'تحلیل کن',mode:'deep',collaborate:false}),env:{GROQ_API_KEY:'test-key',GROQ_MODEL:'base-model',GROQ_MODEL_DEEP:'reasoning-model'}}); const body=await response.json(); assert.equal(response.status,200);assert.equal(sent.model,'reasoning-model');assert.equal(body.mode,'deep');assert.equal(body.model,'reasoning-model');assert.equal(body.usage.totalTokens,20); }
  finally {globalThis.fetch=originalFetch;}
 });
 
