@@ -368,7 +368,7 @@ export async function onRequestPost({ request, env }) {
     try {
       primary = await requestModel({
         provider: providerChoice.provider, env, messages: buildMessagesForProvider(providerChoice.provider), model,
-        signal: controller.signal, maxTokens: plan.length ? 900 : 1200, temperature: 0.5, googleSearch: body.googleSearch === true && providerChoice.provider === "gemini", googleSearch: body.googleSearch === true && providerChoice.provider === "gemini"
+        signal: controller.signal, maxTokens: plan.length ? 900 : 1200, temperature: 0.5, googleSearch: body.googleSearch === true && providerChoice.provider === "gemini"
       });
     } catch (primaryError) {
       if (requestedProvider !== "auto" || controller.signal.aborted) throw primaryError;
