@@ -13,7 +13,7 @@ function memoryStorage(initial = {}) {
 test("chat preferences use safe defaults for missing or malformed data", () => {
   assert.deepEqual(normalizeChatPreferences(null), { provider: "auto", mode: "auto", compare: false, googleSearch: false });
   assert.deepEqual(normalizeChatPreferences({ provider: "unknown", mode: "turbo", compare: "yes" }), {
-    provider: "auto", mode: "auto", compare: false
+    provider: "auto", mode: "auto", compare: false, googleSearch: false
   });
 });
 
@@ -26,13 +26,13 @@ test("chat preferences preserve valid provider, response mode and comparison cho
 
 test("chat preferences reject invalid values independently", () => {
   assert.deepEqual(normalizeChatPreferences({ provider: "openai", mode: "invalid", compare: true }), {
-    provider: "openai", mode: "auto", compare: true
+    provider: "openai", mode: "auto", compare: true, googleSearch: false
   });
 });
 
 test("storage failures do not break chat startup or preference changes", () => {
   const broken = { getItem() { throw new Error("blocked"); }, setItem() { throw new Error("blocked"); } };
-  assert.deepEqual(readChatPreferences(broken), { provider: "auto", mode: "auto", compare: false });
+  assert.deepEqual(readChatPreferences(broken), { provider: "auto", mode: "auto", compare: false, googleSearch: false });
   assert.equal(saveChatPreferences({ provider: "groq", mode: "fast", compare: false }, broken), false);
 });
 
