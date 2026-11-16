@@ -139,7 +139,7 @@ test("buyer can request multiple products from one store in a single order", asy
   const secondId = "223e4567-e89b-12d3-a456-426614174000";
   const DB = orderDb({ product: [{}, { priceMinor: 1200, stockCount: 8 }] });
   const response = await onRequestPost({
-    request: request({ items: [{ productId: PRODUCT_ID, quantity: 2 }, { productId: secondId, quantity: 3 }] }),
+    request: request({ items: [{ productId: PRODUCT_ID, quantity: 2, priceMinor: 2500 }, { productId: secondId, quantity: 3, priceMinor: 1200 }] }),
     env: { DB }
   });
   assert.equal(response.status, 201);
@@ -153,7 +153,7 @@ test("buyer multi-item order fails closed when one item cannot be inserted", asy
   const secondId = "223e4567-e89b-12d3-a456-426614174000";
   const DB = orderDb({ product: [{}, { priceMinor: 1200 }], itemChanges: [1, 0] });
   const response = await onRequestPost({
-    request: request({ items: [{ productId: PRODUCT_ID, quantity: 1 }, { productId: secondId, quantity: 1 }] }),
+    request: request({ items: [{ productId: PRODUCT_ID, quantity: 1, priceMinor: 2500 }, { productId: secondId, quantity: 1, priceMinor: 1200 }] }),
     env: { DB }
   });
   assert.equal(response.status, 409);
@@ -175,15 +175,38 @@ test("buyer multi-item order rejects products from different stores", async () =
 test("buyer multi-item order rejects duplicate products and excessive item counts", async () => {
   const DB = orderDb();
   const duplicate = await onRequestPost({
-    request: request({ items: [{ productId: PRODUCT_ID, quantity: 1 }, { productId: PRODUCT_ID, quantity: 2 }] }),
+    request: request({ items: [{ productId: PRODUCT_ID, quantity: 1, priceMinor: 2500 }, { productId: PRODUCT_ID, quantity: 2, priceMinor: 2500 }] }),
     env: { DB }
   });
   assert.equal(duplicate.status, 400);
   const tooMany = await onRequestPost({
     request: request({ items: Array.from({ length: 21 }, (_, index) => ({
-      productId: index ? "223e4567-e89b-12d3-a456-426614174000" : PRODUCT_ID, quantity: 1
+      productId: index ? "223e4567-e89b-12d3-a456-426614174000" : PRODUCT_ID, quantity: 1, priceMinor: 2500
     })) }),
     env: { DB }
   });
   assert.equal(tooMany.status, 400);
+});
+
+
+test("buyer multi-item cart rejects a changed price instead of silently charging the new price", async () => {
+  const DB = orderDb({ product: { priceMinor: 3000 } });
+  const response = await onRequestPost({
+    request: request({ items: [{ productId: PRODUCT_ID, quantity: 1, priceMinor: 2500 }] }),
+    env: { DB }
+  });
+  assert.equal(response.status, 409);
+  assert.equal((await response.json()).error, "ORDER_PRICE_CHANGED");
+  assert.equal(DB.log.some(entry => entry.batch), false);
+});
+
+test("buyer multi-item cart requires the price the customer saw when adding the product", async () => {
+  const DB = orderDb();
+  const response = await onRequestPost({
+    request: request({ items: [{ productId: PRODUCT_ID, quantity: 1 }] }),
+    env: { DB }
+  });
+  assert.equal(response.status, 400);
+  assert.equal((await response.json()).error, "INVALID_ORDER_ITEMS");
+  assert.equal(DB.log.some(entry => entry.batch), false);
 });
