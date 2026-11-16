@@ -6,18 +6,14 @@ const PRODUCT_ID = "123e4567-e89b-12d3-a456-426614174000";
 
 function orderDb({ itemChanges = 1, product = {} } = {}) {
   const log = [];
-  const selectedProduct = {
-    id: PRODUCT_ID,
-    storeId: "store-1",
-    title: "Test product",
-    priceMinor: 2500,
-    currency: "EUR",
-    stockCount: 4,
-    storeStatus: "active",
-    offersDelivery: 1,
-    offersPickup: 1,
-    ...product
+  const defaults = {
+    id: PRODUCT_ID, storeId: "store-1", title: "Test product", priceMinor: 2500,
+    currency: "EUR", stockCount: 4, storeStatus: "active", offersDelivery: 1, offersPickup: 1
   };
+  const selectedProducts = (Array.isArray(product) ? product : [product]).map((item, index) => ({
+    ...defaults, id: index ? "223e4567-e89b-12d3-a456-426614174000" : PRODUCT_ID,
+    title: index ? "Second product" : defaults.title, ...item
+  }));
   return {
     log,
     prepare(sql) {
@@ -30,8 +26,11 @@ function orderDb({ itemChanges = 1, product = {} } = {}) {
                 return { id: "buyer-1", email: "buyer@example.test", role: "user" };
               }
               if (sql.includes("INSERT INTO api_rate_limits")) return { request_count: 1 };
-              if (sql.includes("SELECT p.id, p.store_id")) return selectedProduct;
               return null;
+            },
+            async all() {
+              if (sql.includes("SELECT p.id, p.store_id")) return { results: selectedProducts };
+              return { results: [] };
             },
             async run() {
               log[log.length - 1].values = values;
@@ -43,7 +42,9 @@ function orderDb({ itemChanges = 1, product = {} } = {}) {
     },
     async batch(statements) {
       log.push({ batch: statements.length });
-      return [{ meta: { changes: 1 } }, { meta: { changes: itemChanges } }];
+      return statements.map((_statement, index) => ({
+        meta: { changes: index === 0 ? 1 : Array.isArray(itemChanges) ? (itemChanges[index - 1] ?? 1) : itemChanges }
+      }));
     }
   };
 }
@@ -131,4 +132,58 @@ test("buyer order fails closed when a rechecked catalog constraint no longer mat
   assert.equal(response.status, 409);
   assert.equal((await response.json()).error, "ORDER_NOT_AVAILABLE");
   assert.ok(DB.log.some(entry => entry.sql?.startsWith("DELETE FROM marketplace_orders")));
+});
+
+
+test("buyer can request multiple products from one store in a single order", async () => {
+  const secondId = "223e4567-e89b-12d3-a456-426614174000";
+  const DB = orderDb({ product: [{}, { priceMinor: 1200, stockCount: 8 }] });
+  const response = await onRequestPost({
+    request: request({ items: [{ productId: PRODUCT_ID, quantity: 2 }, { productId: secondId, quantity: 3 }] }),
+    env: { DB }
+  });
+  assert.equal(response.status, 201);
+  const body = await response.json();
+  assert.equal(body.order.totalMinor, 8600);
+  assert.equal(body.order.itemCount, 2);
+  assert.equal(DB.log.find(entry => entry.batch)?.batch, 3);
+});
+
+test("buyer multi-item order fails closed when one item cannot be inserted", async () => {
+  const secondId = "223e4567-e89b-12d3-a456-426614174000";
+  const DB = orderDb({ product: [{}, { priceMinor: 1200 }], itemChanges: [1, 0] });
+  const response = await onRequestPost({
+    request: request({ items: [{ productId: PRODUCT_ID, quantity: 1 }, { productId: secondId, quantity: 1 }] }),
+    env: { DB }
+  });
+  assert.equal(response.status, 409);
+  assert.equal((await response.json()).error, "ORDER_NOT_AVAILABLE");
+  assert.ok(DB.log.some(entry => entry.sql?.startsWith("DELETE FROM marketplace_orders")));
+});
+
+test("buyer multi-item order rejects products from different stores", async () => {
+  const secondId = "223e4567-e89b-12d3-a456-426614174000";
+  const DB = orderDb({ product: [{}, { storeId: "other-store" }] });
+  const response = await onRequestPost({
+    request: request({ items: [{ productId: PRODUCT_ID, quantity: 1 }, { productId: secondId, quantity: 1 }] }),
+    env: { DB }
+  });
+  assert.equal(response.status, 409);
+  assert.equal(DB.log.some(entry => entry.batch), false);
+});
+
+test("buyer multi-item order rejects duplicate products and excessive item counts", async () => {
+  const DB = orderDb();
+  const duplicate = await onRequestPost({
+    request: request({ items: [{ productId: PRODUCT_ID, quantity: 1 }, { productId: PRODUCT_ID, quantity: 2 }] }),
+    env: { DB }
+  });
+  assert.equal(duplicate.status, 400);
+  const tooMany = await onRequestPost({
+    request: request({ items: Array.from({ length: 21 }, (_, index) => ({
+      productId: index ? "223e4567-e89b-12d3-a456-426614174000" : PRODUCT_ID, quantity: 1
+    })) }),
+    env: { DB }
+  });
+  assert.equal(tooMany.status, 400);
 });
