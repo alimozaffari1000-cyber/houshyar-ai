@@ -38,5 +38,5 @@ test("order requests are explicitly not represented as online payments or stock 
 test("order item insert requires the preflight price snapshot to remain unchanged", async () => {
   const source = await readFile(new URL("../functions/api/orders.js", import.meta.url), "utf8");
   assert.match(source, /p\.price_minor = \?/);
-  assert.match(source, /product\.priceMinor, product\.currency/);
+  assert.match(source, /item\.product\.priceMinor, item\.product\.currency/);
 });
