@@ -450,7 +450,8 @@ export async function onRequestPost({ request, env }) {
     requestedMode,
     provider: providerChoice.provider,
     model: result.model,
-    usage: result.usage,\n    sources: result.sources || [],
+    usage: result.usage,
+    sources: result.sources || [],
     agent: { id: selectedAgent.id, label: selectedAgent.label, labelEn: selectedAgent.labelEn },
     collaboration
   });
