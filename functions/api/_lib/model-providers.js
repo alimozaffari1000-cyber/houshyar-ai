@@ -1,6 +1,6 @@
 const CLAUDE_DEFAULT_MODEL = "claude-sonnet-5-5";
 const OPENAI_DEFAULT_MODEL = "gpt-6-astra";
-const GROQ_DEFAULT_MODEL = "llama-3.3-70b-versatile";
+const GROQ_DEFAULT_MODEL = "openai/gpt-oss-120b";
 
 export function listAvailableProviders(env = {}) {
   return [
