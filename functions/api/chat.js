@@ -220,7 +220,8 @@ export async function onRequestPost({ request, env }) {
   const modelProfiles = {
     groq: { fast: env.GROQ_MODEL_FAST, balanced: env.GROQ_MODEL, deep: env.GROQ_MODEL_DEEP, creative: env.GROQ_MODEL_CREATIVE },
     openai: { fast: env.OPENAI_MODEL_FAST, balanced: env.OPENAI_MODEL, deep: env.OPENAI_MODEL_DEEP, creative: env.OPENAI_MODEL_CREATIVE },
-    anthropic: { fast: env.CLAUDE_MODEL_FAST, balanced: env.CLAUDE_MODEL, deep: env.CLAUDE_MODEL_DEEP, creative: env.CLAUDE_MODEL_CREATIVE },\n    gemini: { fast: env.GEMINI_MODEL_FAST, balanced: env.GEMINI_MODEL, deep: env.GEMINI_MODEL_DEEP, creative: env.GEMINI_MODEL_CREATIVE }
+    anthropic: { fast: env.CLAUDE_MODEL_FAST, balanced: env.CLAUDE_MODEL, deep: env.CLAUDE_MODEL_DEEP, creative: env.CLAUDE_MODEL_CREATIVE },
+    gemini: { fast: env.GEMINI_MODEL_FAST, balanced: env.GEMINI_MODEL, deep: env.GEMINI_MODEL_DEEP, creative: env.GEMINI_MODEL_CREATIVE }
   };
   let model = validatedImages.attachments.length && providerChoice.provider === "groq"
     ? env.GROQ_MODEL_VISION
@@ -295,7 +296,7 @@ export async function onRequestPost({ request, env }) {
         completionTokens: sum.completionTokens + item.usage.completionTokens,
         totalTokens: sum.totalTokens + item.usage.totalTokens
       }), { promptTokens: 0, completionTokens: 0, totalTokens: 0 }) : null;
-      const reply = comparison.map((item, index) => "مدل " + (index + 1) + " (" + item.provider + " / " + item.model + ")\\n" + item.reply).join("\\n\\n━━━━━━━━━━━━━━━━━━━━\\n\\n");
+      const reply = comparison.map((item, index) => "مدل " + (index + 1) + " (" + item.provider + " / " + item.model + ")\\n" + item.reply).join("\n\n━━━━━━━━━━━━━━━━━━━━\n\n");
       return json({ reply, compare: true, comparison, usage, provider: "comparison", providers: comparison.map(item => item.provider), agent: { id: selectedAgent.id, label: selectedAgent.label, labelEn: selectedAgent.labelEn } });
     } catch {
       await releaseQuota();
@@ -311,7 +312,7 @@ export async function onRequestPost({ request, env }) {
     const streamTimeout = setTimeout(() => streamController.abort("upstream_timeout"), UPSTREAM_TIMEOUT_MS);
     const encoder = new TextEncoder();
     let streamCancelled = false;
-    const send = (controller, event) => { if (!streamCancelled) controller.enqueue(encoder.encode("data: " + JSON.stringify(event) + "\\n\\n")); };
+    const send = (controller, event) => { if (!streamCancelled) controller.enqueue(encoder.encode("data: " + JSON.stringify(event) + "\n\n")); };
     const stream = new ReadableStream({
       async start(controller) {
         try {
@@ -394,7 +395,7 @@ export async function onRequestPost({ request, env }) {
     if (plan.length === 2 && !controller.signal.aborted) {
       const reviewer = listAgents().find(agent => agent.id === plan[1].id);
       const reviewMessages = [
-        { role: "system", content: messages[0].content + "\\n\\nنقش بازبین همکار: " + plan[1].instruction +
+        { role: "system", content: messages[0].content + "\n\nنقش بازبین همکار: " + plan[1].instruction +
           "\\nپیش‌نویس عامل اول را مستقل ارزیابی کن؛ خطاهای factual، تناقض‌ها، جاافتادگی‌ها و ریسک‌ها را اصلاح کن. زنجیره فکر خصوصی را افشا نکن. فقط پاسخ نهاییِ اصلاح‌شده و قابل ارائه به کاربر را بنویس." },
         ...messages.slice(1),
         { role: "assistant", content: primary.reply },
