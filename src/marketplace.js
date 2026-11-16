@@ -275,9 +275,9 @@ export function initMarketplace(app, { locale = "fa" } = {}) {
   async function loadSeller({ silent = false } = {}) {
     if (!silent) { sellerNode.innerHTML = ""; say(c.loading); }
     try {
-      const [data, mediaData, orderData] = await Promise.all([request("/api/store/mine"), request("/api/store/products/media"), request("/api/store/orders").catch(() => ({ orders:[] }))]);
+      const [data, mediaData, orderData] = await Promise.all([request("/api/store/mine"), request("/api/store/products/media"), request("/api/store/orders").catch(() => ({ orders:null }))]);
       const orders = Array.isArray(orderData.orders) ? orderData.orders : [];
-      notifyOrderChanges("seller", orders);
+      if (Array.isArray(orderData.orders)) notifyOrderChanges("seller", orders);
       renderSeller(data, Array.isArray(mediaData.media) ? mediaData.media : [], orders);
       if (!silent) say("");
     } catch (error) {
