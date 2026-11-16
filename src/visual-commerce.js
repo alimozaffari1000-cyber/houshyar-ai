@@ -3,8 +3,7 @@ const COPY = {
   en: {open:"Virtual try-on",title:"Virtual try-on & room styling",desc:"Choose a photo of yourself or your room, then add the product image to prepare a try-on.",apparel:"Try on clothing",room:"Style a room",person:"Full-body photo",space:"Room photo",product:"Product photo",choose:"Choose image",remove:"Remove image",privacy:"Images are previewed only in this browser. This version does not upload or store any images.",ready:"Local preview is ready. A real result requires a connected image-processing provider and secure storage.",provider:"AI image generation is not enabled yet.",close:"Close",fileError:"Only JPG, PNG or WebP images up to 8 MB are allowed.",need:"Choose both a person/room photo and a product photo to continue."}
 };
 const escapeHTML = value => String(value).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-const MAX_BYTES = 8 * 1024 * 1024;
-const TYPES = new Set(["image/jpeg","image/png","image/webp"]);
+import { validateVisualImage } from "./visual-image-validation.js";
 
 export function initVisualCommerce(root,{locale="fa"}={}) {
   const trigger=root.querySelector("[data-open-visual-commerce]");
@@ -52,12 +51,24 @@ export function initVisualCommerce(root,{locale="fa"}={}) {
       release(key);
       const file=input.files?.[0];
       if(!file)return;
-      if(!TYPES.has(file.type)||file.size>MAX_BYTES){status.textContent=c.fileError;input.value="";return;}
-      urls[key]=URL.createObjectURL(file);
-      const preview=overlay.querySelector('[data-visual-preview="'+key+'"]');
-      preview.src=urls[key];preview.hidden=false;
-      overlay.querySelector('[data-visual-remove="'+key+'"]').hidden=false;
-      status.textContent=c.ready;
+      status.textContent=locale==="fa"?"در حال بررسی تصویر…":"Validating image…";
+      validateVisualImage(file).then(result=>{
+        if(input.files?.[0]!==file)return;
+        if(!result.valid){
+          status.textContent=result.reason==="dimensions"
+            ? (locale==="fa"?"ابعاد تصویر بیش از حد مجاز است.":"Image dimensions exceed the allowed limit.")
+            : result.reason==="decode_failed"
+              ? (locale==="fa"?"فایل تصویر معتبر یا قابل‌خواندن نیست.":"The image file is invalid or cannot be decoded.")
+              : c.fileError;
+          input.value="";
+          return;
+        }
+        urls[key]=URL.createObjectURL(file);
+        const preview=overlay.querySelector('[data-visual-preview="'+key+'"]');
+        preview.src=urls[key];preview.hidden=false;
+        overlay.querySelector('[data-visual-remove="'+key+'"]').hidden=false;
+        status.textContent=c.ready;
+      });
     });
     overlay.querySelector('[data-visual-remove="'+key+'"]').addEventListener("click",event=>{event.preventDefault();event.stopPropagation();release(key);status.textContent=c.need;});
   }
