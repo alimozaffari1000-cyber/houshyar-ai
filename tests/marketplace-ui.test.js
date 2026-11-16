@@ -290,7 +290,9 @@ test("marketplace refreshes active order tabs and announces newly received or ch
   assert.match(ui, /setInterval\(\(\) => \{/);
   assert.match(ui, /30000\)/);
   assert.match(ui, /clearInterval\(orderPollTimer\)/);
-  assert.match(ui, /loadSeller\(\{ silent:true \}\)/);
+  assert.match(ui, /pollSellerOrders\(\)/);
+  assert.match(ui, /data-orders-refresh="seller"/);
+  assert.match(ui, /catch \{ \/\* Keep the last known notification baseline/);
   assert.match(ui, /loadBuyerOrders\(\{ silent:true \}\)/);
   assert.match(ui, /role="status" aria-live="polite"/);
 });
