@@ -2,6 +2,7 @@ import { getSessionUser, originAllowed } from "../../_lib/auth.js";
 import { authJson, readAuthBody, enforceAuthRateLimit } from "../../_lib/auth-flow.js";
 
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+const MAX_IMAGE_PIXELS = 40_000_000;
 const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 const uuid = () => crypto.randomUUID();
 
@@ -81,7 +82,7 @@ export async function onRequestPost({ request, env }) {
     const bytes = new Uint8Array(await file.arrayBuffer());
     if (!matchesSignature(bytes, file.type)) return authJson({ error: "INVALID_IMAGE_SIGNATURE" }, 400);
     const size = dimensions(bytes, file.type);
-    if (!size || !Number.isInteger(size.width) || !Number.isInteger(size.height) || size.width < 1 || size.height < 1 || size.width > 12000 || size.height > 12000) return authJson({ error: "INVALID_IMAGE_DIMENSIONS" }, 400);
+    if (!size || !Number.isInteger(size.width) || !Number.isInteger(size.height) || size.width < 1 || size.height < 1 || size.width > 12000 || size.height > 12000 || size.width * size.height > MAX_IMAGE_PIXELS) return authJson({ error: "INVALID_IMAGE_DIMENSIONS" }, 400);
     const mediaId = uuid();
     const key = "products/" + productId + "/" + mediaId;
     await env.MEDIA_BUCKET.put(key, bytes, { httpMetadata: { contentType: file.type }, customMetadata: { productId, mediaId } });
