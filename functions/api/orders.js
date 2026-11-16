@@ -70,8 +70,8 @@ export async function onRequestPost({ request, env }) {
         "INSERT INTO marketplace_order_items (id, order_id, product_id, product_title, quantity, unit_price_minor, line_total_minor) " +
         "SELECT ?, ?, p.id, p.title, ?, p.price_minor, p.price_minor * ? FROM products p JOIN merchant_stores s ON s.id = p.store_id " +
         "WHERE p.id = ? AND p.status = 'published' AND s.status = 'active' AND p.stock_count >= ? " +
-        "AND p.currency_code = ? AND (? = 'delivery' AND s.offers_delivery = 1 OR ? = 'pickup' AND s.offers_pickup = 1)"
-      ).bind(itemId, id, quantity, quantity, productId, quantity, product.currency, fulfillment, fulfillment)
+        "AND p.price_minor = ? AND p.currency_code = ? AND (? = 'delivery' AND s.offers_delivery = 1 OR ? = 'pickup' AND s.offers_pickup = 1)"
+      ).bind(itemId, id, quantity, quantity, productId, quantity, product.priceMinor, product.currency, fulfillment, fulfillment)
     ];
     const results = await env.DB.batch(statements);
     const inserted = Number(results?.[1]?.meta?.changes ?? results?.[1]?.changes ?? 0);
