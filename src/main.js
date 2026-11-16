@@ -10,6 +10,7 @@ import { initMarketplace } from './marketplace.js';
 import { initVisualCommerce } from './visual-commerce.js';
 import { normalizeChatHistory } from './chat-memory.js';
 import { readChatPreferences, saveChatPreferences } from './chat-preferences.js';
+import { normalizeProviderStatus, providerStatusLabel } from './provider-status.js';
 
 const app = document.querySelector('#app');
 const RESPONSE_MODE_LABELS = {"fa":["سریع","متعادل","تحلیلی عمیق","خلاق"],"en":["Fast","Balanced","Deep reasoning","Creative"],"de":["Schnell","Ausgewogen","Tiefgehend","Kreativ"],"ar":["سريع","متوازن","استدلال عميق","إبداعي"],"tr":["Hızlı","Dengeli","Derin düşünme","Yaratıcı"],"es":["Rápido","Equilibrado","Razonamiento profundo","Creativo"],"fr":["Rapide","Équilibré","Raisonnement approfondi","Créatif"],"ru":["Быстрый","Сбалансированный","Глубокий анализ","Творческий"],"zh":["快速","均衡","深度推理","创意"],"hi":["तेज़","संतुलित","गहन तर्क","रचनात्मक"],"ur":["تیز","متوازن","گہری سوچ","تخلیقی"],"pt":["Rápido","Equilibrado","Raciocínio profundo","Criativo"]};
@@ -20,7 +21,7 @@ const CANCEL_LABELS = {fa:'توقف پاسخ',en:'Stop generating',de:'Antwort s
 const readChatHistory = () => { try { return normalizeChatHistory(JSON.parse(localStorage.getItem(CHAT_HISTORY_KEY) || '[]')); } catch { return []; } };
 const makeId = () => globalThis.crypto?.randomUUID?.() || 'chat-' + Date.now() + '-' + Math.random().toString(36).slice(2,8);
 const chatPreferences = readChatPreferences();
-const state = { messages: [], busy: false, requestController: null, draft: '', mode: chatPreferences.mode, compare: chatPreferences.compare, provider: chatPreferences.provider, conversations: readChatHistory(), activeConversationId: null, sidebarOpen: false, attachments: [], attachmentNotice: '' };
+const state = { messages: [], busy: false, requestController: null, draft: '', mode: chatPreferences.mode, compare: chatPreferences.compare, provider: chatPreferences.provider, providerStatus: null, providerStatusLoaded: false, conversations: readChatHistory(), activeConversationId: null, sidebarOpen: false, attachments: [], attachmentNotice: '' };
 const persistChatPreferences = () => saveChatPreferences({ provider: state.provider, mode: state.mode, compare: state.compare });
 const DESIGN_STUDIO_LABELS = {fa:'استودیو طراحی',en:'Design Studio',de:'Designstudio',ar:'استوديو التصميم',tr:'Tasarım Stüdyosu',es:'Estudio de diseño',fr:'Studio de design',ru:'Студия дизайна',zh:'设计工作室',hi:'डिज़ाइन स्टूडियो',ur:'ڈیزائن اسٹوڈیو',pt:'Estúdio de design'};
 const AUTO_MODE_LABELS = { fa: 'یادگیری خودکار', en: 'Adaptive auto', de: 'Adaptiv automatisch', ar: 'تلقائي متكيف', tr: 'Uyarlanabilir otomatik', es: 'Automático adaptativo', fr: 'Automatique adaptatif', ru: 'Адаптивный авто', zh: '自适应自动', hi: 'अनुकूली ऑटो', ur: 'خودکار موافق', pt: 'Automático adaptativo' };
@@ -97,13 +98,40 @@ function render() {
     </section>
     <div class="chat-tools"><span>${t('chat',locale)}</span><button id="clear-chat" type="button" ${state.messages.length || state.draft ? '' : 'disabled'}>${t('clear',locale)}</button></div>
     <section class="chat" aria-live="polite" aria-label="${t('chatMessagesLabel',locale)}">${state.messages.map((m,i)=>`<article class="msg ${m.role}"><div class="msg-head"><b>${m.role==='user'?t('you',locale):t('assistant',locale)}</b>${m.agent?'<small class="agent-label"> · '+escapeHTML(m.agent.label)+'</small>':''}${m.collaboration?.enabled?'<small class="collaboration-label"> · '+(m.collaboration.status==='completed'?'بازبینی چندعاملی':'بازبینی ناقص')+'</small>':''}${m.role==='assistant'?'<button type="button" class="copy-reply" data-index="'+i+'" aria-label="'+t('copy',locale)+'">'+t('copy',locale)+'</button>':''}</div><div class="message-content">${formatMessage(m.text)}</div></article>`).join('')}${state.busy?'<article class="msg assistant" role="status"><b>'+t('assistant',locale)+'</b><p>'+t('thinking',locale)+'</p><button type="button" id="cancel-response" class="cancel-response">'+(CANCEL_LABELS[locale]||CANCEL_LABELS.en)+'</button></article>':''}</section>
-    <div class="mode-control"><label for="ai-provider">موتور هوش مصنوعی</label><select id="ai-provider" aria-label="AI provider"><option value="auto" ${state.provider==='auto'?'selected':''}>انتخاب خودکار</option><option value="groq" ${state.provider==='groq'?'selected':''}>Groq</option><option value="openai" ${state.provider==='openai'?'selected':''}>OpenAI</option><option value="anthropic" ${state.provider==='anthropic'?'selected':''}>Claude (Anthropic)</option></select><label class="compare-toggle"><input id="compare-models" type="checkbox" ${state.compare ? "checked" : ""}> ${COMPARE_LABELS[locale] || COMPARE_LABELS.en}</label><label for="response-mode">${RESPONSE_MODE_TITLES[locale] || "Response mode"}</label><select id="response-mode" aria-label="Response mode">${["auto","fast","balanced","deep","creative"].map((mode,i)=>'<option value="'+mode+'" '+(state.mode===mode?'selected':'')+'>'+(mode === 'auto' ? (AUTO_MODE_LABELS[locale] || AUTO_MODE_LABELS.en) : RESPONSE_MODE_LABELS[locale][i-1])+'</option>').join('')}</select></div>\n    <div class="attachment-list" id="attachment-list" aria-live="polite">${state.attachments.map((item,index)=>'<span class="attachment-chip">📎 '+escapeHTML(item.name)+' <button type="button" data-remove-attachment="'+index+'" aria-label="حذف پیوست">×</button></span>').join('')}${state.attachmentNotice?'<span class="attachment-notice">'+escapeHTML(state.attachmentNotice)+'</span>':''}</div>
+    <div class="mode-control"><label for="ai-provider">موتور هوش مصنوعی</label><select id="ai-provider" aria-label="AI provider"><option value="auto" ${state.provider==='auto'?'selected':''}>انتخاب خودکار</option><option value="groq" ${state.provider==='groq'?'selected':''}>Groq</option><option value="openai" ${state.provider==='openai'?'selected':''}>OpenAI</option><option value="anthropic" ${state.provider==='anthropic'?'selected':''}>Claude (Anthropic)</option></select><span id="provider-status" class="provider-status" role="status" aria-live="polite"></span><label class="compare-toggle"><input id="compare-models" type="checkbox" ${state.compare ? "checked" : ""}> ${COMPARE_LABELS[locale] || COMPARE_LABELS.en}</label><label for="response-mode">${RESPONSE_MODE_TITLES[locale] || "Response mode"}</label><select id="response-mode" aria-label="Response mode">${["auto","fast","balanced","deep","creative"].map((mode,i)=>'<option value="'+mode+'" '+(state.mode===mode?'selected':'')+'>'+(mode === 'auto' ? (AUTO_MODE_LABELS[locale] || AUTO_MODE_LABELS.en) : RESPONSE_MODE_LABELS[locale][i-1])+'</option>').join('')}</select></div>\n    <div class="attachment-list" id="attachment-list" aria-live="polite">${state.attachments.map((item,index)=>'<span class="attachment-chip">📎 '+escapeHTML(item.name)+' <button type="button" data-remove-attachment="'+index+'" aria-label="حذف پیوست">×</button></span>').join('')}${state.attachmentNotice?'<span class="attachment-notice">'+escapeHTML(state.attachmentNotice)+'</span>':''}</div>
     <form id="chat-form"><input id="chat-file-input" type="file" accept="image/jpeg,image/png,image/webp,image/gif,.txt,.md,.csv" multiple hidden><button id="attach-file" type="button" class="attach-file" aria-label="${locale==='fa'?'افزودن تصویر یا فایل':'Attach image or file'}" title="${locale==='fa'?'افزودن تصویر یا فایل':'Attach image or file'}">＋</button><textarea id="prompt" aria-label="${t('messageInputLabel',locale)}" rows="1" maxlength="6000" placeholder="${t('placeholder',locale)}">${escapeHTML(state.draft)}</textarea><button id="send" type="submit" ${state.busy?'disabled':''}>${t('send',locale)}</button></form>
     <p class="input-hint">${t('hint',locale)} · ${locale==='fa'?'تصویر تا ۲ مگابایت؛ فایل متنی تا ۴ کیلوبایت':'Images up to 2 MB; text files up to 4 KB'}</p>
     <p class="notice">${t('notice',locale)}</p></main>
       </div>
     </div>
     <footer>${t('footer',locale)}</footer>`;
+  const providerSelect = app.querySelector('#ai-provider');
+  const providerStatusNode = app.querySelector('#provider-status');
+  const applyProviderStatus = () => {
+    if (!state.providerStatus) {
+      providerStatusNode.textContent = locale === 'fa' ? 'وضعیت موتورهای هوش مصنوعی در حال بررسی است…' : 'Checking AI provider configuration…';
+      return;
+    }
+    const selected = state.provider === 'auto' ? null : state.provider;
+    providerStatusNode.textContent = selected
+      ? providerStatusLabel(selected, state.providerStatus, locale)
+      : (state.providerStatus.status === 'configured'
+        ? (locale === 'fa' ? 'حداقل یک موتور پیکربندی شده است' : 'At least one provider is configured')
+        : (locale === 'fa' ? 'نیازمند تنظیم کلید API در سرور' : 'Server API key setup required'));
+    for (const option of providerSelect.options) {
+      if (option.value === 'auto') continue;
+      const base = option.value === 'anthropic' ? 'Claude (Anthropic)' : option.value === 'openai' ? 'OpenAI' : 'Groq';
+      option.textContent = base + ' — ' + providerStatusLabel(option.value, state.providerStatus, locale);
+    }
+  };
+  applyProviderStatus();
+  if (!state.providerStatusLoaded) {
+    state.providerStatusLoaded = true;
+    fetch('/api/chat', { headers: { Accept: 'application/json' }, cache: 'no-store' })
+      .then(response => response.json())
+      .then(payload => { state.providerStatus = normalizeProviderStatus(payload); applyProviderStatus(); })
+      .catch(() => { state.providerStatus = normalizeProviderStatus(null); applyProviderStatus(); });
+  }
   attachLearningFeedback(app.querySelector('.chat'), state.messages, locale);
   initDesignStudio(app, { locale });
   initMarketplace(app, { locale });
