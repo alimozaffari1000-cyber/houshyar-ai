@@ -1,23 +1,25 @@
 const CLAUDE_DEFAULT_MODEL = "claude-sonnet-5-5";
 const OPENAI_DEFAULT_MODEL = "gpt-6-astra";
 const GROQ_DEFAULT_MODEL = "openai/gpt-oss-120b";
+const GEMINI_DEFAULT_MODEL = "gemini-3.8-flash";
 
 export function listAvailableProviders(env = {}) {
   return [
     { id: "groq", available: Boolean(env.GROQ_API_KEY), defaultModel: env.GROQ_MODEL || GROQ_DEFAULT_MODEL },
     { id: "openai", available: Boolean(env.OPENAI_API_KEY), defaultModel: env.OPENAI_MODEL || OPENAI_DEFAULT_MODEL },
-    { id: "anthropic", available: Boolean(env.CLAUDE_API_KEY), defaultModel: env.CLAUDE_MODEL || CLAUDE_DEFAULT_MODEL }
+    { id: "anthropic", available: Boolean(env.CLAUDE_API_KEY), defaultModel: env.CLAUDE_MODEL || CLAUDE_DEFAULT_MODEL },
+    { id: "gemini", available: Boolean(env.GEMINI_API_KEY), defaultModel: env.GEMINI_MODEL || GEMINI_DEFAULT_MODEL }
   ];
 }
 
 export function resolveProvider(env = {}, requested = "auto", mode = "balanced") {
   const available = listAvailableProviders(env);
-  const requestedId = ["groq", "openai", "anthropic"].includes(requested) ? requested : "auto";
+  const requestedId = ["groq", "openai", "anthropic", "gemini"].includes(requested) ? requested : "auto";
   let selected = requestedId;
   if (requestedId === "auto") {
     const configuredDefault = available.find(item => item.id === env.AI_DEFAULT_PROVIDER && item.available);
     selected = configuredDefault?.id || (mode === "deep" && env.CLAUDE_API_KEY ? "anthropic" :
-      (env.GROQ_API_KEY ? "groq" : (env.OPENAI_API_KEY ? "openai" : "anthropic")));
+      (env.GROQ_API_KEY ? "groq" : (env.OPENAI_API_KEY ? "openai" : (env.CLAUDE_API_KEY ? "anthropic" : "gemini"))));
   }
   const provider = available.find(item => item.id === selected);
   if (!provider?.available) return { error: "PROVIDER_NOT_CONFIGURED", provider: selected };
@@ -27,6 +29,7 @@ export function resolveProvider(env = {}, requested = "auto", mode = "balanced")
 function modelForProvider(provider, env, model) {
   if (model) return model;
   if (provider === "anthropic") return env.CLAUDE_MODEL || CLAUDE_DEFAULT_MODEL;
+  if (provider === "gemini") return env.GEMINI_MODEL || GEMINI_DEFAULT_MODEL;
   if (provider === "openai") return env.OPENAI_MODEL || OPENAI_DEFAULT_MODEL;
   return env.GROQ_MODEL || GROQ_DEFAULT_MODEL;
 }
@@ -37,7 +40,7 @@ function openAICompatibleConfig(provider, env) {
   throw new Error("provider_not_configured");
 }
 
-export async function requestModel({ provider, env, messages, model, signal, maxTokens = 1200, temperature = 0.5 }) {
+export async function requestModel({ provider, env, messages, model, signal, maxTokens = 1200, temperature = 0.5, googleSearch = false }) {
   if (provider === "anthropic") {
     if (!env.CLAUDE_API_KEY) throw new Error("provider_not_configured");
     const system = messages.filter(item => item.role === "system").map(item => item.content).join("\n\n");
@@ -68,23 +71,23 @@ export async function requestModel({ provider, env, messages, model, signal, max
   return { reply: reply.trim(), model: data.model || selectedModel, usage: data.usage ? { promptTokens: data.usage.prompt_tokens || 0, completionTokens: data.usage.completion_tokens || 0, totalTokens: data.usage.total_tokens || 0 } : null };
 }
 
-export async function streamModel({ provider, env, messages, model, signal, maxTokens = 1200, temperature = 0.5, onText }) {
-  const isClaude = provider === "anthropic";
+export async function streamModel({ provider, env, messages, model, signal, maxTokens = 1200, temperature = 0.5, googleSearch = false, onText }) {
+  const isGemini = provider === "gemini";\n  if (isGemini && !env.GEMINI_API_KEY) throw new Error("provider_not_configured");\n  const isClaude = provider === "anthropic";
   if (isClaude && !env.CLAUDE_API_KEY) throw new Error("provider_not_configured");
-  const config = isClaude ? null : openAICompatibleConfig(provider, env);
+  const config = isClaude || isGemini ? null : openAICompatibleConfig(provider, env);
   const selectedModel = modelForProvider(provider, env, model);
   const system = messages.filter(item => item.role === "system").map(item => item.content).join("\n\n");
   const conversation = messages.filter(item => item.role !== "system");
-  const response = await fetch(isClaude ? "https://api.anthropic.com/v1/messages" : config.url, {
+  const endpoint = isGemini\n    ? "https://generativelanguage.googleapis.com/v1beta/models/" + encodeURIComponent(selectedModel) + ":streamGenerateContent?alt=sse"\n    : (isClaude ? "https://api.anthropic.com/v1/messages" : config.url);\n  const response = await fetch(endpoint, {
     method: "POST",
-    headers: isClaude ? { "x-api-key": env.CLAUDE_API_KEY, "anthropic-version": "2023-06-01", "content-type": "application/json" } : config.headers,
-    body: JSON.stringify(isClaude ? { model: selectedModel, max_tokens: maxTokens, system, messages: conversation, stream: true } : (provider === "openai" ? { model: selectedModel, messages, max_completion_tokens: maxTokens, stream: true } : { model: selectedModel, messages, temperature, max_completion_tokens: maxTokens, stream: true })),
+    headers: isGemini ? { "x-goog-api-key": env.GEMINI_API_KEY, "content-type": "application/json" } : (isClaude ? { "x-api-key": env.CLAUDE_API_KEY, "anthropic-version": "2023-06-01", "content-type": "application/json" } : config.headers),
+    body: JSON.stringify(isGemini ? geminiRequestBody(messages, { maxTokens, temperature, googleSearch }) : (isClaude ? { model: selectedModel, max_tokens: maxTokens, system, messages: conversation, stream: true } : (provider === "openai" ? { model: selectedModel, messages, max_completion_tokens: maxTokens, stream: true } : { model: selectedModel, messages, temperature, max_completion_tokens: maxTokens, stream: true }))),
     signal
   });
   if (!response.ok || !response.body) throw new Error("provider_request_failed");
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
-  let buffer = "", reply = "", usage = null;
+  let buffer = "", reply = "", usage = null, sources = [];
   const consumeEvent = block => {
     const dataLines = block.split(/\r?\n/).filter(line => line.startsWith("data:")).map(line => line.slice(5).replace(/^ /, ""));
     if (!dataLines.length) return;
@@ -114,5 +117,5 @@ export async function streamModel({ provider, env, messages, model, signal, maxT
     if (buffer.trim()) consumeEvent(buffer);
   } finally { reader.releaseLock(); }
   if (!reply.trim()) throw new Error("provider_empty_reply");
-  return { reply: reply.trim(), model: selectedModel, usage };
+  return { reply: reply.trim(), model: selectedModel, usage, sources };
 }
