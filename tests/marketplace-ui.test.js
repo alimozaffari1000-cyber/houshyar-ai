@@ -196,3 +196,23 @@ test("buyer order history is reachable in Persian and English marketplace UI and
   assert.match(ui, /orderCompleted/);
   assert.match(api, /WHERE o\.buyer_id = \?/);
 });
+
+
+test("buyer marketplace provides a same-store multi-item cart and submits the items API payload", async () => {
+  const ui = await readFile(new URL("../src/marketplace.js", import.meta.url), "utf8");
+  assert.match(ui, /data-cart-add=/);
+  assert.match(ui, /data-cart-form/);
+  assert.match(ui, /data-cart-quantity=/);
+  assert.match(ui, /data-cart-remove=/);
+  assert.match(ui, /cartStoreMismatch/);
+  assert.match(ui, /cartQtyInvalid/);
+  assert.match(ui, /items:Array\.from\(cart\.values\(\)\)\.map\(item => \(\{ productId:item\.productId, quantity:item\.quantity \}\)\)/);
+  assert.match(ui, /cart\.clear\(\)/);
+});
+
+test("buyer order history groups multiple product rows under one order", async () => {
+  const ui = await readFile(new URL("../src/marketplace.js", import.meta.url), "utf8");
+  assert.match(ui, /const grouped = new Map\(\)/);
+  assert.match(ui, /order\.items\.map\(item => escape\(item\.title\)/);
+  assert.match(ui, /money\(order\.totalMinor, locale\)/);
+});
