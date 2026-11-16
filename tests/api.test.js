@@ -249,3 +249,186 @@ test('returns 504 when the upstream deadline aborts the request', async () => {
     globalThis.clearTimeout = originalClearTimeout;
   }
 });
+
+
+test('propagates browser cancellation to the upstream AI request', async () => {
+  const originalFetch = globalThis.fetch;
+  const client = new AbortController();
+  let upstreamSignal;
+  globalThis.fetch = async (_url, options) => {
+    upstreamSignal = options.signal;
+    return await new Promise((resolve, reject) => {
+      if (options.signal.aborted) return reject(new Error('aborted'));
+      options.signal.addEventListener('abort', () => reject(new Error('aborted')), { once: true });
+    });
+  };
+  try {
+    const pending = onRequestPost({
+      request: new Request('https://example.test/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: 'یک پاسخ طولانی بده' }),
+        signal: client.signal
+      }),
+      env: { GROQ_API_KEY: 'test-key' }
+    });
+    for (let i = 0; i < 10 && !upstreamSignal; i++) await Promise.resolve();
+    assert.ok(upstreamSignal instanceof AbortSignal);
+    client.abort();
+    const response = await pending;
+    assert.equal(upstreamSignal.aborted, true);
+    assert.equal(response.status, 499);
+    assert.equal((await response.json()).error, 'REQUEST_CANCELLED');
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+
+test('chat API returns server-sent events when streaming is requested', async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (_url, options) => {
+    assert.equal(JSON.parse(options.body).stream, true);
+    return new Response([
+      'data: {"choices":[{"delta":{"content":"سلام"}}]}\n\n',
+      'data: [DONE]\n\n'
+    ].join(""), { status: 200, headers: { "content-type": "text/event-stream" } });
+  };
+  try {
+    const response = await onRequestPost({
+      request: request({ message: 'سلام', stream: true, collaborate: false }),
+      env: { GROQ_API_KEY: 'test-key' }
+    });
+    assert.equal(response.status, 200);
+    assert.match(response.headers.get('content-type'), /text\/event-stream/);
+    const body = await response.text();
+    assert.match(body, /"type":"delta","text":"سلام"/);
+    assert.match(body, /"type":"done"/);
+  } finally { globalThis.fetch = originalFetch; }
+});
+
+
+test("validates image signatures and forwards accepted images to Claude vision", async () => {
+  const originalFetch = globalThis.fetch;
+  let sentBody;
+  globalThis.fetch = async (_url, options) => {
+    sentBody = JSON.parse(options.body);
+    return new Response(JSON.stringify({
+      model: "claude-sonnet-5-5",
+      content: [{ type: "text", text: "تصویر دریافت شد" }]
+    }), { status: 200, headers: { "content-type": "application/json" } });
+  };
+  try {
+    const response = await onRequestPost({
+      request: request({
+        message: "این عکس چیست؟",
+        attachments: [{ mimeType: "image/jpeg", data: "/9j/" }]
+      }),
+      env: { GROQ_API_KEY: "groq-test", CLAUDE_API_KEY: "claude-test" }
+    });
+    const data = await response.json();
+    assert.equal(response.status, 200);
+    assert.equal(data.provider, "anthropic");
+    const image = sentBody.messages.at(-1).content.find(block => block.type === "image");
+    assert.deepEqual(image, { type: "image", source: { type: "base64", media_type: "image/jpeg", data: "/9j/" } });
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("rejects spoofed image MIME types before contacting an AI provider", async () => {
+  const originalFetch = globalThis.fetch;
+  let called = false;
+  globalThis.fetch = async () => { called = true; throw new Error("must not call provider"); };
+  try {
+    const response = await onRequestPost({
+      request: request({
+        message: "این فایل را بررسی کن",
+        attachments: [{ mimeType: "image/png", data: "bm90LWEtcG5n" }]
+      }),
+      env: { CLAUDE_API_KEY: "claude-test" }
+    });
+    assert.equal(response.status, 400);
+    assert.equal((await response.json()).error, "INVALID_ATTACHMENTS");
+    assert.equal(called, false);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("rejects images above the per-file size limit", async () => {
+  const response = await onRequestPost({
+    request: request({
+      message: "عکس را ببین",
+      attachments: [{ mimeType: "image/jpeg", data: "A".repeat(2_800_000) }]
+    }),
+    env: { CLAUDE_API_KEY: "claude-test" }
+  });
+  assert.equal(response.status, 413);
+  assert.equal((await response.json()).error, "ATTACHMENT_TOO_LARGE");
+});
+
+test("health endpoint lists OpenAI as an independent configured provider", async () => {
+  const response = await onRequestGet({ env: { OPENAI_API_KEY: "private-openai-key" } });
+  const body = await response.json();
+  assert.equal(response.status, 200);
+  assert.equal(body.aiConfigured, true);
+  assert.deepEqual(body.providers.map(item => [item.id, item.available]), [
+    ["groq", false], ["openai", true], ["anthropic", false], ["gemini", false]
+  ]);
+  assert.equal(JSON.stringify(body).includes("private-openai-key"), false);
+});
+
+test("chat API routes explicit OpenAI requests to the official endpoint", async () => {
+  const originalFetch = globalThis.fetch;
+  let call;
+  globalThis.fetch = async (url, options) => {
+    call = { url, body: JSON.parse(options.body), authorization: options.headers.Authorization };
+    return new Response(JSON.stringify({ model: "gpt-test", choices: [{ message: { content: "سلام از OpenAI" } }] }), { status: 200 });
+  };
+  try {
+    const response = await onRequestPost({ request: request({ message: "سلام", provider: "openai" }), env: { OPENAI_API_KEY: "private-key", OPENAI_MODEL: "gpt-test" } });
+    const body = await response.json();
+    assert.equal(response.status, 200);
+    assert.equal(body.provider, "openai");
+    assert.equal(body.model, "gpt-test");
+    assert.equal(body.reply, "سلام از OpenAI");
+    assert.equal(call.url, "https://api.openai.com/v1/chat/completions");
+    assert.equal(call.authorization, "Bearer private-key");
+  } finally { globalThis.fetch = originalFetch; }
+});
+test("auto mode fails over from an unavailable Groq endpoint to OpenAI", async () => {
+  const originalFetch = globalThis.fetch;
+  const called = [];
+  globalThis.fetch = async (url, options) => {
+    called.push(url);
+    if (url.includes("api.groq.com")) return new Response("unavailable", { status: 503 });
+    return new Response(JSON.stringify({ model: "gpt-test", choices: [{ message: { content: "پاسخ جایگزین" } }] }), { status: 200 });
+  };
+  try {
+    const response = await onRequestPost({ request: request({ message: "سلام", provider: "auto" }), env: { GROQ_API_KEY: "groq-key", OPENAI_API_KEY: "openai-key", OPENAI_MODEL: "gpt-test" } });
+    const body = await response.json();
+    assert.equal(response.status, 200);
+    assert.equal(body.provider, "openai");
+    assert.equal(body.reply, "پاسخ جایگزین");
+    assert.deepEqual(called, ["https://api.groq.com/openai/v1/chat/completions", "https://api.openai.com/v1/chat/completions"]);
+  } finally { globalThis.fetch = originalFetch; }
+});
+
+test("auto streaming can fail over before the first text delta", async () => {
+  const originalFetch = globalThis.fetch;
+  const called = [];
+  globalThis.fetch = async (url) => {
+    called.push(url);
+    if (url.includes("api.groq.com")) return new Response("unavailable", { status: 503 });
+    return new Response([`data: {"choices":[{"delta":{"content":"پاسخ زنده"}}]}\n\n`,`data: [DONE]\n\n`].join(""), { status: 200, headers: { "content-type": "text/event-stream" } });
+  };
+  try {
+    const response = await onRequestPost({ request: request({ message: "سلام", provider: "auto", stream: true, collaborate: false }), env: { GROQ_API_KEY: "groq-key", OPENAI_API_KEY: "openai-key", OPENAI_MODEL: "gpt-test" } });
+    const body = await response.text();
+    assert.equal(response.status, 200);
+    assert.match(body, /"type":"delta","text":"پاسخ زنده"/);
+    assert.match(body, /"type":"done".*"provider":"openai"/);
+    assert.equal(called.length, 2);
+  } finally { globalThis.fetch = originalFetch; }
+});

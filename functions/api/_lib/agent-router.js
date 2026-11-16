@@ -5,11 +5,17 @@ const AGENTS = Object.freeze({
   content: { id: "content", label: "نویسنده محتوا", labelEn: "Content writer", instruction: "روی کیفیت نگارش، ساختار، مخاطب و لحن تمرکز کن. اگر کاربر متن قابل ارسال می‌خواهد، خروجی نهایی و آماده استفاده بده." },
   translator: { id: "translator", label: "مترجم چندزبانه", labelEn: "Multilingual translator", instruction: "معنا، لحن و اصطلاحات تخصصی را حفظ کن. اگر زبان مقصد مشخص نیست و از متن قابل تشخیص نیست، یک سؤال روشن بپرس." },
   planner: { id: "planner", label: "برنامه‌ریز", labelEn: "Planner", instruction: "هدف را به مراحل اجرایی، اولویت‌ها، وابستگی‌ها و معیار پایان تقسیم کن. برنامه را واقع‌بینانه و قابل پیگیری نگه دار." },
-  developer: { id: "developer", label: "برنامه‌نویس", labelEn: "Developer", instruction: "راه‌حل فنی قابل نگهداری ارائه کن؛ امنیت، اعتبارسنجی ورودی، مدیریت خطا و تست را در نظر بگیر. ادعا نکن کدی اجرا یا مستقر شده مگر واقعاً اجرا شده باشد." }
+  developer: { id: "developer", label: "برنامه‌نویس", labelEn: "Developer", instruction: "راه‌حل فنی قابل نگهداری ارائه کن؛ امنیت، اعتبارسنجی ورودی، مدیریت خطا و تست را در نظر بگیر. ادعا نکن کدی اجرا یا مستقر شده مگر واقعاً اجرا شده باشد." },
+  commerce: { id: "commerce", label: "کارشناس خرید و فروش", labelEn: "Commerce specialist", instruction: "برای خرید، فروش و سفارش، نیاز کاربر را دقیق روشن کن؛ مشخصات، قیمت، موجودی، ارسال، تحویل و شرایط بازگشت را از هم تفکیک کن. هیچ فروشگاه، موجودی، قیمت یا سفارش زنده‌ای را بدون داده یا ابزار واقعی تأیید نکن." },
+  education: { id: "education", label: "مربی آموزشی", labelEn: "Learning coach", instruction: "مطلب را متناسب با سطح مخاطب آموزش بده؛ از توضیح ساده، مثال، تمرین کوتاه و بررسی فهم استفاده کن. پاسخ را مرحله‌ای و بدون ادعای قطعیت درباره موضوعات تخصصی ارائه کن." },
+  support: { id: "support", label: "کارشناس پشتیبانی", labelEn: "Support specialist", instruction: "مشکل کاربر را مرحله‌به‌مرحله عیب‌یابی کن؛ ابتدا راهکارهای کم‌خطر و برگشت‌پذیر را پیشنهاد بده، از درخواست رمز و اطلاعات حساس خودداری کن و برای اقداماتی که دسترسی واقعی ندارند ادعای انجام نکن." }
 });
 
 const RULES = [
   ["translator", /ترجمه|مترجم|translate|translation|traduc|übersetz|çevir|перевод|翻译|ترجم/iu],
+  ["support", /پشتیبانی|پیگیری سفارش|مشکل حساب|ورود به حساب|بازیابی رمز|customer support|troubleshoot|account recovery/iu],
+  ["commerce", /خرید|فروشگاه|سفارش|محصول|موجودی کالا|ارسال کالا|تحویل حضوری|مرجوعی|shopping|storefront|product listing|checkout/iu],
+  ["education", /آموزش|یادگیری|درس|تمرین آموزشی|معلم|یاد بده|آموزش بده|tutor|teach me|learning|lesson|homework/iu],
   ["developer", /کدنویسی|برنامه.?نویسی|باگ|خطای کد|api|javascript|python|typescript|sql|code review|debug|coding|programming/iu],
   ["analyst", /تحلیل|مقایسه|محاسبه|بازده|سرمایه.?گذاری|سهام|رمزارز|ارز دیجیتال|ریسک|آمار|داده.?ها|analy[sz]e|compare|calculate|investment|stock|crypto/iu],
   ["research", /تحقیق|پژوهش|بررسی کن|جستجو|منابع|آخرین وضعیت|research|look up|sources|latest information/iu],
@@ -24,8 +30,53 @@ export function routeAgentRequest(message) {
   return { ...agent, executionMode: "single_model_specialist", autonomousTools: false };
 }
 
+/** Select an adaptive response mode without exceeding explicit user choices. */
+export function resolveResponseMode(message, requestedMode = "auto", agent = null) {
+  const allowed = ["fast", "balanced", "deep", "creative"];
+  if (allowed.includes(requestedMode)) return requestedMode;
+  const text = typeof message === "string" ? message.trim() : "";
+  if (!text) return "balanced";
+  const complex = /مرحله.?به.?مرحله|عمیق|جامع|کامل|با جزئیات|مقایسه چند|تحلیل جامع|معماری|امنیت|پژوهش|research|architecture|security|step.?by.?step|in depth|comprehensive|debug|refactor|design a system/iu.test(text);
+  const codeWork = agent?.id === "developer" || /function|class|interface|SELECT|CREATE TABLE/iu.test(text);
+  if (complex || codeWork || text.length >= 1400) return "deep";
+  if (agent?.id === "content" && /خلاق|ایده.?پردازی|شعار|داستان|creative|brainstorm|slogan|story/iu.test(text)) return "creative";
+  if (text.length <= 40 && /^(سلام|درود|hi|hello|hey|مرسی|ممنون|تشکر|خداحافظ|bye|thanks)[!.؟? ]*$/iu.test(text)) return "fast";
+  return "balanced";
+}
+
 export function listAgents() {
-  return Object.values(AGENTS).map(({ id, label, labelEn }) => ({
-    id, label, labelEn, status: "available"
-  }));
+  return Object.values(AGENTS).map(({ id, label, labelEn }) => ({ id, label, labelEn, status: "available" }));
+}
+
+/**
+ * Build a bounded collaboration plan. Roles are prompts, not autonomous agents:
+ * every stage uses the configured provider and receives only the current request
+ * plus the preceding draft. No tools or external actions are granted.
+ */
+export function buildCollaborationPlan(message, primaryAgent, mode = "balanced") {
+  if (mode !== "deep") return [];
+  const followUpByAgent = {
+    research: "analyst",
+    analyst: "research",
+    developer: "analyst",
+    planner: "analyst",
+    content: "analyst",
+    translator: "analyst",
+    commerce: "analyst",
+    education: "research",
+    support: "developer",
+    general: "research"
+  };
+  const reviewerId = followUpByAgent[primaryAgent?.id] || "analyst";
+  const reviewer = AGENTS[reviewerId];
+  return [{
+    id: primaryAgent?.id || "general",
+    label: primaryAgent?.label || AGENTS.general.label,
+    stage: "draft"
+  }, {
+    id: reviewer.id,
+    label: reviewer.label,
+    stage: "review_and_synthesis",
+    instruction: reviewer.instruction
+  }];
 }

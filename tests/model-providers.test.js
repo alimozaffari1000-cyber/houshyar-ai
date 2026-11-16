@@ -5,7 +5,7 @@ import { onRequestPost, onRequestGet } from "../functions/api/chat.js";
 
 test("provider availability reflects server-side secrets only", () => {
   assert.deepEqual(listAvailableProviders({ GROQ_API_KEY: "g" }).map(item => [item.id, item.available]), [
-    ["groq", true], ["anthropic", false]
+    ["groq", true], ["openai", false], ["anthropic", false], ["gemini", false]
   ]);
   assert.equal(resolveProvider({ CLAUDE_API_KEY: "c" }, "auto", "balanced").provider, "anthropic");
 });
@@ -79,6 +79,268 @@ test("chat API can serve Claude without requiring a Groq key", async () => {
     const health = await onRequestGet({ env: { CLAUDE_API_KEY: "test-secret" } });
     assert.equal(health.status, 200);
     assert.equal((await health.json()).providers.find(item => item.id === "anthropic").available, true);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+
+test("Groq streaming adapter emits text deltas and reports the selected model", async () => {
+  const originalFetch = globalThis.fetch;
+  let sentBody;
+  globalThis.fetch = async (_url, init) => {
+    sentBody = JSON.parse(init.body);
+    return new Response([
+      'data: {"choices":[{"delta":{"content":"سلام "}}]}\n\n',
+      'data: {"choices":[{"delta":{"content":"هوش‌یار"}}]}\n\n',
+      'data: [DONE]\n\n'
+    ].join(""), { status: 200, headers: { "content-type": "text/event-stream" } });
+  };
+  try {
+    const { streamModel } = await import("../functions/api/_lib/model-providers.js");
+    const deltas = [];
+    const result = await streamModel({
+      provider: "groq", env: { GROQ_API_KEY: "stream-test" },
+      messages: [{ role: "user", content: "سلام" }],
+      onText: value => deltas.push(value)
+    });
+    assert.equal(sentBody.stream, true);
+    assert.equal(sentBody.max_completion_tokens, 1200);
+    assert.equal(Object.hasOwn(sentBody, "max_tokens"), false);
+    assert.deepEqual(deltas, ["سلام ", "هوش‌یار"]);
+    assert.equal(result.reply, "سلام هوش‌یار");
+  } finally { globalThis.fetch = originalFetch; }
+});
+
+test("Claude streaming adapter parses content_block_delta events", async () => {
+  const originalFetch = globalThis.fetch;
+  let sentBody;
+  globalThis.fetch = async (_url, init) => {
+    sentBody = JSON.parse(init.body);
+    return new Response([
+      'event: content_block_delta\n',
+      'data: {"type":"content_block_delta","delta":{"type":"text_delta","text":"پاسخ "}}\n\n',
+      'event: content_block_delta\n',
+      'data: {"type":"content_block_delta","delta":{"type":"text_delta","text":"زنده"}}\n\n',
+      'data: {"type":"message_stop"}\n\n'
+    ].join(""), { status: 200, headers: { "content-type": "text/event-stream" } });
+  };
+  try {
+    const { streamModel } = await import("../functions/api/_lib/model-providers.js");
+    const deltas = [];
+    const result = await streamModel({
+      provider: "anthropic", env: { CLAUDE_API_KEY: "stream-test" },
+      messages: [{ role: "system", content: "قواعد" }, { role: "user", content: "سلام" }],
+      onText: value => deltas.push(value)
+    });
+    assert.equal(sentBody.stream, true);
+    assert.equal(sentBody.system, "قواعد");
+    assert.deepEqual(deltas, ["پاسخ ", "زنده"]);
+    assert.equal(result.reply, "پاسخ زنده");
+  } finally { globalThis.fetch = originalFetch; }
+});
+
+
+test("streaming parser handles chunk boundaries, CRLF separators, and a final event without a blank line", async () => {
+  const originalFetch = globalThis.fetch;
+  const encoder = new TextEncoder();
+  const chunks = [
+    'data: {"choices":[{"delta":{"content":"تکه اول "}}]}\r',
+    '\n\r\ndata: {"choices":[{"delta":{"content":"تکه دوم"}}]}'
+  ];
+  globalThis.fetch = async () => new Response(new ReadableStream({
+    start(controller) {
+      for (const chunk of chunks) controller.enqueue(encoder.encode(chunk));
+      controller.close();
+    }
+  }), { status: 200, headers: { "content-type": "text/event-stream" } });
+  try {
+    const { streamModel } = await import("../functions/api/_lib/model-providers.js");
+    const deltas = [];
+    const result = await streamModel({
+      provider: "groq",
+      env: { GROQ_API_KEY: "stream-test" },
+      messages: [{ role: "user", content: "آزمایش" }],
+      onText: value => deltas.push(value)
+    });
+    assert.deepEqual(deltas, ["تکه اول ", "تکه دوم"]);
+    assert.equal(result.reply, "تکه اول تکه دوم");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("OpenAI provider is independently configurable and selected by auto mode", () => {
+  const providers = listAvailableProviders({ OPENAI_API_KEY: "openai-secret" });
+  assert.deepEqual(providers.map(item => [item.id, item.available]), [
+    ["groq", false], ["openai", true], ["anthropic", false], ["gemini", false]
+  ]);
+  assert.equal(resolveProvider({ OPENAI_API_KEY: "openai-secret" }).provider, "openai");
+  assert.equal(resolveProvider({ OPENAI_API_KEY: "openai-secret", OPENAI_MODEL: "custom-gpt" }).model, "custom-gpt");
+});
+
+test("OpenAI chat completions use the official endpoint and server-side key", async () => {
+  const originalFetch = globalThis.fetch;
+  let call;
+  globalThis.fetch = async (url, options) => {
+    call = { url, headers: options.headers, body: JSON.parse(options.body) };
+    return new Response(JSON.stringify({ model: "custom-gpt", choices: [{ message: { content: "پاسخ از OpenAI" } }], usage: { prompt_tokens: 3, completion_tokens: 4, total_tokens: 7 } }), { status: 200 });
+  };
+  try {
+    const result = await requestModel({ provider: "openai", env: { OPENAI_API_KEY: "secret-key", OPENAI_MODEL: "custom-gpt" }, messages: [{ role: "user", content: "سلام" }] });
+    assert.equal(call.url, "https://api.openai.com/v1/chat/completions");
+    assert.equal(call.headers.Authorization, "Bearer secret-key");
+    assert.equal(call.body.model, "custom-gpt");
+    assert.equal(call.body.max_completion_tokens, 1200);
+    assert.equal("temperature" in call.body, false);
+    assert.equal("max_tokens" in call.body, false);
+    assert.equal(result.reply, "پاسخ از OpenAI");
+    assert.equal(result.usage.totalTokens, 7);
+  } finally { globalThis.fetch = originalFetch; }
+});
+
+test("auto provider respects a configured default only when its key is present", () => {
+  assert.equal(resolveProvider({ AI_DEFAULT_PROVIDER: "openai", GROQ_API_KEY: "g" }).provider, "groq");
+  assert.equal(resolveProvider({ AI_DEFAULT_PROVIDER: "openai", OPENAI_API_KEY: "o", GROQ_API_KEY: "g" }).provider, "openai");
+});
+test("OpenAI streaming uses GPT-compatible parameters and emits incremental deltas", async () => {
+  const originalFetch = globalThis.fetch;
+  let sentBody;
+  globalThis.fetch = async (_url, init) => {
+    sentBody = JSON.parse(init.body);
+    return new Response([
+      `data: {"choices":[{"delta":{"content":"پاسخ "}}]}\n\n`,
+      `data: {"choices":[{"delta":{"content":"جریانی"}}]}\n\n`,
+      `data: [DONE]\n\n`
+    ].join(""), { status: 200, headers: { "content-type": "text/event-stream" } });
+  };
+  try {
+    const { streamModel } = await import("../functions/api/_lib/model-providers.js");
+    const deltas = [];
+    const result = await streamModel({ provider: "openai", env: { OPENAI_API_KEY: "stream-secret" }, messages: [{ role: "user", content: "سلام" }], onText: value => deltas.push(value) });
+    assert.equal(sentBody.stream, true);
+    assert.equal(sentBody.max_completion_tokens, 1200);
+    assert.equal("temperature" in sentBody, false);
+    assert.deepEqual(deltas, ["پاسخ ", "جریانی"]);
+    assert.equal(result.reply, "پاسخ جریانی");
+  } finally { globalThis.fetch = originalFetch; }
+});
+
+test("Groq default model uses a currently supported production model", () => {
+  const providers = listAvailableProviders({ GROQ_API_KEY: "groq-secret" });
+  assert.equal(providers.find(item => item.id === "groq").defaultModel, "openai/gpt-oss-120b");
+  assert.equal(resolveProvider({ GROQ_API_KEY: "groq-secret" }).model, "openai/gpt-oss-120b");
+});
+
+
+test("Groq non-streaming requests use the current max_completion_tokens parameter", async () => {
+  const originalFetch = globalThis.fetch;
+  let sentBody;
+  globalThis.fetch = async (_url, init) => {
+    sentBody = JSON.parse(init.body);
+    return new Response(JSON.stringify({ choices: [{ message: { content: "پاسخ آزمایشی" } }] }), { status: 200 });
+  };
+  try {
+    await requestModel({ provider: "groq", env: { GROQ_API_KEY: "test-key" }, messages: [{ role: "user", content: "سلام" }] });
+    assert.equal(sentBody.max_completion_tokens, 1200);
+    assert.equal(Object.hasOwn(sentBody, "max_tokens"), false);
+  } finally { globalThis.fetch = originalFetch; }
+});
+
+
+test("Gemini adapter converts chat roles, image attachments, and optional Google Search grounding", async () => {
+  const originalFetch = globalThis.fetch;
+  let call;
+  globalThis.fetch = async (url, options) => {
+    call = { url, headers: options.headers, body: JSON.parse(options.body) };
+    return new Response(JSON.stringify({
+      modelVersion: "gemini-test",
+      candidates: [{
+        content: { parts: [{ text: "پاسخ از Gemini" }] },
+        groundingMetadata: { groundingChunks: [{ web: { title: "Google documentation", uri: "https://ai.google.dev/" } }] }
+      }],
+      usageMetadata: { promptTokenCount: 8, candidatesTokenCount: 5, totalTokenCount: 13 }
+    }), { status: 200, headers: { "content-type": "application/json" } });
+  };
+  try {
+    const result = await requestModel({
+      provider: "gemini",
+      env: { GEMINI_API_KEY: "gemini-secret", GEMINI_MODEL: "gemini-test" },
+      messages: [
+        { role: "system", content: "قواعد سیستم" },
+        { role: "user", content: [{ type: "text", text: "این تصویر چیست؟" }, { type: "image_url", image_url: { url: "data:image/png;base64,aGVsbG8=" } }] },
+        { role: "assistant", content: "پاسخ قبلی" }
+      ],
+      googleSearch: true
+    });
+    assert.equal(call.url, "https://generativelanguage.googleapis.com/v1beta/models/gemini-test:generateContent");
+    assert.equal(call.headers["x-goog-api-key"], "gemini-secret");
+    assert.equal(call.body.systemInstruction.parts[0].text, "قواعد سیستم");
+    assert.equal(call.body.contents[0].role, "user");
+    assert.deepEqual(call.body.contents[0].parts[1].inlineData, { mimeType: "image/png", data: "aGVsbG8=" });
+    assert.equal(call.body.contents[1].role, "model");
+    assert.deepEqual(call.body.tools, [{ google_search: {} }]);
+    assert.equal(result.reply, "پاسخ از Gemini");
+    assert.equal(result.sources[0].url, "https://ai.google.dev/");
+    assert.deepEqual(result.usage, { promptTokens: 8, completionTokens: 5, totalTokens: 13 });
+    assert.equal(JSON.stringify(result).includes("gemini-secret"), false);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("Gemini streaming adapter emits text chunks and returns Google grounding sources", async () => {
+  const originalFetch = globalThis.fetch;
+  let requestBody;
+  globalThis.fetch = async (_url, options) => {
+    requestBody = JSON.parse(options.body);
+    return new Response([
+      'data: {"candidates":[{"content":{"parts":[{"text":"جریان "}]}}]}\n\n',
+      'data: {"candidates":[{"content":{"parts":[{"text":"جمینای"}]},"groundingMetadata":{"groundingChunks":[{"web":{"title":"Source","uri":"https://example.com"}}]}}],"usageMetadata":{"promptTokenCount":2,"candidatesTokenCount":3,"totalTokenCount":5}}\n\n'
+    ].join(""), { status: 200, headers: { "content-type": "text/event-stream" } });
+  };
+  try {
+    const { streamModel } = await import("../functions/api/_lib/model-providers.js");
+    const deltas = [];
+    const result = await streamModel({
+      provider: "gemini", env: { GEMINI_API_KEY: "stream-secret" },
+      messages: [{ role: "user", content: "سلام" }],
+      googleSearch: true, onText: value => deltas.push(value)
+    });
+    assert.equal(requestBody.tools[0].google_search !== undefined, true);
+    assert.deepEqual(deltas, ["جریان ", "جمینای"]);
+    assert.equal(result.reply, "جریان جمینای");
+    assert.equal(result.sources[0].url, "https://example.com");
+    assert.equal(result.usage.totalTokens, 5);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+
+test("chat API selects Gemini in auto mode when Google Search is requested and Gemini is configured", async () => {
+  const originalFetch = globalThis.fetch;
+  let call;
+  globalThis.fetch = async (url, options) => {
+    call = { url, body: JSON.parse(options.body) };
+    return new Response(JSON.stringify({
+      modelVersion: "gemini-test",
+      candidates: [{ content: { parts: [{ text: "پاسخ جست‌وجوشده" }] } }]
+    }), { status: 200, headers: { "content-type": "application/json" } });
+  };
+  try {
+    const request = new Request("https://houshyar.example/api/chat", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ message: "خبر امروز چیست؟", provider: "auto", googleSearch: true, stream: false })
+    });
+    const response = await onRequestPost({ request, env: { GEMINI_API_KEY: "gemini-test-key" } });
+    const data = await response.json();
+    assert.equal(response.status, 200);
+    assert.match(call.url, /generativelanguage\.googleapis\.com/);
+    assert.deepEqual(call.body.tools, [{ google_search: {} }]);
+    assert.equal(data.provider, "gemini");
+    assert.equal(data.reply, "پاسخ جست‌وجوشده");
   } finally {
     globalThis.fetch = originalFetch;
   }

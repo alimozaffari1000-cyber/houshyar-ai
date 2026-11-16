@@ -50,7 +50,8 @@ export async function onRequestGet({ request, env }) {
       "s.id AS storeId, s.name AS storeName, s.slug AS storeSlug, s.city, s.region, " +
       "s.public_address AS publicAddress, s.latitude, s.longitude, " +
       "s.offers_delivery AS offersDelivery, s.offers_pickup AS offersPickup, " +
-      "s.contact_phone AS contactPhone, s.order_url AS orderUrl " +
+      "s.contact_phone AS contactPhone, s.order_url AS orderUrl, " +
+      "(SELECT pm.id FROM product_media pm WHERE pm.product_id = p.id ORDER BY pm.sort_order ASC, pm.created_at ASC LIMIT 1) AS primaryMediaId " +
       "FROM products p JOIN merchant_stores s ON s.id = p.store_id WHERE " +
       conditions.join(" AND ") + " ORDER BY p.updated_at DESC LIMIT ?"
     ).bind(...bindings).all();
