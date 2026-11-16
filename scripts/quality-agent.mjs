@@ -15,6 +15,7 @@ if (!/<title>[^<]{3,}<\/title>/i.test(html)) failures.push('عنوان صفحه 
 if (!/aria-live="polite"/i.test(js)) warnings.push('ناحیه پیام‌ها بهتر است aria-live داشته باشد.');
 if (!/aria-label=/.test(js) && !/label[^>]*for=/i.test(js)) failures.push('ورودی پیام برچسب دسترس‌پذیر ندارد.');
 if (!/@media\s*\(/.test(css)) failures.push('هیچ breakpoint واکنش‌گرایی در CSS پیدا نشد.');
+if (!/@media\s*\(\s*prefers-reduced-motion\s*:\s*reduce\s*\)/i.test(css)) failures.push('برای کاهش حرکت باید تنظیم prefers-reduced-motion پشتیبانی شود.');
 if (!/box-sizing\s*:\s*border-box/.test(css)) warnings.push('box-sizing سراسری توصیه می‌شود.');
 if (/https?:\/\/[^\s"'\x60]+/.test(js) && !/https:\/\/api\.groq\.com/.test(js)) warnings.push('آدرس خارجی در کد فرانت‌اند بررسی شود.');
 if (/console\.(log|debug)\(/.test(js)) warnings.push('لاگ‌های توسعه در کد فرانت‌اند وجود دارند.');
