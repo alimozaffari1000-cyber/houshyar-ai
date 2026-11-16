@@ -41,7 +41,8 @@ test("buyer order history is scoped to the authenticated buyer and returns statu
   assert.equal(response.status, 200);
   assert.equal(body.orders[0].status, "accepted");
   assert.match(DB.statements[1], /WHERE o\.buyer_id = \?/);
-  assert.match(DB.statements[1], /ORDER BY o\.created_at DESC LIMIT 100/);
+  assert.match(DB.statements[1], /o\.id IN \(SELECT id FROM marketplace_orders WHERE buyer_id = \? ORDER BY created_at DESC LIMIT 100\)/);
+  assert.match(DB.statements[1], /ORDER BY o\.created_at DESC$/);
   assert.equal(response.headers.get("cache-control"), "no-store");
 });
 
