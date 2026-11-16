@@ -1,5 +1,5 @@
 const STORAGE_KEY = "houshyar.chat.preferences.v1";
-const DEFAULTS = Object.freeze({ provider: "auto", mode: "auto", compare: false });
+const DEFAULTS = Object.freeze({ provider: "auto", mode: "auto", compare: false, googleSearch: false });
 const PROVIDERS = new Set(["auto", "groq", "openai", "anthropic", "gemini"]);
 const MODES = new Set(["auto", "fast", "balanced", "deep", "creative"]);
 
