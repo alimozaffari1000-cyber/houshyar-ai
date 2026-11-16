@@ -167,7 +167,8 @@ function render() {
   resize();
   app.querySelector('#response-mode').addEventListener('change', event => { state.mode = ['auto','fast','balanced','deep','creative'].includes(event.target.value) ? event.target.value : 'auto'; persistChatPreferences(); });
   app.querySelector('#compare-models').addEventListener('change', event => { state.compare = event.target.checked === true; persistChatPreferences(); });
-  app.querySelector('#ai-provider').addEventListener('change', event => { state.provider = ['auto','groq','openai','anthropic'].includes(event.target.value) ? event.target.value : 'auto'; persistChatPreferences(); });
+  app.querySelector('#google-search').addEventListener('change', event => { state.googleSearch = event.target.checked === true; persistChatPreferences(); });
+  app.querySelector('#ai-provider').addEventListener('change', event => { state.provider = ['auto','groq','openai','anthropic','gemini'].includes(event.target.value) ? event.target.value : 'auto'; persistChatPreferences(); });
   app.querySelector('#chat-form').addEventListener('submit',submitMessage);
   app.querySelector('#attach-file').addEventListener('click',()=>app.querySelector('#chat-file-input').click());
   app.querySelector('#chat-file-input').addEventListener('change',async event=>{
