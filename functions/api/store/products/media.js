@@ -110,8 +110,11 @@ export async function onRequestDelete({ request, env }) {
   try {
     const media = await env.DB.prepare("SELECT pm.id, pm.object_key FROM product_media pm JOIN products p ON p.id = pm.product_id WHERE pm.id = ? AND p.store_id = ? LIMIT 1").bind(mediaId, context.store.id).first();
     if (!media) return authJson({ error: "MEDIA_NOT_FOUND" }, 404);
-    await env.DB.prepare("DELETE FROM product_media WHERE id = ?").bind(mediaId).run();
+    // Delete the private object first. If R2 is unavailable, keep its D1
+    // metadata so the seller can retry instead of orphaning an untracked object.
+    // R2 delete is idempotent, so a retry is safe if the following D1 delete fails.
     await env.MEDIA_BUCKET.delete(media.object_key);
+    await env.DB.prepare("DELETE FROM product_media WHERE id = ?").bind(mediaId).run();
     return authJson({ deleted: true, mediaId });
   } catch {
     return authJson({ error: "MEDIA_DELETE_UNAVAILABLE" }, 503);
