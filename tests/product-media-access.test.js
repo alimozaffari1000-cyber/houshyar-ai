@@ -57,7 +57,7 @@ test("unpublished product media is not disclosed to anonymous users", async () =
     params: { id: mediaId }
   });
   assert.equal(response.status, 404);
-  assert.equal(response.headers.get("cache-control"), null);
+  assert.equal(response.headers.get("cache-control"), "no-store");
 });
 
 test("unpublished product media is readable by its owning seller only", async () => {
