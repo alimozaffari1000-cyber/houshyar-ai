@@ -35,14 +35,17 @@ export async function onRequestPost({ request, env }) {
   if (rawItems.length < 1 || rawItems.length > 20) return authJson({ error: "INVALID_ORDER_ITEMS" }, 400);
   const items = [];
   const seen = new Set();
+  const requiresPriceConfirmation = Array.isArray(body.items);
   for (const item of rawItems) {
     const productId = typeof item?.productId === "string" ? item.productId : "";
     const quantity = Number(item?.quantity);
-    if (!PRODUCT_ID.test(productId) || seen.has(productId) || !Number.isSafeInteger(quantity) || quantity < 1 || quantity > 99) {
+    const expectedPriceMinor = Number(item?.priceMinor);
+    if (!PRODUCT_ID.test(productId) || seen.has(productId) || !Number.isSafeInteger(quantity) || quantity < 1 || quantity > 99 ||
+        (requiresPriceConfirmation && (!Number.isSafeInteger(expectedPriceMinor) || expectedPriceMinor <= 0))) {
       return authJson({ error: "INVALID_ORDER_ITEMS" }, 400);
     }
     seen.add(productId);
-    items.push({ productId, quantity });
+    items.push({ productId, quantity, ...(requiresPriceConfirmation ? { expectedPriceMinor } : {}) });
   }
   const customerName = typeof body.customerName === "string" ? body.customerName.trim() : "";
   const customerPhone = typeof body.customerPhone === "string" ? body.customerPhone.trim() : "";
@@ -81,6 +84,9 @@ export async function onRequestPost({ request, env }) {
     for (const item of items) {
       const product = byId.get(item.productId);
       if (!product || Number(product.stockCount) < item.quantity) return authJson({ error: "ORDER_NOT_AVAILABLE" }, 409);
+      if (requiresPriceConfirmation && Number(product.priceMinor) !== item.expectedPriceMinor) {
+        return authJson({ error: "ORDER_PRICE_CHANGED" }, 409);
+      }
       const lineTotal = Number(product.priceMinor) * item.quantity;
       if (!Number.isSafeInteger(lineTotal) || lineTotal <= 0 || !Number.isSafeInteger(total + lineTotal)) {
         return authJson({ error: "INVALID_ORDER_TOTAL" }, 400);
