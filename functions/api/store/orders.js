@@ -13,8 +13,9 @@ export async function onRequestGet({ request, env }) {
       "o.delivery_address AS deliveryAddress, o.note, o.status, o.total_minor AS totalMinor, o.currency_code AS currency, " +
       "o.created_at AS createdAt, i.product_title AS productTitle, i.quantity, i.unit_price_minor AS unitPriceMinor, i.line_total_minor AS lineTotalMinor " +
       "FROM marketplace_orders o JOIN marketplace_order_items i ON i.order_id = o.id " +
-      "WHERE o.store_id = ? ORDER BY o.created_at DESC LIMIT 100"
-    ).bind(store.id).all();
+      "WHERE o.store_id = ? AND o.id IN (SELECT id FROM marketplace_orders WHERE store_id = ? ORDER BY created_at DESC LIMIT 100) " +
+      "ORDER BY o.created_at DESC"
+    ).bind(store.id, store.id).all();
     return authJson({ orders: Array.isArray(result.results) ? result.results : [] });
   } catch (error) {
     if (String(error?.message || error).includes("INSUFFICIENT_ORDER_STOCK")) {
