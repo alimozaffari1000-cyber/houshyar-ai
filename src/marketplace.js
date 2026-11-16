@@ -90,7 +90,7 @@ export function initMarketplace(app, { locale = "fa" } = {}) {
         '<small>' + c.localMethods + ': ' + [product.offersDelivery ? c.localDeliveryYes : '', product.offersPickup ? c.localPickupYes : ''].filter(Boolean).join(' · ') + '</small>' +
         (mapUrl ? '<a href="' + mapUrl + '" target="_blank" rel="noopener noreferrer">' + c.localMap + '</a>' : '') +
         '</section></div>' +
-        '<div class="marketplace-local-actions">' + (Number(product.stockCount) > 0 && (product.offersDelivery || product.offersPickup) ? '<button type="button" class="marketplace-order-open" data-order-open="' + escape(product.productId) + '">' + c.orderRequest + '</button>' : '') + (orderUrl ? '<a href="' + escape(orderUrl) + '" target="_blank" rel="noopener noreferrer">' + c.localOrder + '</a>' : '') +
+        '<div class="marketplace-local-actions">' + (Number(product.stockCount) > 0 && (product.offersDelivery || product.offersPickup) ? '<button type="button" class="marketplace-order-open" data-order-open="' + escape(product.productId) + '">' + c.orderRequest + '</button><button type="button" data-cart-add="' + escape(product.productId) + '">' + c.cartAdd + '</button>' : '') + (orderUrl ? '<a href="' + escape(orderUrl) + '" target="_blank" rel="noopener noreferrer">' + c.localOrder + '</a>' : '') +
         (phone ? '<a href="tel:' + escape(phone) + '">' + c.localCall + '</a>' : '') + '</div></article>';
     }).join("");
   }
@@ -156,6 +156,7 @@ export function initMarketplace(app, { locale = "fa" } = {}) {
     cart.set(id, { id, productId:id, storeId, title:product.title, priceMinor:Number(product.priceMinor), currency, stockCount:Number(product.stockCount), quantity:nextQuantity, offersDelivery:Boolean(product.offersDelivery), offersPickup:Boolean(product.offersPickup) });
     renderCart(); say("");
   }
+  renderCart();
   function orderFormMarkup(productId, product) {
     const delivery = product?.offersDelivery !== false && product?.offersDelivery !== 0;
     const pickup = product?.offersPickup !== false && product?.offersPickup !== 0;
@@ -217,8 +218,14 @@ export function initMarketplace(app, { locale = "fa" } = {}) {
   }
   function renderBuyerOrders(orders) {
     if (!orders.length) { buyerOrdersNode.innerHTML = '<p>' + c.buyerOrderEmpty + '</p>'; return; }
-    buyerOrdersNode.innerHTML = '<div class="marketplace-seller-list">' + orders.map(order =>
-      '<article class="marketplace-seller-product marketplace-order-row"><div><b>' + escape(order.productTitle) + ' × ' + escape(order.quantity) + '</b>' +
+    const grouped = new Map();
+    for (const row of orders) {
+      const order = grouped.get(row.id) || { ...row, items:[] };
+      order.items.push({ title:row.productTitle, quantity:row.quantity });
+      grouped.set(row.id, order);
+    }
+    buyerOrdersNode.innerHTML = '<div class="marketplace-seller-list">' + Array.from(grouped.values()).map(order =>
+      '<article class="marketplace-seller-product marketplace-order-row"><div><b>' + order.items.map(item => escape(item.title) + ' × ' + escape(item.quantity)).join('، ') + '</b>' +
       '<small>' + c.orderPlacedAt + ': ' + escape(new Date(Number(order.createdAt) * 1000).toLocaleString(locale === "fa" ? "fa-IR" : locale || "en")) + '</small>' +
       '<small>' + c.orderFulfillment + ': ' + (order.fulfillment === "delivery" ? c.orderDelivery : c.orderPickup) + '</small>' +
       '<small>' + money(order.totalMinor, locale) + ' ' + escape(order.currency) + '</small></div><span class="marketplace-state">' +
