@@ -13,8 +13,9 @@ export async function onRequestGet({ request, env }) {
       "o.created_at AS createdAt, o.updated_at AS updatedAt, i.product_title AS productTitle, " +
       "i.quantity, i.unit_price_minor AS unitPriceMinor, i.line_total_minor AS lineTotalMinor " +
       "FROM marketplace_orders o JOIN marketplace_order_items i ON i.order_id = o.id " +
-      "WHERE o.buyer_id = ? ORDER BY o.created_at DESC LIMIT 100"
-    ).bind(user.id).all();
+      "WHERE o.buyer_id = ? AND o.id IN (SELECT id FROM marketplace_orders WHERE buyer_id = ? ORDER BY created_at DESC LIMIT 100) " +
+      "ORDER BY o.created_at DESC"
+    ).bind(user.id, user.id).all();
     return authJson({ orders: Array.isArray(result.results) ? result.results : [] });
   } catch {
     return authJson({ error: "BUYER_ORDERS_UNAVAILABLE" }, 503);
