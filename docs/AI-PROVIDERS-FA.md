@@ -5,6 +5,7 @@
 - **Groq**: مسیر سریع و سازگار با قالب OpenAI.
 - **OpenAI**: اتصال مستقیم به API رسمی OpenAI؛ این سرویس با برنامه ChatGPT یکی نیست و کلید API و صورتحساب مستقل می‌خواهد.
 - **Anthropic Claude**: اتصال مستقل Claude.
+- **Google Gemini**: اتصال مستقیم Gemini API با پشتیبانی از متن، تصویر، پاسخ جریانی و Google Search Grounding. کلید آن با نام `GEMINI_API_KEY` فقط سمت سرور نگهداری می‌شود.
 
 تمام کلیدها فقط باید در Secrets سمت سرور Cloudflare Pages ثبت شوند؛ هرگز در مرورگر، مخزن Git یا پیام گفتگو قرار نگیرند.
 
@@ -15,13 +16,20 @@
 | `GROQ_API_KEY` | کلید Groq |
 | `OPENAI_API_KEY` | کلید رسمی OpenAI API |
 | `CLAUDE_API_KEY` | کلید Anthropic |
-| `AI_DEFAULT_PROVIDER` | انتخاب پیش‌فرض: `groq`، `openai` یا `anthropic` |
+| `GEMINI_API_KEY` | کلید Gemini API از Google AI Studio |
+| `AI_DEFAULT_PROVIDER` | انتخاب پیش‌فرض: `groq`، `openai`، `anthropic` یا `gemini` |
 | `OPENAI_MODEL` | مدل پایه OpenAI؛ پیش‌فرض کد `gpt-6-astra` |
 | `OPENAI_MODEL_FAST` / `OPENAI_MODEL_DEEP` / `OPENAI_MODEL_CREATIVE` | مدل‌های اختیاری هر حالت |
 | `GROQ_MODEL` / `GROQ_MODEL_VISION` | مدل پایه Groq (پیش‌فرض کد: `openai/gpt-oss-120b`) و مدل بینایی Groq |
 | `CLAUDE_MODEL` | مدل پایه Claude |
+| `GEMINI_MODEL` | مدل پایه Gemini؛ پیش‌فرض کد `gemini-3.8-flash` |
+| `GEMINI_MODEL_FAST` / `GEMINI_MODEL_DEEP` / `GEMINI_MODEL_CREATIVE` | مدل‌های اختیاری Gemini برای حالت‌های پاسخ |
 
 مدل پیش‌فرض Groq در این نسخه `openai/gpt-oss-120b` است. درخواست‌های Groq از پارامتر جدید `max_completion_tokens` استفاده می‌کنند و دیگر پارامتر منسوخ `max_tokens` را نمی‌فرستند؛ شناسه قبلی `llama-3.3-70b-versatile` در ۱۶ اوت ۲۰۲۶ برای پلن‌های Developer و Free خاموش شده است. در صورت تنظیم `GROQ_MODEL`، مقدار سفارشی باید در حساب Groq فعال باشد. مدل انتخابی هر ارائه‌دهنده باید در حساب API مربوطه قابل استفاده باشد. اگر کلید پیش‌فرض تنظیم نشده باشد، حالت خودکار از ارائه‌دهنده پیکربندی‌شده دیگر استفاده می‌کند. در حالت خودکار، اگر درخواست ارائه‌دهنده اصلی پیش از تولید اولین متن شکست بخورد، هوش‌یار یک‌بار به ارائه‌دهنده فعال بعدی منتقل می‌شود؛ در حالت انتخاب دستی، failover انجام نمی‌شود. اگر پاسخ جریانی بخشی از متن را فرستاده باشد یا درخواست به‌دلیل timeout لغو شده باشد، برای جلوگیری از پاسخ تکراری یا مصرف بی‌رویه، موتور عوض نمی‌شود. انتخاب دستی ارائه‌دهنده غیرفعال، خطای روشن می‌دهد.
+
+## Google Search Grounding
+
+در رابط چت، گزینه «جست‌وجوی گوگل برای پاسخ‌های به‌روز» به‌صورت پیش‌فرض خاموش است. با روشن‌کردن آن و انتخاب Gemini، درخواست با ابزار رسمی `google_search` ارسال می‌شود. منابع وبی که Gemini در فراداده grounding برمی‌گرداند، در پایان پاسخ نمایش داده می‌شوند. این قابلیت فقط هنگام انتخاب Gemini اعمال می‌شود؛ سایر ارائه‌دهندگان از آن استفاده نمی‌کنند. دسترسی، مدل‌های پشتیبانی‌شده و هزینه‌های API تابع حساب و شرایط Google AI Studio هستند.
 
 ## نقش هماهنگ‌کننده هوش‌یار
 
