@@ -216,3 +216,11 @@ test("buyer order history groups multiple product rows under one order", async (
   assert.match(ui, /order\.items\.map\(item => escape\(item\.title\)/);
   assert.match(ui, /money\(order\.totalMinor, locale\)/);
 });
+
+
+test("public product catalog supplies store and fulfillment metadata required by the cart", async () => {
+  const api = await readFile(new URL("../functions/api/store/products.js", import.meta.url), "utf8");
+  assert.match(api, /p\.store_id AS storeId/);
+  assert.match(api, /s\.offers_delivery AS offersDelivery/);
+  assert.match(api, /s\.offers_pickup AS offersPickup/);
+});
