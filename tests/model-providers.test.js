@@ -295,8 +295,8 @@ test("Gemini streaming adapter emits text chunks and returns Google grounding so
   globalThis.fetch = async (_url, options) => {
     requestBody = JSON.parse(options.body);
     return new Response([
-      'data: {"candidates":[{"content":{"parts":[{"text":"جریان "}]}}]}\\n\\n',
-      'data: {"candidates":[{"content":{"parts":[{"text":"جمینای"}]},"groundingMetadata":{"groundingChunks":[{"web":{"title":"Source","uri":"https://example.com"}}]}}],"usageMetadata":{"promptTokenCount":2,"candidatesTokenCount":3,"totalTokenCount":5}}\\n\\n'
+      'data: {"candidates":[{"content":{"parts":[{"text":"جریان "}]}}]}\n\n',
+      'data: {"candidates":[{"content":{"parts":[{"text":"جمینای"}]},"groundingMetadata":{"groundingChunks":[{"web":{"title":"Source","uri":"https://example.com"}}]}}],"usageMetadata":{"promptTokenCount":2,"candidatesTokenCount":3,"totalTokenCount":5}}\n\n'
     ].join(""), { status: 200, headers: { "content-type": "text/event-stream" } });
   };
   try {
