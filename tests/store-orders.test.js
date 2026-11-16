@@ -59,7 +59,10 @@ test("seller can read only orders belonging to their active store", async () => 
   const body = await response.json();
   assert.equal(response.status, 200);
   assert.equal(body.orders[0].id, "order-1");
-  assert.match(DB.sqlLog.find(sql => sql.includes("FROM marketplace_orders")), /WHERE o\.store_id = \?/);
+  const query = DB.sqlLog.find(sql => sql.includes("FROM marketplace_orders"));
+  assert.match(query, /WHERE o\.store_id = \?/);
+  assert.match(query, /o\.id IN \(SELECT id FROM marketplace_orders WHERE store_id = \? ORDER BY created_at DESC LIMIT 100\)/);
+  assert.match(query, /ORDER BY o\.created_at DESC$/);
 });
 
 test("seller order listing requires an authenticated session", async () => {
