@@ -35,3 +35,8 @@ test("storage failures do not break chat startup or preference changes", () => {
   assert.deepEqual(readChatPreferences(broken), { provider: "auto", mode: "auto", compare: false });
   assert.equal(saveChatPreferences({ provider: "groq", mode: "fast", compare: false }, broken), false);
 });
+
+test("Google Search grounding preference is opt-in and validated", () => {
+  assert.equal(normalizeChatPreferences({ provider: "gemini", googleSearch: true }).googleSearch, true);
+  assert.equal(normalizeChatPreferences({ provider: "groq", googleSearch: "yes" }).googleSearch, false);
+});
