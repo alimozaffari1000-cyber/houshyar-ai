@@ -178,6 +178,12 @@ export function initMarketplace(app, { locale = "fa" } = {}) {
   function renderSeller(data, mediaItems = [], orderItems = []) {
     const store = data.store;
     if (!store) { renderApplication(); return; }
+    const groupedOrders = new Map();
+    orderItems.forEach(row => {
+      const order = groupedOrders.get(row.id) || { ...row, items:[] };
+      order.items.push({ title:row.productTitle, quantity:row.quantity });
+      groupedOrders.set(row.id, order);
+    });
     const stateText = store.status === "active" ? c.active : store.status === "suspended" ? c.suspended : c.pending;
     const mediaByProduct = new Map(); mediaItems.forEach(item => { const list = mediaByProduct.get(item.productId) || []; list.push(item); mediaByProduct.set(item.productId, list); });
     const rows = (data.products || []).map(product => { const gallery = mediaByProduct.get(product.id) || []; return '<article class="marketplace-seller-product">' + (product.primaryMediaId ? '<img class="marketplace-seller-thumb" src="/api/product-media/' + encodeURIComponent(product.primaryMediaId) + '" alt="' + escape(product.title) + '" loading="lazy" decoding="async">' : '<span class="marketplace-seller-thumb marketplace-seller-thumb-empty" aria-hidden="true">✧</span>') + '<div><b>' + escape(product.title) + '</b><small>' +
@@ -205,7 +211,7 @@ export function initMarketplace(app, { locale = "fa" } = {}) {
       '<label>' + c.productDescription + '<textarea name="description" maxlength="5000" rows="3"></textarea></label><button type="submit">' + c.createProduct + '</button></form></div>' : '') +
       '<div class="marketplace-seller-list"><h3>' + c.products + '</h3>' + (rows || '<p>' + c.noProducts + '</p>') + '</div>' +
       (store.status === "active" ? '<div class="marketplace-seller-list marketplace-orders-list"><h3>' + c.sellerOrders + '</h3>' +
-      (orderItems.length ? orderItems.map(order => '<article class="marketplace-seller-product marketplace-order-row"><div><b>' + escape(order.productTitle) + ' × ' + escape(order.quantity) + '</b>' +
+      (groupedOrders.size ? Array.from(groupedOrders.values()).map(order => '<article class="marketplace-seller-product marketplace-order-row"><div><b>' + order.items.map(item => escape(item.title) + ' × ' + escape(item.quantity)).join('، ') + '</b>' +
         '<small>' + c.orderCustomer + ': ' + escape(order.customerName) + ' · ' + escape(order.customerPhone) + '</small>' +
         '<small>' + c.orderFulfillment + ': ' + (order.fulfillment === "delivery" ? c.orderDelivery : c.orderPickup) + '</small>' +
         (order.deliveryAddress ? '<small>' + escape(order.deliveryAddress) + '</small>' : '') +
