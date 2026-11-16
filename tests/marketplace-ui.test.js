@@ -206,7 +206,10 @@ test("buyer marketplace provides a same-store multi-item cart and submits the it
   assert.match(ui, /data-cart-remove=/);
   assert.match(ui, /cartStoreMismatch/);
   assert.match(ui, /cartQtyInvalid/);
-  assert.match(ui, /items:Array\.from\(cart\.values\(\)\)\.map\(item => \(\{ productId:item\.productId, quantity:item\.quantity \}\)\)/);
+  assert.match(ui, /items:Array/);
+  assert.match(ui, /priceMinor:item\\.priceMinor/);
+  assert.match(ui, /cartPriceChanged/);
+  assert.match(ui, /!offersDelivery && !offersPickup/);
   assert.match(ui, /cart\.clear\(\)/);
 });
 
@@ -232,4 +235,14 @@ test("seller dashboard groups multi-item order lines under one status action", a
   assert.match(ui, /groupedOrders\.size \? Array\.from\(groupedOrders\.values\(\)\)/);
   assert.match(ui, /order\.items\.map\(item => escape\(item\.title\)/);
   assert.match(ui, /data-order-status="accepted"/);
+});
+
+
+test("multi-item order payload confirms the displayed product price and server rejects stale prices", async () => {
+  const ui = await readFile(new URL("../src/marketplace.js", import.meta.url), "utf8");
+  const api = await readFile(new URL("../functions/api/orders.js", import.meta.url), "utf8");
+  assert.match(ui, /priceMinor:item\.priceMinor/);
+  assert.match(api, /requiresPriceConfirmation/);
+  assert.match(api, /ORDER_PRICE_CHANGED/);
+  assert.match(api, /Number\(product\.priceMinor\) !== item\.expectedPriceMinor/);
 });
