@@ -209,6 +209,9 @@ export async function onRequestPost({ request, env }) {
   const effectiveMode = resolveResponseMode(latest, requestedMode, selectedAgent);
   const requestedProvider = ["auto", "groq", "openai", "anthropic", "gemini"].includes(body.provider) ? body.provider : "auto";
   let providerChoice = resolveProvider(env, requestedProvider, effectiveMode);
+  if (body.googleSearch === true && requestedProvider === "auto" && env.GEMINI_API_KEY) {
+    providerChoice = resolveProvider(env, "gemini", effectiveMode);
+  }
   if (validatedImages.attachments.length && requestedProvider === "auto") {
     const imageProvider = env.GEMINI_API_KEY ? "gemini" : (env.CLAUDE_API_KEY ? "anthropic" : (env.OPENAI_API_KEY ? "openai" : (env.GROQ_API_KEY ? "groq" : "auto")));
     providerChoice = resolveProvider(env, imageProvider, effectiveMode);
