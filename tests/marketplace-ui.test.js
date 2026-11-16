@@ -268,3 +268,11 @@ test("buyer cart styling is responsive and confirmation remains visible after su
   assert.match(css, /\.marketplace-cart-row/);
   assert.match(css, /@media\(max-width:560px\)/);
 });
+
+
+test("local discovery order form preserves the store fulfillment options", async () => {
+  const ui = await readFile(new URL("../src/marketplace.js", import.meta.url), "utf8");
+  assert.match(ui, /localPanel\.innerHTML = orderFormMarkup\(productId, catalogProducts\.get\(productId\) \|\| null\)/);
+  assert.match(ui, /const delivery = product\?\.offersDelivery !== false && product\?\.offersDelivery !== 0/);
+  assert.match(ui, /const pickup = product\?\.offersPickup !== false && product\?\.offersPickup !== 0/);
+});
