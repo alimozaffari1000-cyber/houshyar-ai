@@ -223,3 +223,9 @@ test("OpenAI streaming uses GPT-compatible parameters and emits incremental delt
     assert.equal(result.reply, "پاسخ جریانی");
   } finally { globalThis.fetch = originalFetch; }
 });
+
+test("Groq default model uses a currently supported production model", () => {
+  const providers = listAvailableProviders({ GROQ_API_KEY: "groq-secret" });
+  assert.equal(providers.find(item => item.id === "groq").defaultModel, "openai/gpt-oss-120b");
+  assert.equal(resolveProvider({ GROQ_API_KEY: "groq-secret" }).model, "openai/gpt-oss-120b");
+});
