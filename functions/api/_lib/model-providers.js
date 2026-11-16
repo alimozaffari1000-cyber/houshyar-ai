@@ -59,7 +59,7 @@ export async function requestModel({ provider, env, messages, model, signal, max
   const selectedModel = modelForProvider(provider, env, model);
   const requestBody = provider === "openai"
     ? { model: selectedModel, messages, max_completion_tokens: maxTokens }
-    : { model: selectedModel, messages, temperature, max_tokens: maxTokens };
+    : { model: selectedModel, messages, temperature, max_completion_tokens: maxTokens };
   const response = await fetch(config.url, { method: "POST", headers: config.headers, body: JSON.stringify(requestBody), signal });
   if (!response.ok) throw new Error("provider_request_failed");
   const data = await response.json();
@@ -78,7 +78,7 @@ export async function streamModel({ provider, env, messages, model, signal, maxT
   const response = await fetch(isClaude ? "https://api.anthropic.com/v1/messages" : config.url, {
     method: "POST",
     headers: isClaude ? { "x-api-key": env.CLAUDE_API_KEY, "anthropic-version": "2023-06-01", "content-type": "application/json" } : config.headers,
-    body: JSON.stringify(isClaude ? { model: selectedModel, max_tokens: maxTokens, system, messages: conversation, stream: true } : (provider === "openai" ? { model: selectedModel, messages, max_completion_tokens: maxTokens, stream: true } : { model: selectedModel, messages, temperature, max_tokens: maxTokens, stream: true })),
+    body: JSON.stringify(isClaude ? { model: selectedModel, max_tokens: maxTokens, system, messages: conversation, stream: true } : (provider === "openai" ? { model: selectedModel, messages, max_completion_tokens: maxTokens, stream: true } : { model: selectedModel, messages, temperature, max_completion_tokens: maxTokens, stream: true })),
     signal
   });
   if (!response.ok || !response.body) throw new Error("provider_request_failed");
