@@ -11,7 +11,7 @@ export async function onRequestGet({ request, env }) {
     const result = await env.DB.prepare(
       "SELECT o.id, o.customer_name AS customerName, o.customer_phone AS customerPhone, o.fulfillment, " +
       "o.delivery_address AS deliveryAddress, o.note, o.status, o.total_minor AS totalMinor, o.currency_code AS currency, " +
-      "o.created_at AS createdAt, i.product_title AS productTitle, i.quantity, i.unit_price_minor AS unitPriceMinor, i.line_total_minor AS lineTotalMinor " +
+      "o.created_at AS createdAt, o.updated_at AS updatedAt, i.product_title AS productTitle, i.quantity, i.unit_price_minor AS unitPriceMinor, i.line_total_minor AS lineTotalMinor " +
       "FROM marketplace_orders o JOIN marketplace_order_items i ON i.order_id = o.id " +
       "WHERE o.store_id = ? AND o.id IN (SELECT id FROM marketplace_orders WHERE store_id = ? ORDER BY created_at DESC LIMIT 100) " +
       "ORDER BY o.created_at DESC"
