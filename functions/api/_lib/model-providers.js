@@ -125,13 +125,17 @@ export async function requestModel({ provider, env, messages, model, signal, max
 }
 
 export async function streamModel({ provider, env, messages, model, signal, maxTokens = 1200, temperature = 0.5, googleSearch = false, onText }) {
-  const isGemini = provider === "gemini";\n  if (isGemini && !env.GEMINI_API_KEY) throw new Error("provider_not_configured");\n  const isClaude = provider === "anthropic";
+  const isGemini = provider === "gemini";
+  if (isGemini && !env.GEMINI_API_KEY) throw new Error("provider_not_configured");
+  const isClaude = provider === "anthropic";
   if (isClaude && !env.CLAUDE_API_KEY) throw new Error("provider_not_configured");
   const config = isClaude || isGemini ? null : openAICompatibleConfig(provider, env);
   const selectedModel = modelForProvider(provider, env, model);
   const system = messages.filter(item => item.role === "system").map(item => item.content).join("\n\n");
   const conversation = messages.filter(item => item.role !== "system");
-  const endpoint = isGemini\n    ? "https://generativelanguage.googleapis.com/v1beta/models/" + encodeURIComponent(selectedModel) + ":streamGenerateContent?alt=sse"\n    : (isClaude ? "https://api.anthropic.com/v1/messages" : config.url);\n  const response = await fetch(endpoint, {
+  const endpoint = isGemini
+    ? "https://generativelanguage.googleapis.com/v1beta/models/" + encodeURIComponent(selectedModel) + ":streamGenerateContent?alt=sse"
+    : (isClaude ? "https://api.anthropic.com/v1/messages" : config.url);\n  const response = await fetch(endpoint, {
     method: "POST",
     headers: isGemini ? { "x-goog-api-key": env.GEMINI_API_KEY, "content-type": "application/json" } : (isClaude ? { "x-api-key": env.CLAUDE_API_KEY, "anthropic-version": "2023-06-01", "content-type": "application/json" } : config.headers),
     body: JSON.stringify(isGemini ? geminiRequestBody(messages, { maxTokens, temperature, googleSearch }) : (isClaude ? { model: selectedModel, max_tokens: maxTokens, system, messages: conversation, stream: true } : (provider === "openai" ? { model: selectedModel, messages, max_completion_tokens: maxTokens, stream: true } : { model: selectedModel, messages, temperature, max_completion_tokens: maxTokens, stream: true }))),
