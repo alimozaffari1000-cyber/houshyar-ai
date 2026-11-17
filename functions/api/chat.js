@@ -61,7 +61,7 @@ async function readJsonLimited(request) {
 }
 
 export async function onRequestPost({ request, env }) {
-  if (!env.GROQ_API_KEY && !env.CLAUDE_API_KEY && !env.GEMINI_API_KEY) return json({ error: "AI_NOT_CONFIGURED", message: "هیچ ارائه‌دهنده هوش مصنوعی پیکربندی نشده است." }, 503);
+  if (!env.GROQ_API_KEY && !env.CLAUDE_API_KEY && !env.GEMINI_API_KEY && !env.OPENAI_API_KEY) return json({ error: "AI_NOT_CONFIGURED", message: "هیچ ارائه‌دهنده هوش مصنوعی پیکربندی نشده است." }, 503);
   const contentType = (request.headers.get("content-type") || "").split(";", 1)[0].trim().toLowerCase();
   if (contentType !== "application/json") {
     return json({ error: "UNSUPPORTED_MEDIA_TYPE", message: "نوع محتوای درخواست باید JSON باشد." }, 415);
@@ -183,14 +183,16 @@ export async function onRequestPost({ request, env }) {
   }
 
   const requestedMode = ["fast", "balanced", "deep", "creative"].includes(body.mode) ? body.mode : "balanced";
-  const requestedProvider = ["auto", "groq", "anthropic", "google"].includes(body.provider) ? body.provider : "auto";
+  const requestedProvider = ["auto", "groq", "anthropic", "google", "openai"].includes(body.provider) ? body.provider : "auto";
   const providerChoice = resolveProvider(env, requestedProvider, requestedMode);
   if (providerChoice.error) {
     await releaseQuota();
     return json({ error: "PROVIDER_NOT_CONFIGURED", provider: providerChoice.provider, message: "ارائه‌دهنده انتخاب‌شده هنوز در تنظیمات سرور فعال نیست." }, 503);
   }
   const groqModelByMode = { fast: env.GROQ_MODEL_FAST, balanced: env.GROQ_MODEL, deep: env.GROQ_MODEL_DEEP, creative: env.GROQ_MODEL_CREATIVE };
-  const model = providerChoice.provider === "anthropic"
+  const model = providerChoice.provider === "openai"
+    ? (env.OPENAI_MODEL || providerChoice.model)
+    : providerChoice.provider === "anthropic"
     ? (env.CLAUDE_MODEL || providerChoice.model)
     : providerChoice.provider === "google"
       ? (env.GEMINI_MODEL || providerChoice.model)
