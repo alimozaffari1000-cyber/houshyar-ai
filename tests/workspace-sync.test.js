@@ -156,3 +156,25 @@ test("workspace sync PUT rejects requests without an Origin header", async () =>
   assert.equal(response.status, 403);
   assert.equal((await response.json()).error, "ORIGIN_NOT_ALLOWED");
 });
+
+test("workspace sync does not expose corrupt stored snapshots", async () => {
+  const db = makeDb({ row: { revision: 4, payloadJson: "{broken-json", updatedAt: 20 } });
+  const response = await onRequestGet({ request: request("/api/workspace/sync"), env: envFor(db) });
+  assert.equal(response.status, 503);
+  assert.equal((await response.json()).error, "WORKSPACE_DATA_UNAVAILABLE");
+});
+
+test("workspace sync refuses to operate when account authentication is disabled", async () => {
+  const response = await onRequestGet({ request: request("/api/workspace/sync"), env: { DB: makeDb(), AUTH_ENABLED: "false" } });
+  assert.equal(response.status, 503);
+  assert.equal((await response.json()).error, "AUTH_NOT_CONFIGURED");
+});
+
+test("workspace sync PUT requires authentication before accepting workspace data", async () => {
+  const response = await onRequestPut({
+    request: request("/api/workspace/sync", { method: "PUT", body: { revision: 0, workspace: { history: [], projects: [] } } }),
+    env: envFor(makeDb({ session: false }))
+  });
+  assert.equal(response.status, 401);
+  assert.equal((await response.json()).error, "AUTH_REQUIRED");
+});
