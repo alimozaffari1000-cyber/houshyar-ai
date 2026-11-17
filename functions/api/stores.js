@@ -30,7 +30,7 @@ export async function onRequestGet({ request, env }) {
     return authJson({ error: "INVALID_COORDINATES" }, 400);
   }
 
-  const conditions = ["s.status = 'active'", "p.status = 'published'"];
+  const conditions = ["s.status = 'active'", "p.status = 'published'", "p.stock_count > 0"];
   const bindings = [];
   if (query) {
     conditions.push("(p.title LIKE ? ESCAPE '\\' OR p.description LIKE ? ESCAPE '\\' OR s.name LIKE ? ESCAPE '\\')");
