@@ -34,11 +34,14 @@ export async function onRequestPost({ request, env }) {
   const contactPhone = text(body.contactPhone, 30);
   const deliveryAddress = text(body.deliveryAddress, 500);
   const buyerNote = text(body.buyerNote, 500);
-  const idempotencyKey = body.idempotencyKey === undefined ? null : text(body.idempotencyKey, 80);
+  const idempotencyKey = typeof body.idempotencyKey === "string" ? body.idempotencyKey.trim() : "";
   if (recipientName.length < 2 || !/^[+0-9() .-]{6,30}$/.test(contactPhone) ||
-      (fulfillment === "delivery" && deliveryAddress.length < 8) ||
-      (body.idempotencyKey !== undefined && (idempotencyKey.length < 8 || idempotencyKey.length > 80))) {
+      (fulfillment === "delivery" && deliveryAddress.length < 8)) {
     return authJson({ error: "INVALID_ORDER_CONTACT" }, 400);
+  }
+  // Require a stable, caller-generated key so a retried checkout cannot create a duplicate order.
+  if (idempotencyKey.length < 8 || idempotencyKey.length > 80) {
+    return authJson({ error: "INVALID_ORDER_IDEMPOTENCY_KEY" }, 400);
   }
 
   const ids = [...quantities.keys()];
