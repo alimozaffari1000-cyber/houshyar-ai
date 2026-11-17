@@ -440,3 +440,18 @@ button:focus-visible,textarea:focus-visible,select:focus-visible{
 .marketplace-form-card form[data-store-profile] label input:not([type=checkbox]){min-width:0;flex:1}
 .marketplace-form-card form[data-store-profile] button{grid-column:1/-1}
 @media(max-width:560px){.marketplace-form-card form[data-store-profile]{grid-template-columns:1fr}.marketplace-form-card form[data-store-profile] button{grid-column:auto}}
+
+
+/* Marketplace cart, checkout and seller order management */
+.marketplace-cart{margin:18px 0;padding:14px;border:1px solid rgba(145,180,218,.2);border-radius:14px;background:rgba(13,27,46,.72)}
+.marketplace-cart h3,.marketplace-seller-list h3{margin:0 0 12px;font-size:14px}
+.marketplace-cart-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid rgba(145,180,218,.12);font-size:12px}
+.marketplace-cart-row button,.marketplace-order-card button,.marketplace-product-info>button{border:1px solid rgba(110,231,196,.25);border-radius:9px;background:rgba(110,231,196,.08);color:#a7f0db;padding:7px 10px;font:11px Vazirmatn}
+.marketplace-cart form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px}
+.marketplace-cart form label{display:grid;gap:5px;font-size:11px;color:#a9bdd4}
+.marketplace-cart form input,.marketplace-cart form select,.marketplace-cart form textarea{width:100%;min-width:0;border:1px solid rgba(145,180,218,.2);border-radius:9px;background:#0b1728;color:#f2f7ff;padding:9px;font:12px Vazirmatn}
+.marketplace-cart form button{grid-column:1/-1}
+.marketplace-order-card{display:grid;gap:7px;padding:12px;margin:9px 0;border:1px solid rgba(145,180,218,.18);border-radius:12px;font-size:12px}
+.marketplace-order-card>div{color:#a9bdd4}
+.marketplace-order-card button{margin-inline-end:6px}
+@media(max-width:560px){.marketplace-cart form{grid-template-columns:1fr}.marketplace-cart form button{grid-column:auto}.marketplace-cart-row{grid-template-columns:minmax(0,1fr) auto}.marketplace-cart-row button{grid-column:1/-1;justify-self:start}}
