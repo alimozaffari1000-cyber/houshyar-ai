@@ -60,6 +60,21 @@ test("workspace sync GET returns an empty revision for a new account", async () 
   assert.deepEqual(await response.json(), { revision: 0, workspace: { history: [], projects: [] } });
 });
 
+test("workspace sync GET normalizes stored snapshots before returning them", async () => {
+  const db = makeDb({ row: { revision: 3, payloadJson: JSON.stringify({
+    history: [{ id: "chat-1", title: "  Safe title  ", createdAt: "2026-01-01T00:00:00.000Z", messages: [
+      { role: "system", text: "must not be returned" }, { role: "user", text: "hello" }
+    ] }],
+    projects: [{ id: "project-1", title: "  Safe project  ", prompt: "prompt", createdAt: "2026-01-01T00:00:00.000Z", secret: "must not be returned" }]
+  }), updatedAt: 10 } });
+  const response = await onRequestGet({ request: request("/api/workspace/sync"), env: envFor(db) });
+  assert.equal(response.status, 200);
+  const body = await response.json();
+  assert.equal(body.workspace.history[0].title, "Safe title");
+  assert.deepEqual(body.workspace.history[0].messages, [{ role: "user", text: "hello" }]);
+  assert.deepEqual(body.workspace.projects[0], { id: "project-1", title: "Safe project", prompt: "prompt", createdAt: "2026-01-01T00:00:00.000Z" });
+});
+
 test("workspace sync PUT validates origin, content type, and body", async () => {
   const db = makeDb();
   const badOrigin = await onRequestPut({ request: request("/api/workspace/sync", { method: "PUT", body: { revision: 0, workspace: { history: [], projects: [] } }, headers: { origin: "https://attacker.example" } }), env: envFor(db) });
