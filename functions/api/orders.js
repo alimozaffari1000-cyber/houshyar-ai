@@ -74,6 +74,7 @@ export async function onRequestPost({ request, env }) {
     const orderId = crypto.randomUUID();
     const orderNumber = "HY-" + now.toString(36).toUpperCase() + "-" + crypto.randomUUID().slice(0, 8).toUpperCase();
     const caseStock = "CASE id " + items.map(() => "WHEN ? THEN ?").join(" ") + " ELSE 0 END";
+    const caseStockProduct = "CASE p.id " + items.map(() => "WHEN ? THEN ?").join(" ") + " ELSE 0 END";
     const casePrice = "CASE p.id " + items.map(() => "WHEN ? THEN ?").join(" ") + " ELSE -1 END";
     const stockBindings = items.flatMap(item => [item.id, item.quantity]);
     const priceBindings = items.flatMap(item => [item.id, item.priceMinor]);
@@ -82,7 +83,7 @@ export async function onRequestPost({ request, env }) {
       "WHERE id IN (" + placeholders + ") AND store_id = ? AND status = 'published' AND stock_count >= " + caseStock +
       " AND price_minor = CASE id " + items.map(() => "WHEN ? THEN ?").join(" ") + " ELSE -1 END " +
       "AND (SELECT COUNT(*) FROM products p JOIN merchant_stores s ON s.id = p.store_id WHERE p.id IN (" + placeholders +
-      ") AND p.store_id = ? AND p.status = 'published' AND s.status = 'active' AND p.stock_count >= " + caseStock +
+      ") AND p.store_id = ? AND p.status = 'published' AND s.status = 'active' AND p.stock_count >= " + caseStockProduct +
       " AND p.price_minor = " + casePrice + " AND p.currency_code = ?) = ?";
     const updateBindings = [
       ...stockBindings, now, ...ids, storeId, ...stockBindings, ...priceBindings,
