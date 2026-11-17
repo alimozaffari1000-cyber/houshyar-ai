@@ -1,8 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { routeAgentRequest, listAgents } from "../functions/api/_lib/agent-router.js";
+import { routeAgentRequest, selectAgentRequest, listAgents } from "../functions/api/_lib/agent-router.js";
 
-test("routes translation, coding, analysis, research, content and planning tasks", () => {
+test("routes core specialist tasks", () => {
   assert.equal(routeAgentRequest("این متن را به انگلیسی ترجمه کن").id, "translator");
   assert.equal(routeAgentRequest("این JavaScript code را debug کن").id, "developer");
   assert.equal(routeAgentRequest("سهام را از نظر ریسک تحلیل کن").id, "analyst");
@@ -12,13 +12,36 @@ test("routes translation, coding, analysis, research, content and planning tasks
   assert.equal(routeAgentRequest("سلام").id, "general");
 });
 
-test("agent routing never grants autonomous tool permissions", () => {
-  const result = routeAgentRequest("کد من را بررسی کن");
-  assert.equal(result.executionMode, "single_model_specialist");
-  assert.equal(result.autonomousTools, false);
+test("routes commerce, visual design, education and security requests", () => {
+  assert.equal(routeAgentRequest("نزدیک‌ترین میوه‌فروشی که سفارش و تحویل دارد کجاست؟").id, "commerce");
+  assert.equal(routeAgentRequest("لباس را روی عکس خودم امتحان کن").id, "visual_designer");
+  assert.equal(routeAgentRequest("مبل را در عکس اتاقم قرار بده").id, "visual_designer");
+  assert.equal(routeAgentRequest("این موضوع را از صفر به من آموزش بده").id, "educator");
+  assert.equal(routeAgentRequest("امنیت سایت را از نظر نفوذ بررسی کن").id, "security");
 });
 
-test("agent catalog exposes the available specialist roles", () => {
-  assert.ok(listAgents().length >= 7);
-  assert.ok(listAgents().every(agent => agent.status === "available"));
+test("agent routing never grants autonomous tool permissions", () => {
+  for (const message of ["کد من را بررسی کن", "فروشگاه نزدیک من", "امنیت سایت", "این درس را آموزش بده"]) {
+    const result = routeAgentRequest(message);
+    assert.equal(result.executionMode, "single_model_specialist");
+    assert.equal(result.autonomousTools, false);
+  }
+});
+
+test("agent catalog exposes all specialist roles without claiming autonomous execution", () => {
+  const agents = listAgents();
+  assert.ok(agents.length >= 11);
+  assert.ok(agents.every(agent => agent.status === "available"));
+  assert.ok(agents.some(agent => agent.id === "commerce"));
+  assert.ok(agents.some(agent => agent.id === "visual_designer"));
+});
+
+test("allows an explicit allowlisted specialist while rejecting unknown agent ids", () => {
+  const selected = selectAgentRequest("سلام", "commerce");
+  assert.equal(selected.id, "commerce");
+  assert.equal(selected.selection, "user");
+  assert.equal(selected.autonomousTools, false);
+  const fallback = selectAgentRequest("این متن را ترجمه کن", "admin");
+  assert.equal(fallback.id, "translator");
+  assert.equal(fallback.selection, "automatic");
 });

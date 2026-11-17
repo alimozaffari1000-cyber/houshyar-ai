@@ -1,8 +1,11 @@
 import { checkChatRateLimit } from "./_lib/chat-rate-limit.js";
 import { getSessionUser } from "./_lib/auth.js";
 import { reserveDailyChat, releaseDailyChat } from "./_lib/daily-quota.js";
-import { routeAgentRequest } from "./_lib/agent-router.js";
+import { selectAgentRequest } from "./_lib/agent-router.js";
 import { resolveProvider, requestModel, listAvailableProviders } from "./_lib/model-providers.js";
+import { getProviderRates, recordAiUsage } from "./_lib/usage-meter.js";
+import { parseDailySpendCap, reserveAiBudget, releaseAiBudget } from "./_lib/usage-budget.js";
+import { loadUserEntitlement } from "./_lib/billing-policy.js";
 
 const MAX_BODY_BYTES = 32 * 1024;
 const UPSTREAM_TIMEOUT_MS = 20_000;
@@ -58,7 +61,7 @@ async function readJsonLimited(request) {
 }
 
 export async function onRequestPost({ request, env }) {
-  if (!env.GROQ_API_KEY && !env.CLAUDE_API_KEY) return json({ error: "AI_NOT_CONFIGURED", message: "هیچ ارائه‌دهنده هوش مصنوعی پیکربندی نشده است." }, 503);
+  if (!env.GROQ_API_KEY && !env.CLAUDE_API_KEY && !env.GEMINI_API_KEY && !env.OPENAI_API_KEY) return json({ error: "AI_NOT_CONFIGURED", message: "هیچ ارائه‌دهنده هوش مصنوعی پیکربندی نشده است." }, 503);
   const contentType = (request.headers.get("content-type") || "").split(";", 1)[0].trim().toLowerCase();
   if (contentType !== "application/json") {
     return json({ error: "UNSUPPORTED_MEDIA_TYPE", message: "نوع محتوای درخواست باید JSON باشد." }, 415);
@@ -106,6 +109,15 @@ export async function onRequestPost({ request, env }) {
   let quotaReservation = null;
   let quotaUserId = null;
   let quotaUsageDate = null;
+  let usageUserId = null;
+  let entitlement = null;
+  const usageMeteringEnabled = env.AI_USAGE_METERING_ENABLED === "true";
+  const spendGuardEnabled = env.AI_SPEND_GUARD_ENABLED === "true";
+  if (spendGuardEnabled && (!usageMeteringEnabled || env.AUTH_ENABLED !== "true" || !env.DB || !parseDailySpendCap(env.AI_DAILY_SPEND_CAP_MICRO_USD))) {
+    return json({ error: "AI_SPEND_GUARD_NOT_CONFIGURED", message: "کنترل سقف هزینه به ثبت مصرف، ورود کاربران، پایگاه داده و سقف روزانه معتبر نیاز دارد." }, 503);
+  }
+  if (env.CHAT_PLAN_ENTITLEMENTS_ENABLED === "true" && env.CHAT_QUOTA_ENABLED !== "true") return json({ error: "PLAN_ENTITLEMENTS_NOT_CONFIGURED" }, 503);
+  if (usageMeteringEnabled && (env.AUTH_ENABLED !== "true" || !env.DB)) return json({ error: "USAGE_METERING_NOT_CONFIGURED" }, 503);
   if (env.CHAT_QUOTA_ENABLED === "true") {
     if (env.AUTH_ENABLED !== "true" || !env.DB) {
       return json({ error: "QUOTA_NOT_CONFIGURED", message: "سهمیه کاربری هنوز راه‌اندازی نشده است." }, 503);
@@ -114,11 +126,19 @@ export async function onRequestPost({ request, env }) {
       const user = await getSessionUser(env.DB, request);
       if (!user) return json({ error: "AUTH_REQUIRED", message: "برای استفاده از این سرویس وارد حساب کاربری شوید." }, 401);
       quotaUserId = user.id;
-      quotaReservation = await reserveDailyChat({ db: env.DB, userId: quotaUserId, limit: env.FREE_DAILY_CHAT_LIMIT });
+      usageUserId = user.id;
+      if (env.CHAT_PLAN_ENTITLEMENTS_ENABLED === "true") {
+        entitlement = await loadUserEntitlement({ db: env.DB, userId: quotaUserId });
+        if (body.compare === true && entitlement.plan.features.modelCompare !== true) {
+          return json({ error: "FEATURE_NOT_AVAILABLE", feature: "modelCompare", plan: entitlement.plan.code, message: "این قابلیت در پلن فعلی فعال نیست." }, 403);
+        }
+      }
+      const quotaLimit = entitlement ? entitlement.plan.dailyChatLimit : env.FREE_DAILY_CHAT_LIMIT;
+      quotaReservation = await reserveDailyChat({ db: env.DB, userId: quotaUserId, limit: quotaLimit });
       quotaUsageDate = quotaReservation.usageDate;
       if (!quotaReservation.allowed) {
         return json(
-          { error: "DAILY_QUOTA_EXCEEDED", message: "سهمیه روزانه گفتگو به پایان رسیده است.", limit: quotaReservation.limit, resetAt: quotaReservation.resetAt },
+          { error: "DAILY_QUOTA_EXCEEDED", message: "سهمیه روزانه گفتگو به پایان رسیده است.", limit: quotaReservation.limit, resetAt: quotaReservation.resetAt, plan: entitlement?.plan?.code ?? "free" },
           429,
           { "Retry-After": String(Math.max(1, quotaReservation.resetAt - Math.floor(Date.now() / 1000))) }
         );
@@ -127,6 +147,23 @@ export async function onRequestPost({ request, env }) {
       return json({ error: "QUOTA_UNAVAILABLE", message: "سامانه سهمیه‌بندی موقتاً در دسترس نیست." }, 503);
     }
   }
+  if (usageMeteringEnabled && !usageUserId) {
+    try {
+      const user = await getSessionUser(env.DB, request);
+      if (!user) return json({ error: "AUTH_REQUIRED", message: "برای ثبت مصرف وارد حساب کاربری شوید." }, 401);
+      usageUserId = user.id;
+    } catch { return json({ error: "USAGE_METERING_UNAVAILABLE" }, 503); }
+  }
+  const saveUsage = async (provider, modelName, usage, requestId, webSearch = false, reservationId = null) => {
+    if (!usageMeteringEnabled) return null;
+    return recordAiUsage({ db: env.DB, userId: usageUserId, provider, model: modelName, usage, requestId, webSearch, rates: getProviderRates(env, provider), reservationId });
+  };
+  let spendReservation = null;
+  const releaseSpendReservation = async () => {
+    if (!spendReservation?.id) return;
+    try { await releaseAiBudget({ db: env.DB, reservationId: spendReservation.id }); } catch { /* reservation expires automatically */ }
+    spendReservation = null;
+  };
   const releaseQuota = async () => {
     if (!quotaReservation?.allowed || !quotaUserId) return;
     try { await releaseDailyChat({ db: env.DB, userId: quotaUserId, usageDate: quotaUsageDate }); } catch { /* generic provider error */ }
@@ -146,23 +183,55 @@ export async function onRequestPost({ request, env }) {
   }
 
   const requestedMode = ["fast", "balanced", "deep", "creative"].includes(body.mode) ? body.mode : "balanced";
-  const requestedProvider = ["auto", "groq", "anthropic"].includes(body.provider) ? body.provider : "auto";
+  const requestedProvider = ["auto", "groq", "anthropic", "google", "openai"].includes(body.provider) ? body.provider : "auto";
   const providerChoice = resolveProvider(env, requestedProvider, requestedMode);
   if (providerChoice.error) {
     await releaseQuota();
     return json({ error: "PROVIDER_NOT_CONFIGURED", provider: providerChoice.provider, message: "ارائه‌دهنده انتخاب‌شده هنوز در تنظیمات سرور فعال نیست." }, 503);
   }
   const groqModelByMode = { fast: env.GROQ_MODEL_FAST, balanced: env.GROQ_MODEL, deep: env.GROQ_MODEL_DEEP, creative: env.GROQ_MODEL_CREATIVE };
-  const model = providerChoice.provider === "anthropic"
+  const model = providerChoice.provider === "openai"
+    ? (env.OPENAI_MODEL || providerChoice.model)
+    : providerChoice.provider === "anthropic"
     ? (env.CLAUDE_MODEL || providerChoice.model)
-    : (groqModelByMode[requestedMode] || providerChoice.model);
-  const selectedAgent = routeAgentRequest(latest);
+    : providerChoice.provider === "google"
+      ? (env.GEMINI_MODEL || providerChoice.model)
+      : (groqModelByMode[requestedMode] || providerChoice.model);
+  const selectedAgent = selectAgentRequest(latest, body.agentId);
   const messages = [
     { role: "system", content: "تو هوش‌یار، یک دستیار چندمنظوره و چندزبانه دقیق و کاربردی هستی. پاسخ را به زبان کاربر، روشن و مرحله‌ای ارائه کن. اطلاعات نامطمئن را قطعی جلوه نده. برای موضوعات پزشکی، مالی و حقوقی محدودیت‌ها و ریسک‌ها را روشن کن. هرگز ادعا نکن جستجوی زنده، اقدام بیرونی، اجرای کد یا دسترسی به ابزار انجام داده‌ای مگر واقعاً انجام شده باشد.\n\nنقش تخصصی این درخواست: " + selectedAgent.instruction },
     ...safeHistory,
   ];
   if (messages[messages.length - 1]?.role !== "user" || messages[messages.length - 1]?.content !== latest) {
     messages.push({ role: "user", content: latest });
+  }
+
+  if (spendGuardEnabled) {
+    if (body.compare === true) {
+      await releaseQuota();
+      return json({ error: "COMPARE_NOT_AVAILABLE_WITH_SPEND_GUARD", message: "برای مقایسه چند مدل، ابتدا کنترل هزینه باید از نرخ و سقف هر مدل پشتیبانی کند." }, 403);
+    }
+    if (body.webSearch === true && providerChoice.provider === "google") {
+      await releaseQuota();
+      return json({ error: "SEARCH_COST_NOT_COVERED", message: "هزینه جستجوی گوگل هنوز در سقف هزینه قابل محاسبه نیست؛ برای جلوگیری از هزینه نامشخص، این درخواست مسدود شد." }, 403);
+    }
+    try {
+      spendReservation = await reserveAiBudget({
+        db: env.DB, userId: usageUserId, requestId: crypto.randomUUID(),
+        capMicroUsd: env.AI_DAILY_SPEND_CAP_MICRO_USD,
+        promptBytes: new TextEncoder().encode(JSON.stringify(messages)).byteLength,
+        maxOutputTokens: 1200,
+        rates: getProviderRates(env, providerChoice.provider)
+      });
+    } catch {
+      await releaseQuota();
+      return json({ error: "AI_SPEND_GUARD_UNAVAILABLE", message: "بررسی سقف هزینه موقتاً در دسترس نیست." }, 503);
+    }
+    if (!spendReservation.allowed) {
+      await releaseQuota();
+      const status = spendReservation.reason === "DAILY_SPEND_CAP_REACHED" || spendReservation.reason === "REQUEST_EXCEEDS_DAILY_BUDGET" ? 429 : 503;
+      return json({ error: spendReservation.reason, message: status === 429 ? "سقف هزینه روزانه هوش مصنوعی به پایان رسیده است." : "نرخ قیمت یا تنظیمات سقف هزینه کامل نیست؛ درخواست برای جلوگیری از هزینه نامشخص متوقف شد." }, status);
+    }
   }
 
   if (body.compare === true) {
@@ -192,19 +261,35 @@ export async function onRequestPost({ request, env }) {
         return { provider: target.provider, model: result.model, reply: result.reply, usage: result.usage };
       } finally { clearTimeout(compareTimeout); }
     };
-    try {
-      const comparison = await Promise.all(compareTargets.map(runComparison));
-      const usage = comparison.every(item => item.usage) ? comparison.reduce((sum, item) => ({
-        promptTokens: sum.promptTokens + item.usage.promptTokens,
-        completionTokens: sum.completionTokens + item.usage.completionTokens,
-        totalTokens: sum.totalTokens + item.usage.totalTokens
-      }), { promptTokens: 0, completionTokens: 0, totalTokens: 0 }) : null;
-      const reply = comparison.map((item, index) => "مدل " + (index + 1) + " (" + item.provider + " / " + item.model + ")\\n" + item.reply).join("\\n\\n━━━━━━━━━━━━━━━━━━━━\\n\\n");
-      return json({ reply, compare: true, comparison, usage, provider: "comparison", providers: comparison.map(item => item.provider), agent: { id: selectedAgent.id, label: selectedAgent.label, labelEn: selectedAgent.labelEn } });
-    } catch {
+    const settled = await Promise.allSettled(compareTargets.map(runComparison));
+    const comparison = settled
+      .filter(item => item.status === "fulfilled")
+      .map(item => item.value);
+    // Record every successful provider call even when its comparison partner fails.
+    // Otherwise a billable successful request could disappear from the usage ledger.
+    if (usageMeteringEnabled && comparison.length) {
+      try {
+        const requestId = crypto.randomUUID();
+        for (let index = 0; index < comparison.length; index++) {
+          const item = comparison[index];
+          await saveUsage(item.provider, item.model, item.usage, requestId + "-" + (index + 1));
+        }
+      } catch {
+        await releaseQuota();
+        return json({ error: "USAGE_RECORD_FAILED", message: "ثبت مصرف درخواست کامل نشد." }, 503);
+      }
+    }
+    if (settled.some(item => item.status === "rejected")) {
       await releaseQuota();
       return json({ error: "COMPARISON_FAILED", message: "مقایسه مدل‌ها کامل نشد. کلیدها، اعتبار حساب و دسترسی مدل‌ها را بررسی کنید." }, 502);
     }
+    const usage = comparison.every(item => item.usage) ? comparison.reduce((sum, item) => ({
+      promptTokens: sum.promptTokens + item.usage.promptTokens,
+      completionTokens: sum.completionTokens + item.usage.completionTokens,
+      totalTokens: sum.totalTokens + item.usage.totalTokens
+    }), { promptTokens: 0, completionTokens: 0, totalTokens: 0 }) : null;
+    const reply = comparison.map((item, index) => "مدل " + (index + 1) + " (" + item.provider + " / " + item.model + ")\\n" + item.reply).join("\\n\\n━━━━━━━━━━━━━━━━━━━━\\n\\n");
+    return json({ reply, compare: true, comparison, usage, provider: "comparison", providers: comparison.map(item => item.provider), agent: { id: selectedAgent.id, label: selectedAgent.label, labelEn: selectedAgent.labelEn } });
   }
 
   const controller = new AbortController();
@@ -213,9 +298,17 @@ export async function onRequestPost({ request, env }) {
   try {
     result = await requestModel({
       provider: providerChoice.provider, env, messages, model,
-      signal: controller.signal, maxTokens: 1200, temperature: 0.5
+      signal: controller.signal, maxTokens: 1200, temperature: 0.5,
+      webSearch: body.webSearch === true && providerChoice.provider === "google"
     });
   } catch {
+    if (spendReservation?.id) {
+      try {
+        await saveUsage(providerChoice.provider, model, null, spendReservation.requestId, false, spendReservation.id);
+        spendReservation = null;
+      } catch { /* retain reservation for the remainder of the day */ }
+    }
+    if (!spendReservation?.id) await releaseSpendReservation();
     await releaseQuota();
     if (controller.signal.aborted) {
       return json({ error: "UPSTREAM_TIMEOUT", message: "پاسخ سرویس هوش مصنوعی بیش از زمان مجاز طول کشید." }, 504);
@@ -224,12 +317,24 @@ export async function onRequestPost({ request, env }) {
   } finally {
     clearTimeout(timeout);
   }
+  let usageRecord = null;
+  if (usageMeteringEnabled) {
+    try { usageRecord = await saveUsage(providerChoice.provider, result.model, result.usage, spendReservation?.requestId || crypto.randomUUID(), body.webSearch === true && providerChoice.provider === "google", spendReservation?.id || null); }
+    catch {
+      if (!spendReservation?.id) await releaseSpendReservation();
+      await releaseQuota();
+      return json({ error: "USAGE_RECORD_FAILED", message: "ثبت مصرف درخواست کامل نشد." }, 503);
+    }
+  }
   return json({
     reply: result.reply,
+    plan: entitlement?.plan?.code ?? null,
+    usageRecord,
     mode: requestedMode,
     provider: providerChoice.provider,
     model: result.model,
     usage: result.usage,
+    sources: Array.isArray(result.sources) ? result.sources : [],
     agent: { id: selectedAgent.id, label: selectedAgent.label, labelEn: selectedAgent.labelEn }
   });
 }

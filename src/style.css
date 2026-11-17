@@ -313,6 +313,11 @@ button:focus-visible,textarea:focus-visible,select:focus-visible{
 .workspace-feedback{min-height:18px;margin:7px 2px;color:#83efd1;font-size:11px}
 .workspace-toolbar{display:flex;justify-content:flex-start;margin:8px 0 12px}
 .workspace-primary{border:0;border-radius:10px;padding:10px 15px;background:linear-gradient(120deg,#83efd1,#61cfc9);color:#09201e;font:700 12px Vazirmatn;cursor:pointer}
+.workspace-history-search,.workspace-history-form input{box-sizing:border-box;width:100%;min-height:42px;margin:8px 0 12px;border:1px solid rgba(145,180,218,.22);border-radius:9px;padding:10px 12px;background:#0d192a;color:#fff;font:12px Vazirmatn}
+.workspace-history-search:focus-visible,.workspace-history-form input:focus-visible{outline:2px solid #58d9bd;outline-offset:2px}
+.workspace-history-form{display:grid;gap:9px;margin:10px 0 16px;padding:14px;border:1px solid rgba(145,180,218,.16);border-radius:14px;background:rgba(255,255,255,.025)}
+.workspace-history-form input{margin:0}
+.workspace-item[hidden]{display:none}
 .workspace-project-form{display:grid;gap:9px;margin:10px 0 16px;padding:14px;border:1px solid rgba(145,180,218,.16);border-radius:14px;background:rgba(255,255,255,.025)}
 .workspace-project-form input,.workspace-project-form textarea{width:100%;min-height:42px;border:1px solid rgba(145,180,218,.22);border-radius:9px;padding:10px;background:#0d192a;color:#fff;font:12px Vazirmatn}
 .workspace-project-form textarea{resize:vertical;max-height:120px}
@@ -416,3 +421,122 @@ button:focus-visible,textarea:focus-visible,select:focus-visible{
 .marketplace-seller-product button{padding:6px 10px;font-size:10px}
 .marketplace-note{margin:18px 0 0;padding-top:12px;border-top:1px solid var(--line);color:#8398b2;font-size:10px;line-height:1.8}
 @media(max-width:620px){.marketplace-overlay{padding:8px}.marketplace-dialog{max-height:94vh;padding:15px;border-radius:19px}.marketplace-products{grid-template-columns:1fr}.marketplace-product-art{flex-basis:68px;height:80px}.marketplace-form-card form{grid-template-columns:1fr}.marketplace-form-card label:has(textarea){grid-column:auto}.marketplace-seller-product{align-items:flex-start;flex-wrap:wrap}.marketplace-seller-product>div{flex:1 1 55%}.marketplace-head h2{font-size:19px}}
+
+
+/* Grounded web references returned by Gemini Search. */
+.answer-sources{display:flex;flex-wrap:wrap;gap:8px 16px;margin:10px 0 0;padding:10px 0 0 18px;border-top:1px solid var(--line);color:#91a6bf;font-size:11px;line-height:1.6}
+.answer-sources a{color:#83c8ff;text-decoration:underline;text-underline-offset:3px;overflow-wrap:anywhere}
+.answer-sources a:focus-visible{outline:2px solid currentColor;outline-offset:3px;border-radius:3px}
+
+
+/* Specialist agent selector */
+#agent-select{background:#15263d;border:1px solid #344d69;border-radius:9px;color:#e8f3ff;padding:7px 28px 7px 10px;font:11px Vazirmatn;max-width:205px}
+#agent-select:focus-visible{outline:2px solid #58d9bd;outline-offset:2px}
+
+
+/* Local marketplace discovery controls and fulfillment metadata */
+.marketplace-search{flex-wrap:wrap}
+.marketplace-search input,.marketplace-search select{min-width:0;flex:1 1 145px;border:1px solid rgba(145,180,218,.2);border-radius:11px;background:#0b1728;color:#f2f7ff;padding:11px 12px;font:12px Vazirmatn}
+.marketplace-search button[data-nearby]{border:1px solid rgba(110,231,196,.28);background:rgba(110,231,196,.08);color:#a7f0db}
+.marketplace-product-info>div{display:flex;flex-wrap:wrap;gap:12px;margin-top:8px}
+.marketplace-product-info>div a{color:#83c8ff;font-size:11px;text-decoration:underline;text-underline-offset:3px}
+.marketplace-form-card form[data-store-profile]{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.marketplace-form-card form[data-store-profile] label{display:flex;align-items:center;gap:7px;min-width:0}
+.marketplace-form-card form[data-store-profile] label input:not([type=checkbox]){min-width:0;flex:1}
+.marketplace-form-card form[data-store-profile] button{grid-column:1/-1}
+@media(max-width:560px){.marketplace-form-card form[data-store-profile]{grid-template-columns:1fr}.marketplace-form-card form[data-store-profile] button{grid-column:auto}}
+
+
+/* Marketplace cart, checkout and seller order management */
+.marketplace-cart{margin:18px 0;padding:14px;border:1px solid rgba(145,180,218,.2);border-radius:14px;background:rgba(13,27,46,.72)}
+.marketplace-cart h3,.marketplace-seller-list h3{margin:0 0 12px;font-size:14px}
+.marketplace-cart-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid rgba(145,180,218,.12);font-size:12px}
+.marketplace-cart-row button,.marketplace-order-card button,.marketplace-product-info>button{border:1px solid rgba(110,231,196,.25);border-radius:9px;background:rgba(110,231,196,.08);color:#a7f0db;padding:7px 10px;font:11px Vazirmatn}
+.marketplace-cart form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px}
+.marketplace-cart form label{display:grid;gap:5px;font-size:11px;color:#a9bdd4}
+.marketplace-cart form input,.marketplace-cart form select,.marketplace-cart form textarea{width:100%;min-width:0;border:1px solid rgba(145,180,218,.2);border-radius:9px;background:#0b1728;color:#f2f7ff;padding:9px;font:12px Vazirmatn}
+.marketplace-cart form button{grid-column:1/-1}
+.marketplace-order-card{display:grid;gap:7px;padding:12px;margin:9px 0;border:1px solid rgba(145,180,218,.18);border-radius:12px;font-size:12px}
+.marketplace-order-card>div{color:#a9bdd4}
+.marketplace-order-card button{margin-inline-end:6px}
+@media(max-width:560px){.marketplace-cart form{grid-template-columns:1fr}.marketplace-cart form button{grid-column:auto}.marketplace-cart-row{grid-template-columns:minmax(0,1fr) auto}.marketplace-cart-row button{grid-column:1/-1;justify-self:start}}
+
+/* Marketplace in-app notifications */
+.marketplace-notification-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:8px 0 12px}
+.marketplace-notification{display:grid;gap:7px;padding:13px;margin:9px 0;border:1px solid rgba(145,180,218,.18);border-radius:12px;font-size:12px}
+.marketplace-notification.is-unread{border-color:rgba(110,231,196,.45);background:rgba(110,231,196,.045)}
+.marketplace-notification p{margin:0;color:#c4d4e6;overflow-wrap:anywhere}
+.marketplace-notification small{color:#91a6bf}
+.marketplace-notification button,.marketplace-notification-head button{justify-self:start;border:1px solid rgba(110,231,196,.25);border-radius:9px;background:rgba(110,231,196,.08);color:#a7f0db;padding:7px 10px;font:11px Vazirmatn}
+
+
+/* Mobile chat controls: predictable two-column layout and no horizontal overflow. */
+@media(max-width:560px){
+  .mode-control{
+    display:grid;
+    grid-template-columns:minmax(0,1fr) minmax(0,1.35fr);
+    align-items:center;
+    gap:9px 10px;
+    margin:14px 0 9px;
+    padding:13px;
+    border:1px solid var(--line);
+    border-radius:15px;
+    background:rgba(16,28,48,.72);
+  }
+  .mode-control>label:not(.compare-toggle){
+    min-width:0;
+    color:#a9bdd4;
+    line-height:1.6;
+  }
+  .mode-control>select,
+  .mode-control>#agent-select{
+    width:100%;
+    min-width:0;
+    max-width:none;
+    padding:9px 10px;
+    font-size:11px;
+  }
+  .mode-control .compare-toggle{
+    grid-column:1/-1;
+    min-width:0;
+    line-height:1.7;
+    align-items:flex-start;
+  }
+  .mode-control .compare-toggle input{
+    flex:0 0 16px;
+    margin-top:3px;
+  }
+}
+@media(max-width:380px){
+  .top{padding-inline:10px}
+  .top-actions{gap:5px}
+  .locale-select{max-width:72px;font-size:9px}
+  .account-open{padding:6px 7px;font-size:9px}
+  .brand{gap:6px}
+  .brand strong{font-size:15px}
+  .brand small{font-size:9px}
+  .status{padding:5px 7px;font-size:8px}
+}
+
+/* Workspace project editor actions */
+.workspace-form-actions{display:flex;align-items:center;flex-wrap:wrap;gap:8px}
+.workspace-form-actions>button:not(.workspace-primary){border:1px solid rgba(145,180,218,.22);border-radius:10px;padding:9px 13px;background:rgba(255,255,255,.025);color:#c9d8e9;font:11px Vazirmatn;cursor:pointer}
+.workspace-project-form input:focus-visible,.workspace-project-form textarea:focus-visible,.workspace-form-actions button:focus-visible,.workspace-item-actions button:focus-visible{outline:2px solid #83efd1;outline-offset:3px}
+@media(max-width:420px){.workspace-form-actions{display:grid;grid-template-columns:1fr}.workspace-form-actions button{width:100%}}
+
+.workspace-toolbar{align-items:center;flex-wrap:wrap;gap:8px}.workspace-sort-label{font-size:11px;color:#9aacc5}.workspace-history-sort{min-height:38px;max-width:100%;border:1px solid rgba(145,180,218,.22);border-radius:9px;padding:7px 10px;background:#0d192a;color:#fff;font:12px Vazirmatn}.workspace-history-sort:focus-visible{outline:2px solid #58d9bd;outline-offset:2px}
+
+/* Safe bulk conversation management */
+.workspace-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:7px}
+.workspace-toolbar>button:not(.workspace-primary){border:1px solid rgba(145,180,218,.22);border-radius:9px;padding:7px 9px;background:#15263d;color:#d9e7f6;font:10px Vazirmatn;cursor:pointer}
+.workspace-toolbar>button:disabled{opacity:.45;cursor:not-allowed}
+.workspace-select-label{display:inline-flex;align-items:center;gap:6px;margin:0 0 7px;color:#9aacc5;font-size:10px;cursor:pointer}
+.workspace-select-label input{accent-color:#58d9bd}
+.workspace-bulk-confirm{display:flex;align-items:center;flex-wrap:wrap;gap:9px;margin:10px 0;padding:12px;border:1px solid rgba(255,130,130,.3);border-radius:12px;background:rgba(180,55,55,.08)}
+.workspace-bulk-confirm p{flex:1 1 100%;margin:0;color:#f1d7d7;font-size:11px}
+.workspace-bulk-confirm button{border:1px solid rgba(145,180,218,.22);border-radius:8px;padding:7px 10px;background:#15263d;color:#e9f3ff;font:11px Vazirmatn;cursor:pointer}
+.workspace-bulk-confirm .workspace-danger{border-color:#b65b5b;background:#8f3030;color:#fff}
+
+/* Workspace backup controls */
+.workspace-toolbar [data-action="export-backup"],.workspace-toolbar [data-action="import-backup"]{border:1px solid rgba(88,217,189,.28);border-radius:9px;padding:7px 9px;background:rgba(30,115,105,.16);color:#bcefe5;font:10px Vazirmatn;cursor:pointer}
+.workspace-toolbar button:focus-visible,.workspace-bulk-confirm button:focus-visible{outline:2px solid #58d9bd;outline-offset:2px}

@@ -15,7 +15,7 @@
 ## امکانات موجود در کد
 
 - رابط واکنش‌گرای چت فارسی RTL و پشتیبانی پایه چندزبانه
-- اتصال سمت سرور به Groq از مسیر /api/chat
+- اتصال سمت سرور به Groq، Claude و Google Gemini از مسیر /api/chat (نیازمند Secrets مستقل و آزمون عملی هر ارائه‌دهنده)
 - محدودسازی طول پیام، تاریخچه، بدنه درخواست و timeout
 - پایه API حساب کاربری، نشست امن، سهمیه و محدودیت نرخ با قابلیت فعال‌سازی کنترل‌شده
 - migrationهای D1 و راهنمای راه‌اندازی/انتشار امن
@@ -46,7 +46,7 @@ npm run quality:check
 - Build command: npm run build
 - Output directory: dist
 - Root directory: /
-- Secret سمت سرور: GROQ_API_KEY
+- Secrets سمت سرور: `GROQ_API_KEY`، `CLAUDE_API_KEY` و `GEMINI_API_KEY` بر اساس ارائه‌دهنده انتخاب‌شده؛ `GEMINI_MODEL` اختیاری است
 
 برای حساب کاربری، binding پایگاه D1 باید دقیقاً DB باشد و migrationهای 0001 تا 0003 به‌ترتیب اعمال شوند. برای تأیید ایمیل، سرویس HTTPS و secrets مربوطه لازم است. راهنما در CLOUDFLARE-SETUP-FA.md و گیت‌های انتشار قرار دارد.
 
