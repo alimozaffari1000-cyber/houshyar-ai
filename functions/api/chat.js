@@ -3,6 +3,7 @@ import { getSessionUser } from "./_lib/auth.js";
 import { reserveDailyChat, releaseDailyChat } from "./_lib/daily-quota.js";
 import { selectAgentRequest } from "./_lib/agent-router.js";
 import { resolveProvider, requestModel, listAvailableProviders } from "./_lib/model-providers.js";
+import { getProviderRates, recordAiUsage } from "./_lib/usage-meter.js";
 
 const MAX_BODY_BYTES = 32 * 1024;
 const UPSTREAM_TIMEOUT_MS = 20_000;
@@ -106,6 +107,9 @@ export async function onRequestPost({ request, env }) {
   let quotaReservation = null;
   let quotaUserId = null;
   let quotaUsageDate = null;
+  let usageUserId = null;
+  const usageMeteringEnabled = env.AI_USAGE_METERING_ENABLED === "true";
+  if (usageMeteringEnabled && (env.AUTH_ENABLED !== "true" || !env.DB)) return json({ error: "USAGE_METERING_NOT_CONFIGURED" }, 503);
   if (env.CHAT_QUOTA_ENABLED === "true") {
     if (env.AUTH_ENABLED !== "true" || !env.DB) {
       return json({ error: "QUOTA_NOT_CONFIGURED", message: "سهمیه کاربری هنوز راه‌اندازی نشده است." }, 503);
@@ -114,6 +118,7 @@ export async function onRequestPost({ request, env }) {
       const user = await getSessionUser(env.DB, request);
       if (!user) return json({ error: "AUTH_REQUIRED", message: "برای استفاده از این سرویس وارد حساب کاربری شوید." }, 401);
       quotaUserId = user.id;
+      usageUserId = user.id;
       quotaReservation = await reserveDailyChat({ db: env.DB, userId: quotaUserId, limit: env.FREE_DAILY_CHAT_LIMIT });
       quotaUsageDate = quotaReservation.usageDate;
       if (!quotaReservation.allowed) {
@@ -127,6 +132,17 @@ export async function onRequestPost({ request, env }) {
       return json({ error: "QUOTA_UNAVAILABLE", message: "سامانه سهمیه‌بندی موقتاً در دسترس نیست." }, 503);
     }
   }
+  if (usageMeteringEnabled && !usageUserId) {
+    try {
+      const user = await getSessionUser(env.DB, request);
+      if (!user) return json({ error: "AUTH_REQUIRED", message: "برای ثبت مصرف وارد حساب کاربری شوید." }, 401);
+      usageUserId = user.id;
+    } catch { return json({ error: "USAGE_METERING_UNAVAILABLE" }, 503); }
+  }
+  const saveUsage = async (provider, modelName, usage, requestId, webSearch = false) => {
+    if (!usageMeteringEnabled) return null;
+    return recordAiUsage({ db: env.DB, userId: usageUserId, provider, model: modelName, usage, requestId, webSearch, rates: getProviderRates(env, provider) });
+  };
   const releaseQuota = async () => {
     if (!quotaReservation?.allowed || !quotaUserId) return;
     try { await releaseDailyChat({ db: env.DB, userId: quotaUserId, usageDate: quotaUsageDate }); } catch { /* generic provider error */ }
@@ -202,6 +218,18 @@ export async function onRequestPost({ request, env }) {
         totalTokens: sum.totalTokens + item.usage.totalTokens
       }), { promptTokens: 0, completionTokens: 0, totalTokens: 0 }) : null;
       const reply = comparison.map((item, index) => "مدل " + (index + 1) + " (" + item.provider + " / " + item.model + ")\\n" + item.reply).join("\\n\\n━━━━━━━━━━━━━━━━━━━━\\n\\n");
+      if (usageMeteringEnabled) {
+        try {
+          const requestId = crypto.randomUUID();
+          for (let index = 0; index < comparison.length; index++) {
+            const item = comparison[index];
+            await saveUsage(item.provider, item.model, item.usage, requestId + "-" + (index + 1));
+          }
+        } catch {
+          await releaseQuota();
+          return json({ error: "USAGE_RECORD_FAILED", message: "ثبت مصرف درخواست کامل نشد." }, 503);
+        }
+      }
       return json({ reply, compare: true, comparison, usage, provider: "comparison", providers: comparison.map(item => item.provider), agent: { id: selectedAgent.id, label: selectedAgent.label, labelEn: selectedAgent.labelEn } });
     } catch {
       await releaseQuota();
@@ -227,8 +255,17 @@ export async function onRequestPost({ request, env }) {
   } finally {
     clearTimeout(timeout);
   }
+  let usageRecord = null;
+  if (usageMeteringEnabled) {
+    try { usageRecord = await saveUsage(providerChoice.provider, result.model, result.usage, crypto.randomUUID(), body.webSearch === true && providerChoice.provider === "google"); }
+    catch {
+      await releaseQuota();
+      return json({ error: "USAGE_RECORD_FAILED", message: "ثبت مصرف درخواست کامل نشد." }, 503);
+    }
+  }
   return json({
     reply: result.reply,
+    usageRecord,
     mode: requestedMode,
     provider: providerChoice.provider,
     model: result.model,
