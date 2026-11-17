@@ -18,13 +18,14 @@ test('ورودی کاربر قبل از نمایش escape می‌شود', async 
 
 test('پیش‌نویس پیام هنگام انتظار برای پاسخ حفظ می‌شود', async () => {
   const js=await readFile(new URL('../src/main.js',import.meta.url),'utf8');
-  assert.ok(js.includes("draft: ''"));
+  assert.ok(js.includes("draft: loadDraft()"));
   assert.ok(js.includes('${escapeHTML(state.draft)}'));
-  assert.ok(js.includes("prompt.addEventListener('input',()=>{state.draft=prompt.value;resize();});"));
+  assert.ok(js.includes("prompt.addEventListener('input',()=>{state.draft=prompt.value;saveDraft(state.draft);resize();});"));
   const clearDraftIndex = js.indexOf("state.draft='';");
+  const clearStoredDraftIndex = js.indexOf("clearDraft();", clearDraftIndex);
   const chooseModeIndex = js.indexOf("const learningMode = state.mode === 'auto' ? recommendLearningMode(text) : state.mode;");
   const pushMessageIndex = js.indexOf("state.messages.push({role:'user',text});");
-  assert.ok(clearDraftIndex >= 0 && chooseModeIndex > clearDraftIndex && pushMessageIndex > chooseModeIndex);
+  assert.ok(clearDraftIndex >= 0 && clearStoredDraftIndex > clearDraftIndex && chooseModeIndex > clearStoredDraftIndex && pushMessageIndex > chooseModeIndex);
 });
 
 
