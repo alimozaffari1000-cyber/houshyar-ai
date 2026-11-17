@@ -45,14 +45,14 @@ test("OpenAI adapter uses the official API, normalizes usage, and keeps its key 
   let captured;
   globalThis.fetch = async (url, init) => {
     captured = { url, headers: init.headers, body: JSON.parse(init.body) };
-    return new Response(JSON.stringify({ model: "gpt-4.1-mini", choices: [{ message: { content: "سلام از OpenAI" } }], usage: { prompt_tokens: 13, completion_tokens: 9, total_tokens: 22 } }), { status: 200, headers: { "content-type": "application/json" } });
+    return new Response(JSON.stringify({ model: "gpt-6-luna", output: [{ type: "message", content: [{ type: "output_text", text: "سلام از OpenAI" }] }], usage: { input_tokens: 13, output_tokens: 9, total_tokens: 22 } }), { status: 200, headers: { "content-type": "application/json" } });
   };
   try {
     const result = await requestModel({ provider: "openai", env: { OPENAI_API_KEY: "openai-private-test-key" }, messages: [{ role: "system", content: "system rules" }, { role: "user", content: "سلام" }] });
-    assert.equal(captured.url, "https://api.openai.com/v1/chat/completions");
+    assert.equal(captured.url, "https://api.openai.com/v1/responses");
     assert.equal(captured.headers.Authorization, "Bearer openai-private-test-key");
-    assert.equal(captured.body.model, "gpt-4.1-mini");
-    assert.equal(captured.body.messages[0].role, "system");
+    assert.equal(captured.body.model, "gpt-6-luna");
+    assert.equal(captured.body.instructions, "system rules");\n    assert.equal(captured.body.input[0].role, "user");\n    assert.equal(captured.body.max_output_tokens, 1200);
     assert.equal(result.reply, "سلام از OpenAI");
     assert.deepEqual(result.usage, { promptTokens: 13, completionTokens: 9, totalTokens: 22 });
     assert.equal(JSON.stringify(result).includes("openai-private-test-key"), false);
@@ -61,13 +61,13 @@ test("OpenAI adapter uses the official API, normalizes usage, and keeps its key 
 
 test("OpenAI is listed, selectable, and used as the final auto fallback", () => {
   assert.equal(listAvailableProviders({ OPENAI_API_KEY: "k" }).find(item => item.id === "openai").available, true);
-  assert.deepEqual(resolveProvider({ OPENAI_API_KEY: "k" }, "auto", "balanced"), { provider: "openai", model: "gpt-4.1-mini" });
+  assert.deepEqual(resolveProvider({ OPENAI_API_KEY: "k" }, "auto", "balanced"), { provider: "openai", model: "gpt-6-luna" });
   assert.deepEqual(resolveProvider({ GROQ_API_KEY: "g" }, "openai", "balanced"), { error: "PROVIDER_NOT_CONFIGURED", provider: "openai" });
 });
 
 test("chat API can serve OpenAI without requiring other provider keys", async () => {
   const originalFetch = globalThis.fetch;
-  globalThis.fetch = async () => new Response(JSON.stringify({ model: "gpt-4.1-mini", choices: [{ message: { content: "پاسخ آزمایشی OpenAI" } }], usage: { prompt_tokens: 2, completion_tokens: 3, total_tokens: 5 } }), { status: 200, headers: { "content-type": "application/json" } });
+  globalThis.fetch = async () => new Response(JSON.stringify({ model: "gpt-6-luna", output: [{ type: "message", content: [{ type: "output_text", text: "پاسخ آزمایشی OpenAI" }] }], usage: { input_tokens: 2, output_tokens: 3, total_tokens: 5 } }), { status: 200, headers: { "content-type": "application/json" } });
   try {
     const request = new Request("https://houshyar.example/api/chat", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ message: "سلام", provider: "openai", mode: "balanced" }) });
     const response = await onRequestPost({ request, env: { OPENAI_API_KEY: "openai-test-secret" } });
@@ -75,7 +75,7 @@ test("chat API can serve OpenAI without requiring other provider keys", async ()
     assert.equal(response.status, 200);
     assert.equal(data.provider, "openai");
     assert.equal(data.reply, "پاسخ آزمایشی OpenAI");
-    assert.equal(data.model, "gpt-4.1-mini");
+    assert.equal(data.model, "gpt-6-luna");
     assert.equal(JSON.stringify(data).includes("openai-test-secret"), false);
     const health = await onRequestGet({ env: { OPENAI_API_KEY: "openai-test-secret" } });
     assert.equal(health.status, 200);
