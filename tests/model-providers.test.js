@@ -89,16 +89,18 @@ test("Google Gemini adapter maps system and conversation roles and keeps its API
   let captured;
   globalThis.fetch = async (url, init) => {
     captured = { url, headers: init.headers, body: JSON.parse(init.body) };
-    return new Response(JSON.stringify({ modelVersion: "gemini-3.1-flash-lite", candidates: [{ content: { role: "model", parts: [{ text: "سلام از جمینای" }] } }], usageMetadata: { promptTokenCount: 11, candidatesTokenCount: 8, totalTokenCount: 19 } }), { status: 200, headers: { "content-type": "application/json" } });
+    return new Response(JSON.stringify({ modelVersion: "gemini-3.1-flash-lite", candidates: [{ content: { role: "model", parts: [{ text: "سلام از جمینای" }] }, groundingMetadata: { groundingChunks: [{ web: { uri: "https://example.com/source", title: "منبع نمونه" } }, { web: { uri: "javascript:alert(1)", title: "نامعتبر" } }] } }], usageMetadata: { promptTokenCount: 11, candidatesTokenCount: 8, totalTokenCount: 19 } }), { status: 200, headers: { "content-type": "application/json" } });
   };
   try {
-    const result = await requestModel({ provider: "google", env: { GEMINI_API_KEY: "gemini-secret-test", GEMINI_MODEL: "gemini-3.1-flash-lite" }, messages: [{ role: "system", content: "system rules" }, { role: "user", content: "سلام" }, { role: "assistant", content: "درود" }, { role: "user", content: "ادامه بده" }] });
+    const result = await requestModel({ provider: "google", env: { GEMINI_API_KEY: "gemini-secret-test", GEMINI_MODEL: "gemini-3.1-flash-lite" }, webSearch: true, messages: [{ role: "system", content: "system rules" }, { role: "user", content: "سلام" }, { role: "assistant", content: "درود" }, { role: "user", content: "ادامه بده" }] });
     assert.equal(captured.url, "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent");
     assert.equal(captured.headers["x-goog-api-key"], "gemini-secret-test");
     assert.deepEqual(captured.body.systemInstruction, { parts: [{ text: "system rules" }] });
     assert.deepEqual(captured.body.contents.map(item => item.role), ["user", "model", "user"]);
     assert.equal(captured.body.generationConfig.maxOutputTokens, 1200);
     assert.equal(Object.hasOwn(captured.body.generationConfig, "temperature"), false);
+    assert.deepEqual(captured.body.tools, [{ google_search: {} }]);
+    assert.deepEqual(result.sources, [{ title: "منبع نمونه", url: "https://example.com/source" }]);
     assert.equal(result.reply, "سلام از جمینای");
     assert.deepEqual(result.usage, { promptTokens: 11, completionTokens: 8, totalTokens: 19 });
     assert.equal(JSON.stringify(result).includes("gemini-secret-test"), false);
@@ -126,5 +128,48 @@ test("chat API accepts Google Gemini as a configured provider", async () => {
     const health = await onRequestGet({ env: { GEMINI_API_KEY: "test-secret" } });
     assert.equal(health.status, 200);
     assert.equal((await health.json()).providers.find(item => item.id === "google").available, true);
+  } finally { globalThis.fetch = originalFetch; }
+});
+
+test("Gemini web search is opt-in and returns grounded source links through chat API", async () => {
+  const originalFetch = globalThis.fetch;
+  let captured;
+  globalThis.fetch = async (url, init) => {
+    captured = JSON.parse(init.body);
+    return new Response(JSON.stringify({
+      modelVersion: "gemini-3.1-flash-lite",
+      candidates: [{ content: { parts: [{ text: "پاسخ مستند" }] }, groundingMetadata: { groundingChunks: [{ web: { uri: "https://developers.google.com", title: "Google Developers" } }] } }],
+      usageMetadata: { promptTokenCount: 2, candidatesTokenCount: 3, totalTokenCount: 5 }
+    }), { status: 200, headers: { "content-type": "application/json" } });
+  };
+  try {
+    const request = new Request("https://houshyar.example/api/chat", {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ message: "آخرین قابلیت‌های گوگل چیست؟", provider: "google", webSearch: true })
+    });
+    const response = await onRequestPost({ request, env: { GEMINI_API_KEY: "test-secret" } });
+    const data = await response.json();
+    assert.equal(response.status, 200);
+    assert.deepEqual(captured.tools, [{ google_search: {} }]);
+    assert.deepEqual(data.sources, [{ title: "Google Developers", url: "https://developers.google.com" }]);
+    assert.equal(data.reply, "پاسخ مستند");
+  } finally { globalThis.fetch = originalFetch; }
+});
+
+test("Gemini Search cannot be enabled by requests using another provider", async () => {
+  const originalFetch = globalThis.fetch;
+  let captured;
+  globalThis.fetch = async (url, init) => {
+    captured = JSON.parse(init.body);
+    return new Response(JSON.stringify({ choices: [{ message: { content: "پاسخ Groq" } }], model: "llama-3.3-70b-versatile" }), { status: 200, headers: { "content-type": "application/json" } });
+  };
+  try {
+    const request = new Request("https://houshyar.example/api/chat", {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ message: "سلام", provider: "groq", webSearch: true })
+    });
+    const response = await onRequestPost({ request, env: { GROQ_API_KEY: "test-secret" } });
+    assert.equal(response.status, 200);
+    assert.equal(Object.hasOwn(captured, "tools"), false);
   } finally { globalThis.fetch = originalFetch; }
 });
