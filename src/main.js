@@ -84,7 +84,7 @@ async function submitMessage(event) {
     const response=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:text,history:state.messages.slice(-11),mode:learningMode,compare:state.compare,provider:state.provider})});
     const data=await response.json().catch(()=>({}));
     if(!response.ok) {
-      const errorKeys={AI_NOT_CONFIGURED:'errorAiNotConfigured',BODY_TOO_LARGE:'errorBodyTooLarge',MESSAGE_TOO_LONG:'errorMessageTooLong',UPSTREAM_TIMEOUT:'errorUpstreamTimeout',UPSTREAM_ERROR:'errorUpstreamUnavailable',UPSTREAM_UNAVAILABLE:'errorUpstreamUnavailable',COMPARE_NOT_CONFIGURED:'errorAiNotConfigured',PROVIDER_NOT_CONFIGURED:'errorAiNotConfigured',COMPARISON_FAILED:'errorUpstreamUnavailable'};
+      const errorKeys={AI_NOT_CONFIGURED:'errorAiNotConfigured',BODY_TOO_LARGE:'errorBodyTooLarge',MESSAGE_TOO_LONG:'errorMessageTooLong',UPSTREAM_TIMEOUT:'errorUpstreamTimeout',UPSTREAM_ERROR:'errorUpstreamUnavailable',UPSTREAM_UNAVAILABLE:'errorUpstreamUnavailable',COMPARE_NOT_CONFIGURED:'errorAiNotConfigured',PROVIDER_NOT_CONFIGURED:'errorAiNotConfigured',COMPARISON_FAILED:'errorUpstreamUnavailable',RATE_LIMITED:'errorRateLimited',DAILY_QUOTA_EXCEEDED:'errorQuotaExceeded',AUTH_REQUIRED:'errorAuthRequired',RATE_LIMIT_UNAVAILABLE:'errorRateLimitUnavailable',RATE_LIMIT_NOT_CONFIGURED:'errorRateLimitUnavailable',QUOTA_NOT_CONFIGURED:'errorRateLimitUnavailable'};
       throw new Error(t(errorKeys[data.error] || 'errorGeneric',getLocale()));
     }
     state.messages.push({role:'assistant',text:data.reply || 'پاسخ خالی از سرویس دریافت شد.',agent:data.agent || null,provider:data.provider || null,responseId:crypto.randomUUID(),category:data.agent?.id || classifyLearningTask(text),mode:learningMode});
