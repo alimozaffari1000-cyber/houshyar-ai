@@ -215,3 +215,30 @@ test('workspace project editing is wired with escaped values and cancel action',
  assert.match(js,/workspaceUpdateProject/);
  assert.match(js,/workspaceProjectUpdated/);
 });
+
+
+test('saved conversations can be renamed without changing their messages or creation date', async () => {
+ const { renameWorkspaceConversation } = await import('../src/workspace.js');
+ const messages = [{ role: 'user', text: 'hello' }, { role: 'assistant', text: 'hi' }];
+ const history = [{ id: 'chat-1', title: 'Old title', createdAt: '2026-01-01T00:00:00.000Z', messages }];
+ const renamed = renameWorkspaceConversation(history, 'chat-1', '  New title  ');
+ assert.equal(renamed[0].title, 'New title');
+ assert.equal(renamed[0].createdAt, history[0].createdAt);
+ assert.deepEqual(renamed[0].messages, messages);
+ assert.equal(history[0].title, 'Old title');
+ assert.equal(renameWorkspaceConversation(history, 'missing', 'Name'), null);
+ assert.equal(renameWorkspaceConversation(history, 'chat-1', '   '), null);
+ assert.equal(renameWorkspaceConversation(history, 'chat-1', 'x'.repeat(140))[0].title.length, 120);
+});
+
+test('workspace conversation rename UI is wired and localized in all supported workspace locales', async () => {
+ const js=await readFile(new URL('../src/workspace.js',import.meta.url),'utf8');
+ const i18n=await readFile(new URL('../src/i18n.js',import.meta.url),'utf8');
+ assert.match(js,/data-action="edit-history"/);
+ assert.match(js,/data-action="cancel-history-edit"/);
+ assert.match(js,/renameWorkspaceConversation/);
+ assert.match(js,/workspaceConversationRenamed/);
+ for(const key of ['workspaceRename','workspaceUpdateTitle','workspaceCancelRename','workspaceConversationRenamed','workspaceTitleRequired']){
+  assert.equal((i18n.match(new RegExp(key+':','g'))||[]).length,12,key+' must exist in all 12 locales');
+ }
+});
