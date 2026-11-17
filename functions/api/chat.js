@@ -259,31 +259,35 @@ export async function onRequestPost({ request, env }) {
         return { provider: target.provider, model: result.model, reply: result.reply, usage: result.usage };
       } finally { clearTimeout(compareTimeout); }
     };
-    try {
-      const comparison = await Promise.all(compareTargets.map(runComparison));
-      const usage = comparison.every(item => item.usage) ? comparison.reduce((sum, item) => ({
-        promptTokens: sum.promptTokens + item.usage.promptTokens,
-        completionTokens: sum.completionTokens + item.usage.completionTokens,
-        totalTokens: sum.totalTokens + item.usage.totalTokens
-      }), { promptTokens: 0, completionTokens: 0, totalTokens: 0 }) : null;
-      const reply = comparison.map((item, index) => "مدل " + (index + 1) + " (" + item.provider + " / " + item.model + ")\\n" + item.reply).join("\\n\\n━━━━━━━━━━━━━━━━━━━━\\n\\n");
-      if (usageMeteringEnabled) {
-        try {
-          const requestId = crypto.randomUUID();
-          for (let index = 0; index < comparison.length; index++) {
-            const item = comparison[index];
-            await saveUsage(item.provider, item.model, item.usage, requestId + "-" + (index + 1));
-          }
-        } catch {
-          await releaseQuota();
-          return json({ error: "USAGE_RECORD_FAILED", message: "ثبت مصرف درخواست کامل نشد." }, 503);
+    const settled = await Promise.allSettled(compareTargets.map(runComparison));
+    const comparison = settled
+      .filter(item => item.status === "fulfilled")
+      .map(item => item.value);
+    // Record every successful provider call even when its comparison partner fails.
+    // Otherwise a billable successful request could disappear from the usage ledger.
+    if (usageMeteringEnabled && comparison.length) {
+      try {
+        const requestId = crypto.randomUUID();
+        for (let index = 0; index < comparison.length; index++) {
+          const item = comparison[index];
+          await saveUsage(item.provider, item.model, item.usage, requestId + "-" + (index + 1));
         }
+      } catch {
+        await releaseQuota();
+        return json({ error: "USAGE_RECORD_FAILED", message: "ثبت مصرف درخواست کامل نشد." }, 503);
       }
-      return json({ reply, compare: true, comparison, usage, provider: "comparison", providers: comparison.map(item => item.provider), agent: { id: selectedAgent.id, label: selectedAgent.label, labelEn: selectedAgent.labelEn } });
-    } catch {
+    }
+    if (settled.some(item => item.status === "rejected")) {
       await releaseQuota();
       return json({ error: "COMPARISON_FAILED", message: "مقایسه مدل‌ها کامل نشد. کلیدها، اعتبار حساب و دسترسی مدل‌ها را بررسی کنید." }, 502);
     }
+    const usage = comparison.every(item => item.usage) ? comparison.reduce((sum, item) => ({
+      promptTokens: sum.promptTokens + item.usage.promptTokens,
+      completionTokens: sum.completionTokens + item.usage.completionTokens,
+      totalTokens: sum.totalTokens + item.usage.totalTokens
+    }), { promptTokens: 0, completionTokens: 0, totalTokens: 0 }) : null;
+    const reply = comparison.map((item, index) => "مدل " + (index + 1) + " (" + item.provider + " / " + item.model + ")\\n" + item.reply).join("\\n\\n━━━━━━━━━━━━━━━━━━━━\\n\\n");
+    return json({ reply, compare: true, comparison, usage, provider: "comparison", providers: comparison.map(item => item.provider), agent: { id: selectedAgent.id, label: selectedAgent.label, labelEn: selectedAgent.labelEn } });
   }
 
   const controller = new AbortController();
