@@ -41,3 +41,31 @@ test("missing measurements are excluded from scoring without creating NaN", () =
   assert.equal(result.selected, "groq");
   assert.equal(Number.isFinite(result.ranked[0].score), true);
 });
+
+test("observed provider ranking requires a minimum sample and configured provider", async () => {
+  const { rankProvidersFromObservations } = await import("../functions/api/_lib/provider-evaluator.js");
+  const configured = [
+    { id: "groq", available: true },
+    { id: "anthropic", available: true },
+    { id: "google", available: false }
+  ];
+  const observations = [
+    { provider: "groq", successes: 8, failures: 2, avgLatencyMs: 300 },
+    { provider: "anthropic", successes: 4, failures: 0, avgLatencyMs: 100 },
+    { provider: "google", successes: 20, failures: 0, avgLatencyMs: 50 }
+  ];
+  const result = rankProvidersFromObservations(configured, observations, { mode: "speed", minSamples: 5 });
+  assert.equal(result.selected, "groq");
+  assert.equal(result.ranked.length, 1);
+});
+
+test("observed provider ranking returns no recommendation for insufficient evidence", async () => {
+  const { rankProvidersFromObservations } = await import("../functions/api/_lib/provider-evaluator.js");
+  const result = rankProvidersFromObservations(
+    [{ id: "groq", available: true }],
+    [{ provider: "groq", successes: 3, failures: 0, avgLatencyMs: 250 }],
+    { minSamples: 5 }
+  );
+  assert.equal(result.selected, null);
+  assert.equal(result.reason, "no_available_candidates");
+});
