@@ -87,3 +87,13 @@ The admin dashboard is observational only. It does not restart services, mutate 
 
 The synthetic monitor also opens or updates a deduplicated GitHub issue when a configured endpoint check fails, then closes that automation-labeled incident after a later successful check. This requires the repository Actions token to have issue write permission. No email, SMS, or external paging integration is configured. Manual runs without a target URL are skipped rather than generating a false outage alert.
 
+
+### Privacy-minimized provider metrics
+
+The migration `migrations/0008_operational_metrics.sql` adds an operational-only event table. It stores a random request identifier, allowlisted event/provider labels, HTTP status, bounded latency, and timestamp. It does not store prompts, messages, user IDs, IP addresses, credentials, or upstream response bodies.
+
+Collection is **opt-in**. It requires the Pages D1 binding `DB`, the migration to be applied to the target database, and the Pages environment variable `OBSERVABILITY_ENABLED=true`. Without all three, chat continues without persistent metrics. D1 writes run through the request execution context in the background and do not block the model response. A 14-day retention cleanup runs when new metrics are written.
+
+The admin-only endpoint `GET /api/admin/metrics` returns 24-hour aggregates after checking the same active session and server-side admin role. The admin dashboard displays provider request counts, failures, and average latency. Until the migration and opt-in setting are configured, it explicitly reports metrics as disabled; it never fabricates data. The endpoint does not return individual request rows.
+
+Apply the migration to the configured D1 database using the project's Wrangler D1 migration process. Do not enable collection in production until the D1 binding, backup/restore process, retention policy, and administrator access have been reviewed.
