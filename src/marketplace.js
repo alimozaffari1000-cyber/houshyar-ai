@@ -133,6 +133,21 @@ export function initMarketplace(app, { locale = "fa" } = {}) {
     if (account) { overlay.hidden = true; document.body.classList.remove("marketplace-open"); app.querySelector("#account-open")?.click(); }
     const publish = event.target.closest("[data-publish]");
     if (publish) publishProduct(publish);
+    const add = event.target.closest("[data-cart-add]");
+    if (add) {
+      const product = catalogProducts.get(add.dataset.cartAdd);
+      if (product) {
+        const first = cart.size ? [...cart.values()][0] : null;
+        if (first && first.storeId !== product.storeId) say(c.mixedStore);
+        else {
+          const item = cart.get(product.id) || { id: product.id, title: product.title, priceMinor: product.priceMinor, currency: product.currency, storeId: product.storeId, quantity: 0 };
+          item.quantity = Math.min(100, item.quantity + 1);
+          cart.set(product.id, item); renderCart(); say("");
+        }
+      }
+    }
+    const remove = event.target.closest("[data-cart-remove]");
+    if (remove) { cart.delete(remove.dataset.cartRemove); renderCart(); }
   });
   async function publishProduct(button) {
     button.disabled = true; say(c.loading);
@@ -151,8 +166,32 @@ export function initMarketplace(app, { locale = "fa" } = {}) {
     { enableHighAccuracy:false, timeout:10000, maximumAge:300000 });
   });
   more.addEventListener("click", () => loadCatalog(false));
+  checkoutForm.elements.fulfillment.addEventListener("change", renderCart);
+  renderCart();
   overlay.addEventListener("submit", async event => {
     const form = event.target;
+    if (form.matches("[data-market-checkout]")) {
+      event.preventDefault();
+      const button = form.querySelector("button[type=submit]");
+      button.disabled = true; say(c.loading);
+      try {
+        const data = await request("/api/orders", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({
+          items:[...cart.values()].map(item => ({ productId:item.id, quantity:item.quantity })),
+          fulfillment:form.elements.fulfillment.value,
+          recipientName:form.elements.recipientName.value,
+          contactPhone:form.elements.contactPhone.value,
+          deliveryAddress:form.elements.deliveryAddress.value,
+          buyerNote:form.elements.buyerNote.value,
+          idempotencyKey:crypto.randomUUID()
+        }) });
+        cart.clear(); renderCart(); form.reset(); renderCart();
+        say(c.orderCreated + data.order.orderNumber);
+      } catch (error) {
+        if (error.status === 401) say(c.login);
+        else if (error.message === "INSUFFICIENT_STOCK" || error.message === "STOCK_OR_PRICE_CHANGED") say(locale === "fa" ? "موجودی یا قیمت تغییر کرده؛ دوباره جست‌وجو کن." : "Stock or price changed. Refresh the catalog.");
+        else say(c.orderFailed);
+      } finally { button.disabled = false; }
+    }
     if (form.matches("[data-store-profile]")) {
       event.preventDefault(); const button = form.querySelector("button[type=submit]"); button.disabled = true; say(c.loading);
       const coordinate = value => value.trim() === "" ? null : Number(value);
