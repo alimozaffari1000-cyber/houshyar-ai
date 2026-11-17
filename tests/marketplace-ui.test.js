@@ -78,8 +78,10 @@ test("marketplace UI is connected to home screen and uses authenticated store en
   assert.match(ui, /credentials:"same-origin"/);
 });
 
-test("marketplace UI explains disabled payment and virtual try-on features", async () => {
+test("marketplace UI distinguishes enabled order checkout from disabled online payments", async () => {
   const ui = await readFile(new URL("../src/marketplace.js", import.meta.url), "utf8");
-  assert.match(ui, /Checkout, payments, image uploads and virtual try-on are not enabled/);
-  assert.match(ui, /پرداخت، سبد خرید، ارسال تصویر و پرو مجازی فعال نیستند/);
+  assert.match(ui, /Online payments are not enabled; orders are created as unpaid/);
+  assert.match(ui, /پرداخت آنلاین هنوز فعال نیست/);
+  assert.match(ui, /data-market-checkout/);
+  assert.match(ui, /request\("\/api\/orders"/);
 });
