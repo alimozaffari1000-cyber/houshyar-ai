@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { routeAgentRequest, listAgents } from "../functions/api/_lib/agent-router.js";
+import { routeAgentRequest, selectAgentRequest, listAgents } from "../functions/api/_lib/agent-router.js";
 
 test("routes core specialist tasks", () => {
   assert.equal(routeAgentRequest("این متن را به انگلیسی ترجمه کن").id, "translator");
@@ -34,4 +34,14 @@ test("agent catalog exposes all specialist roles without claiming autonomous exe
   assert.ok(agents.every(agent => agent.status === "available"));
   assert.ok(agents.some(agent => agent.id === "commerce"));
   assert.ok(agents.some(agent => agent.id === "visual_designer"));
+});
+
+test("allows an explicit allowlisted specialist while rejecting unknown agent ids", () => {
+  const selected = selectAgentRequest("سلام", "commerce");
+  assert.equal(selected.id, "commerce");
+  assert.equal(selected.selection, "user");
+  assert.equal(selected.autonomousTools, false);
+  const fallback = selectAgentRequest("این متن را ترجمه کن", "admin");
+  assert.equal(fallback.id, "translator");
+  assert.equal(fallback.selection, "automatic");
 });
