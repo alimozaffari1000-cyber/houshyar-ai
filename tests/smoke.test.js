@@ -167,3 +167,13 @@ test('workspace storage normalization rejects malformed records and bounds saved
  assert.equal(projects[0].title, 'Project');
  assert.equal(projects[0].prompt.length, 5000);
 });
+
+test('workspace dialog restores focus, traps keyboard navigation, and closes on Escape or backdrop', async () => {
+ const js=await readFile(new URL('../src/workspace.js',import.meta.url),'utf8');
+ assert.match(js,/panel.querySelector\("\[data-action=close\]"\)\?.focus\(\)/);
+ assert.match(js,/if\(event\.key==="Escape"\)\{panel\.hidden=true;opener\.focus\(\);return\}/);
+ assert.match(js,/if\(event\.key!=="Tab"\)return/);
+ assert.match(js,/event\.shiftKey&&document\.activeElement===first/);
+ assert.match(js,/!event\.shiftKey&&document\.activeElement===last/);
+ assert.match(js,/if\(event\.target===panel\)\{panel\.hidden=true;opener\.focus\(\)\}/);
+});
