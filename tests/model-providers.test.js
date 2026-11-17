@@ -173,3 +173,44 @@ test("Gemini Search cannot be enabled by requests using another provider", async
     assert.equal(Object.hasOwn(captured, "tools"), false);
   } finally { globalThis.fetch = originalFetch; }
 });
+
+
+test("provider adapters treat incomplete token usage as unknown rather than zero-cost", async () => {
+  const originalFetch = globalThis.fetch;
+  try {
+    globalThis.fetch = async () => new Response(JSON.stringify({
+      modelVersion: "gemini-3.1-flash-lite",
+      candidates: [{ content: { parts: [{ text: "پاسخ" }] } }],
+      usageMetadata: { promptTokenCount: 15 }
+    }), { status: 200, headers: { "content-type": "application/json" } });
+    const gemini = await requestModel({
+      provider: "google", env: { GEMINI_API_KEY: "test" },
+      messages: [{ role: "user", content: "سلام" }]
+    });
+    assert.equal(gemini.usage, null);
+
+    globalThis.fetch = async () => new Response(JSON.stringify({
+      model: "claude-sonnet-5-5",
+      content: [{ type: "text", text: "پاسخ" }],
+      usage: { input_tokens: 10 }
+    }), { status: 200, headers: { "content-type": "application/json" } });
+    const claude = await requestModel({
+      provider: "anthropic", env: { CLAUDE_API_KEY: "test" },
+      messages: [{ role: "user", content: "سلام" }]
+    });
+    assert.equal(claude.usage, null);
+
+    globalThis.fetch = async () => new Response(JSON.stringify({
+      model: "llama-test",
+      choices: [{ message: { content: "پاسخ" } }],
+      usage: { prompt_tokens: 10 }
+    }), { status: 200, headers: { "content-type": "application/json" } });
+    const groq = await requestModel({
+      provider: "groq", env: { GROQ_API_KEY: "test" },
+      messages: [{ role: "user", content: "سلام" }]
+    });
+    assert.equal(groq.usage, null);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
