@@ -455,3 +455,11 @@ button:focus-visible,textarea:focus-visible,select:focus-visible{
 .marketplace-order-card>div{color:#a9bdd4}
 .marketplace-order-card button{margin-inline-end:6px}
 @media(max-width:560px){.marketplace-cart form{grid-template-columns:1fr}.marketplace-cart form button{grid-column:auto}.marketplace-cart-row{grid-template-columns:minmax(0,1fr) auto}.marketplace-cart-row button{grid-column:1/-1;justify-self:start}}
+
+/* Marketplace in-app notifications */
+.marketplace-notification-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:8px 0 12px}
+.marketplace-notification{display:grid;gap:7px;padding:13px;margin:9px 0;border:1px solid rgba(145,180,218,.18);border-radius:12px;font-size:12px}
+.marketplace-notification.is-unread{border-color:rgba(110,231,196,.45);background:rgba(110,231,196,.045)}
+.marketplace-notification p{margin:0;color:#c4d4e6;overflow-wrap:anywhere}
+.marketplace-notification small{color:#91a6bf}
+.marketplace-notification button,.marketplace-notification-head button{justify-self:start;border:1px solid rgba(110,231,196,.25);border-radius:9px;background:rgba(110,231,196,.08);color:#a7f0db;padding:7px 10px;font:11px Vazirmatn}
