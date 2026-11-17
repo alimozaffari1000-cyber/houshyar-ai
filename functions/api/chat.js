@@ -3,6 +3,7 @@ import { getSessionUser } from "./_lib/auth.js";
 import { reserveDailyChat, releaseDailyChat } from "./_lib/daily-quota.js";
 import { routeAgentRequest } from "./_lib/agent-router.js";
 import { resolveProvider, requestModel, listAvailableProviders } from "./_lib/model-providers.js";
+import { createRequestTelemetry } from "./_lib/observability.js";
 
 const MAX_BODY_BYTES = 32 * 1024;
 const UPSTREAM_TIMEOUT_MS = 20_000;
@@ -58,6 +59,7 @@ async function readJsonLimited(request) {
 }
 
 export async function onRequestPost({ request, env }) {
+  const telemetry = createRequestTelemetry({ request, route: "chat" });
   if (!env.GROQ_API_KEY && !env.CLAUDE_API_KEY && !env.GEMINI_API_KEY) return json({ error: "AI_NOT_CONFIGURED", message: "هیچ ارائه‌دهنده هوش مصنوعی پیکربندی نشده است." }, 503);
   const contentType = (request.headers.get("content-type") || "").split(";", 1)[0].trim().toLowerCase();
   if (contentType !== "application/json") {
@@ -196,16 +198,18 @@ export async function onRequestPost({ request, env }) {
     };
     try {
       const comparison = await Promise.all(compareTargets.map(runComparison));
+      telemetry.log("comparison_success", { provider: "comparison", status: 200 });
       const usage = comparison.every(item => item.usage) ? comparison.reduce((sum, item) => ({
         promptTokens: sum.promptTokens + item.usage.promptTokens,
         completionTokens: sum.completionTokens + item.usage.completionTokens,
         totalTokens: sum.totalTokens + item.usage.totalTokens
       }), { promptTokens: 0, completionTokens: 0, totalTokens: 0 }) : null;
       const reply = comparison.map((item, index) => "مدل " + (index + 1) + " (" + item.provider + " / " + item.model + ")\\n" + item.reply).join("\\n\\n━━━━━━━━━━━━━━━━━━━━\\n\\n");
-      return json({ reply, compare: true, comparison, usage, provider: "comparison", providers: comparison.map(item => item.provider), agent: { id: selectedAgent.id, label: selectedAgent.label, labelEn: selectedAgent.labelEn } });
+      return json({ reply, compare: true, comparison, usage, provider: "comparison", providers: comparison.map(item => item.provider), agent: { id: selectedAgent.id, label: selectedAgent.label, labelEn: selectedAgent.labelEn } }, 200, telemetry.responseHeaders());
     } catch {
+      telemetry.log("comparison_failure", { provider: "comparison", status: 502, errorCode: "comparison_failed" });
       await releaseQuota();
-      return json({ error: "COMPARISON_FAILED", message: "مقایسه مدل‌ها کامل نشد. کلیدها، اعتبار حساب و دسترسی مدل‌ها را بررسی کنید." }, 502);
+      return json({ error: "COMPARISON_FAILED", message: "مقایسه مدل‌ها کامل نشد. کلیدها، اعتبار حساب و دسترسی مدل‌ها را بررسی کنید." }, 502, telemetry.responseHeaders());
     }
   }
 
@@ -218,12 +222,15 @@ export async function onRequestPost({ request, env }) {
       signal: controller.signal, maxTokens: 1200, temperature: 0.5,
       webSearch: body.webSearch === true && providerChoice.provider === "google"
     });
+    telemetry.log("provider_success", { provider: providerChoice.provider, status: 200 });
   } catch {
+    const timedOut = controller.signal.aborted;
+    telemetry.log("provider_failure", { provider: providerChoice.provider, status: timedOut ? 504 : 502, errorCode: timedOut ? "upstream_timeout" : "upstream_error" });
     await releaseQuota();
-    if (controller.signal.aborted) {
-      return json({ error: "UPSTREAM_TIMEOUT", message: "پاسخ سرویس هوش مصنوعی بیش از زمان مجاز طول کشید." }, 504);
+    if (timedOut) {
+      return json({ error: "UPSTREAM_TIMEOUT", message: "پاسخ سرویس هوش مصنوعی بیش از زمان مجاز طول کشید." }, 504, telemetry.responseHeaders());
     }
-    return json({ error: "UPSTREAM_ERROR", message: "ارائه‌دهنده هوش مصنوعی موقتاً پاسخ‌گو نیست یا تنظیمات آن معتبر نیست." }, 502);
+    return json({ error: "UPSTREAM_ERROR", message: "ارائه‌دهنده هوش مصنوعی موقتاً پاسخ‌گو نیست یا تنظیمات آن معتبر نیست." }, 502, telemetry.responseHeaders());
   } finally {
     clearTimeout(timeout);
   }
@@ -235,7 +242,7 @@ export async function onRequestPost({ request, env }) {
     usage: result.usage,
     sources: Array.isArray(result.sources) ? result.sources : [],
     agent: { id: selectedAgent.id, label: selectedAgent.label, labelEn: selectedAgent.labelEn }
-  });
+  }, 200, telemetry.responseHeaders());
 }
 
 export async function onRequestGet({ env } = {}) {
