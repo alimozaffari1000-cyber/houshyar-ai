@@ -55,3 +55,10 @@ Before enabling unattended runs, confirm GitHub Actions is enabled and that the 
 The workflow `.github/workflows/innovation-radar.yml` runs weekly and on demand. It checks the latest public releases for the OpenAI, Google Gen AI, Anthropic, Groq, and LangChain SDK repositories and publishes a 30-day report artifact.
 
 This is a discovery mechanism, not an automatic upgrade system. Release metadata is only a candidate signal: each proposed SDK/provider change must be checked for compatibility, security, licensing, privacy, availability, cost, and measurable benefit, then tested in an isolated pull request. The radar does not change dependencies, switch providers, access vendor-private roadmaps, or deploy code.
+
+ 
+### Developer Scout — deterministic backlog signals
+
+The workflow `.github/workflows/developer-scout.yml` runs weekly and on demand. It inventories source files, counts source lines, detects TODO/FIXME/HACK markers, and verifies that standard project checks are declared. It publishes a Markdown artifact for maintainer triage.
+
+This is intentionally a read-only engineering scout, not an LLM coding agent. It does not infer runtime defects, modify files, create pull requests, access secrets, or deploy. A future LLM-assisted developer must receive narrowly scoped permissions, work in isolated branches, add regression tests, pass all checks, and require human review.
