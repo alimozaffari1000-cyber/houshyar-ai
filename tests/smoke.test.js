@@ -138,3 +138,32 @@ test('chat draft survives reload and storage failures without exceeding the inpu
  assert.equal(draft.saveDraft('safe',broken),false);
  assert.equal(draft.clearDraft(broken),false);
 });
+
+test('workspace storage normalization rejects malformed records and bounds saved content', async () => {
+ const { normalizeWorkspaceHistory, normalizeWorkspaceProjects } = await import('../src/workspace.js');
+ assert.deepEqual(normalizeWorkspaceHistory({}), []);
+ const history = normalizeWorkspaceHistory([
+  null,
+  { id: 'bad-date', title: 'Bad', createdAt: 'not-a-date', messages: [{ role: 'user', text: 'x' }] },
+  { id: 'bad-messages', title: 'Bad messages', createdAt: '2026-01-01T00:00:00.000Z', messages: {} },
+  { id: 'ok', title: 'x'.repeat(200), createdAt: '2026-01-01T00:00:00.000Z', messages: [
+   { role: 'system', text: 'must be excluded' },
+   { role: 'user', text: 'y'.repeat(13000) },
+   { role: 'assistant', text: 'valid answer' }
+  ] }
+ ]);
+ assert.equal(history.length, 1);
+ assert.equal(history[0].title.length, 120);
+ assert.equal(history[0].messages.length, 2);
+ assert.equal(history[0].messages[0].text.length, 12000);
+ assert.equal(history[0].messages[1].role, 'assistant');
+ assert.deepEqual(normalizeWorkspaceProjects('not-an-array'), []);
+ const projects = normalizeWorkspaceProjects([
+  { id: 'p1', title: '  Project  ', prompt: 'z'.repeat(6000), createdAt: '2026-01-01T00:00:00.000Z' },
+  { id: 'p2', title: '   ', prompt: '', createdAt: '2026-01-01T00:00:00.000Z' },
+  { id: 'p3', title: 'Bad date', createdAt: 'invalid' }
+ ]);
+ assert.equal(projects.length, 1);
+ assert.equal(projects[0].title, 'Project');
+ assert.equal(projects[0].prompt.length, 5000);
+});
