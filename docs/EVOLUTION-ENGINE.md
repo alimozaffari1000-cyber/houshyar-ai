@@ -114,3 +114,9 @@ Example input:
 ```
 
 Run with `npm run agent:repair-plan -- findings.json repair-plan.json`. The output is advisory-only and marks every finding for human approval. The tool never edits source files, installs dependencies, runs migrations, changes Cloudflare settings, restarts services, rolls back releases, or deploys. Unknown or malformed input produces no repair action. It is a planning component, not an autonomous repair agent.
+
+### Evidence-based model evaluation
+
+`functions/api/_lib/provider-evaluator.js` ranks only providers explicitly marked available, using observed latency, benchmark quality, success rate, and configured cost-per-1,000-tokens. Modes are speed, quality, economy, and balanced. Missing measurements are omitted from the score rather than invented. Scores are relative to the supplied candidates and are not claims of universal model quality.
+
+This module is a decision-support foundation: it does not call providers, collect benchmarks, or automatically switch the live chat route. Explicit user provider selection is preserved. A requested but unavailable explicit provider is reported as unavailable; it is never replaced silently. Before production integration, metrics must be collected with a minimum sample threshold, freshness window, task-specific benchmark suite, and reviewed pricing configuration.
