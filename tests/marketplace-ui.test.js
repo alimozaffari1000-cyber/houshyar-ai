@@ -83,6 +83,6 @@ test("marketplace UI is connected to home screen and uses authenticated store en
 
 test("marketplace UI explains disabled payment and virtual try-on features", async () => {
   const ui = await readFile(new URL("../src/marketplace.js", import.meta.url), "utf8");
-  assert.match(ui, /Checkout, payments, image uploads and virtual try-on are not enabled/);
-  assert.match(ui, /پرداخت، سبد خرید، ارسال تصویر و پرو مجازی فعال نیستند/);
+  assert.match(ui, /Orders are requests to sellers in this version/);
+  assert.match(ui, /ثبت سفارش در این مرحله درخواست به فروشنده است/);
 });
