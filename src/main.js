@@ -7,6 +7,7 @@ import { classifyLearningTask, recommendLearningMode } from './learning-core.js'
 import { attachLearningFeedback } from './learning-ui.js';
 import { initDesignStudio } from './design-studio.js';
 import { initMarketplace } from './marketplace.js';
+import { loadDraft, saveDraft, clearDraft } from './draft-storage.js';
 
 const app = document.querySelector('#app');
 const RESPONSE_MODE_LABELS = {"fa":["سریع","متعادل","تحلیلی عمیق","خلاق"],"en":["Fast","Balanced","Deep reasoning","Creative"],"de":["Schnell","Ausgewogen","Tiefgehend","Kreativ"],"ar":["سريع","متوازن","استدلال عميق","إبداعي"],"tr":["Hızlı","Dengeli","Derin düşünme","Yaratıcı"],"es":["Rápido","Equilibrado","Razonamiento profundo","Creativo"],"fr":["Rapide","Équilibré","Raisonnement approfondi","Créatif"],"ru":["Быстрый","Сбалансированный","Глубокий анализ","Творческий"],"zh":["快速","均衡","深度推理","创意"],"hi":["तेज़","संतुलित","गहन तर्क","रचनात्मक"],"ur":["تیز","متوازن","گہری سوچ","تخلیقی"],"pt":["Rápido","Equilibrado","Raciocínio profundo","Criativo"]};
@@ -15,7 +16,7 @@ const AGENT_IDS = ["general","research","analyst","content","translator","planne
 const WEB_SEARCH_LABELS = {"fa":"جستجوی زنده گوگل (ممکن است هزینه جداگانه داشته باشد)","en":"Live Google Search (may incur extra charges)","de":"Live-Google-Suche (kann zusätzliche Kosten verursachen)","ar":"بحث Google المباشر (قد تترتب رسوم إضافية)","tr":"Canlı Google Arama (ek ücret oluşabilir)","es":"Búsqueda de Google en vivo (puede generar cargos adicionales)","fr":"Recherche Google en direct (des frais supplémentaires peuvent s’appliquer)","ru":"Поиск Google в реальном времени (возможна дополнительная плата)","zh":"Google 实时搜索（可能产生额外费用）","hi":"लाइव Google खोज (अतिरिक्त शुल्क लग सकता है)","ur":"لائیو Google تلاش (اضافی اخراجات ہو سکتے ہیں)","pt":"Pesquisa Google ao vivo (pode gerar cobranças adicionais)"};
 const COMPARE_LABELS = {"fa":"مقایسه دو مدل (مصرف بیشتر)","en":"Compare two models (higher usage)","de":"Zwei Modelle vergleichen (mehr Verbrauch)","ar":"مقارنة نموذجين (استهلاك أعلى)","tr":"İki modeli karşılaştır (daha fazla kullanım)","es":"Comparar dos modelos (mayor consumo)","fr":"Comparer deux modèles (consommation accrue)","ru":"Сравнить две модели (больше затрат)","zh":"比较两个模型（消耗更多）","hi":"दो मॉडल तुलना करें (अधिक उपयोग)","ur":"دو ماڈلز کا موازنہ (زیادہ استعمال)","pt":"Comparar dois modelos (maior consumo)"};
 const RESPONSE_MODE_TITLES = {"fa":"حالت پاسخ","en":"Response mode","de":"Antwortmodus","ar":"وضع الاستجابة","tr":"Yanıt modu","es":"Modo de respuesta","fr":"Mode de réponse","ru":"Режим ответа","zh":"回答模式","hi":"उत्तर मोड","ur":"جواب کا انداز","pt":"Modo de resposta"};
-const state = { messages: [], busy: false, draft: '', mode: 'auto', compare: false, provider: 'auto', webSearch: false, agentId: 'auto' };
+const state = { messages: [], busy: false, draft: loadDraft(), mode: 'auto', compare: false, provider: 'auto', webSearch: false, agentId: 'auto' };
 const DESIGN_STUDIO_LABELS = {fa:'استودیو طراحی',en:'Design Studio',de:'Designstudio',ar:'استوديو التصميم',tr:'Tasarım Stüdyosu',es:'Estudio de diseño',fr:'Studio de design',ru:'Студия дизайна',zh:'设计工作室',hi:'डिज़ाइन स्टूडियो',ur:'ڈیزائن اسٹوڈیو',pt:'Estúdio de design'};
 const AUTO_MODE_LABELS = { fa: 'یادگیری خودکار', en: 'Adaptive auto', de: 'Adaptiv automatisch', ar: 'تلقائي متكيف', tr: 'Uyarlanabilir otomatik', es: 'Automático adaptativo', fr: 'Automatique adaptatif', ru: 'Адаптивный авто', zh: '自适应自动', hi: 'अनुकूली ऑटो', ur: 'خودکار موافق', pt: 'Automático adaptativo' };
 const escapeHTML = (value='') => String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -60,11 +61,11 @@ function render() {
   app.querySelector('#locale-select').addEventListener('change', event => { setLocale(event.target.value); render(); });
   initAccountPanel(app);
   initAuthFlows(app);
-  initWorkspace(app, { getMessages: () => state.messages, onLoadConversation: messages => { state.messages = Array.isArray(messages) ? messages.filter(m => m && ['user','assistant'].includes(m.role)).slice(-50).map(m => ({ role: m.role, text: String(m.text || '').slice(0,12000) })) : []; state.draft = ''; render(); scrollChat(); }, onUsePrompt: value => { state.draft = value; render(); const input = app.querySelector('#prompt'); input.focus(); input.setSelectionRange(input.value.length,input.value.length); } });
+  initWorkspace(app, { getMessages: () => state.messages, onLoadConversation: messages => { state.messages = Array.isArray(messages) ? messages.filter(m => m && ['user','assistant'].includes(m.role)).slice(-50).map(m => ({ role: m.role, text: String(m.text || '').slice(0,12000) })) : []; state.draft = ''; render(); scrollChat(); }, onUsePrompt: value => { state.draft = value; saveDraft(value); render(); const input = app.querySelector('#prompt'); input.focus(); input.setSelectionRange(input.value.length,input.value.length); } });
   app.querySelectorAll('[data-prompt]').forEach(b=>b.addEventListener('click',()=>{const input=app.querySelector('#prompt');state.draft=b.dataset.prompt;input.value=state.draft;input.focus();}));
   const prompt=app.querySelector('#prompt');
   const resize=()=>{prompt.style.height='auto';prompt.style.height=Math.min(prompt.scrollHeight,160)+'px';};
-  prompt.addEventListener('input',()=>{state.draft=prompt.value;resize();});
+  prompt.addEventListener('input',()=>{state.draft=prompt.value;saveDraft(state.draft);resize();});
   prompt.addEventListener('keydown',event=>{if(event.key==='Enter'&&!event.shiftKey&&!event.isComposing){event.preventDefault();app.querySelector('#chat-form').requestSubmit();}});
   resize();
   app.querySelector('#agent-select').addEventListener('change', event => { state.agentId = event.target.value === 'auto' || AGENT_IDS.includes(event.target.value) ? event.target.value : 'auto'; });
@@ -73,7 +74,7 @@ function render() {
   app.querySelector('#ai-provider').addEventListener('change', event => { state.provider = ['auto','groq','anthropic','google'].includes(event.target.value) ? event.target.value : 'auto'; if(state.provider !== 'google') state.webSearch = false; render(); });
   app.querySelector('#web-search').addEventListener('change', event => { state.webSearch = event.target.checked === true && state.provider === 'google'; });
   app.querySelector('#chat-form').addEventListener('submit',submitMessage);
-  app.querySelector('#clear-chat').addEventListener('click',()=>{if(state.busy)return;state.messages=[];state.draft='';render();});
+  app.querySelector('#clear-chat').addEventListener('click',()=>{if(state.busy)return;state.messages=[];state.draft='';clearDraft();render();});
   app.querySelectorAll('.copy-reply').forEach(button=>button.addEventListener('click',async()=>{const reply=state.messages[Number(button.dataset.index)]?.text;if(!reply)return;try{await navigator.clipboard.writeText(reply);button.textContent=t('copyDone',getLocale());}catch{button.textContent=t('copyFailed',getLocale());}}));
 }
 
@@ -82,6 +83,7 @@ async function submitMessage(event) {
   const input=app.querySelector('#prompt'); const text=input.value.trim();
   if(!text || state.busy) return;
   state.draft='';
+  clearDraft();
   const learningMode = state.mode === 'auto' ? recommendLearningMode(text) : state.mode;
   state.messages.push({role:'user',text});
   state.busy=true; render(); scrollChat();
