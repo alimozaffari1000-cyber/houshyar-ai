@@ -186,3 +186,13 @@ test('workspace detects identical saved conversations and allows changed transcr
  assert.equal(isDuplicateWorkspaceConversation(history, [{ role: 'user', text: 'hello' }, { role: 'assistant', text: 'different' }]), false);
  assert.equal(isDuplicateWorkspaceConversation(history, []), false);
 });
+
+
+test('workspace prevents duplicate projects but permits distinct descriptions', async () => {
+ const { isDuplicateWorkspaceProject } = await import('../src/workspace.js');
+ const projects = [{ id: 'p1', title: '  Website  ', prompt: 'Build a site', createdAt: '2026-01-01T00:00:00.000Z' }];
+ assert.equal(isDuplicateWorkspaceProject(projects, 'website', 'Build a site'), true);
+ assert.equal(isDuplicateWorkspaceProject(projects, 'Website', 'Build a different site'), false);
+ assert.equal(isDuplicateWorkspaceProject(projects, 'Another project', 'Build a site'), false);
+ assert.equal(isDuplicateWorkspaceProject(projects, '', 'Build a site'), false);
+});
