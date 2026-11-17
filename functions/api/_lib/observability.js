@@ -30,13 +30,17 @@ export function createRequestTelemetry({ request, route = "unknown", env = {}, c
 
     // D1 persistence is opt-in and stores operational metadata only.
     if (env.OBSERVABILITY_ENABLED === "true" && env.DB && typeof ctx?.waitUntil === "function") {
-      const createdAt = Math.floor(Date.now() / 1000);
-      const write = env.DB.prepare(
-        "INSERT INTO operational_metrics (request_id, event, provider, status, elapsed_ms, created_at) VALUES (?, ?, ?, ?, ?, ?)"
-      ).bind(requestId, event, safeProvider, safeStatus, duration, createdAt).run()
-        .then(() => env.DB.prepare("DELETE FROM operational_metrics WHERE created_at < ?").bind(createdAt - 14 * 86400).run())
-        .catch(() => {});
-      ctx.waitUntil(write);
+      try {
+        const createdAt = Math.floor(Date.now() / 1000);
+        const write = env.DB.prepare(
+          "INSERT INTO operational_metrics (request_id, event, provider, status, elapsed_ms, created_at) VALUES (?, ?, ?, ?, ?, ?)"
+        ).bind(requestId, event, safeProvider, safeStatus, duration, createdAt).run()
+          .then(() => env.DB.prepare("DELETE FROM operational_metrics WHERE created_at < ?").bind(createdAt - 14 * 86400).run())
+          .catch(() => {});
+        ctx.waitUntil(write);
+      } catch {
+        // Telemetry storage must never interrupt a user request.
+      }
     }
   }
 
