@@ -302,7 +302,7 @@ export async function onRequestPost({ request, env }) {
         spendReservation = null;
       } catch { /* retain reservation for the remainder of the day */ }
     }
-    await releaseSpendReservation();
+    if (!spendReservation?.id) await releaseSpendReservation();
     await releaseQuota();
     if (controller.signal.aborted) {
       return json({ error: "UPSTREAM_TIMEOUT", message: "پاسخ سرویس هوش مصنوعی بیش از زمان مجاز طول کشید." }, 504);
