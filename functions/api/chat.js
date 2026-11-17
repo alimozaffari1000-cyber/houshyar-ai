@@ -224,6 +224,7 @@ export async function onRequestPost({ request, env, ctx }) {
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort("upstream_timeout"), UPSTREAM_TIMEOUT_MS);
+  const providerStartedAt = performance.now();
   let result;
   try {
     result = await requestModel({
@@ -231,10 +232,10 @@ export async function onRequestPost({ request, env, ctx }) {
       signal: controller.signal, maxTokens: 1200, temperature: 0.5,
       webSearch: body.webSearch === true && providerChoice.provider === "google"
     });
-    telemetry.log("provider_success", { provider: providerChoice.provider, status: 200 });
+    telemetry.log("provider_success", { provider: providerChoice.provider, status: 200, durationMs: performance.now() - providerStartedAt });
   } catch {
     const timedOut = controller.signal.aborted;
-    telemetry.log("provider_failure", { provider: providerChoice.provider, status: timedOut ? 504 : 502, errorCode: timedOut ? "upstream_timeout" : "upstream_error" });
+    telemetry.log("provider_failure", { provider: providerChoice.provider, status: timedOut ? 504 : 502, errorCode: timedOut ? "upstream_timeout" : "upstream_error", durationMs: performance.now() - providerStartedAt });
     await releaseQuota();
     if (timedOut) {
       return json({ error: "UPSTREAM_TIMEOUT", message: "پاسخ سرویس هوش مصنوعی بیش از زمان مجاز طول کشید." }, 504, telemetry.responseHeaders());
