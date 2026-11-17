@@ -214,3 +214,58 @@ test("provider adapters treat incomplete token usage as unknown rather than zero
     globalThis.fetch = originalFetch;
   }
 });
+
+
+test("all provider adapters normalize upstream HTTP failures without leaking response bodies or API keys", async () => {
+  const originalFetch = globalThis.fetch;
+  const cases = [
+    { provider: "groq", env: { GROQ_API_KEY: "groq-private-key" } },
+    { provider: "anthropic", env: { CLAUDE_API_KEY: "claude-private-key" } },
+    { provider: "google", env: { GEMINI_API_KEY: "gemini-private-key" } }
+  ];
+  try {
+    for (const item of cases) {
+      globalThis.fetch = async () => new Response(
+        JSON.stringify({ error: "unauthorized", diagnostic: "private upstream detail" }),
+        { status: 401, headers: { "content-type": "application/json" } }
+      );
+      await assert.rejects(
+        requestModel({
+          provider: item.provider,
+          env: item.env,
+          messages: [{ role: "user", content: "سلام" }]
+        }),
+        error => {
+          assert.equal(error.message, "provider_request_failed");
+          assert.equal(error.message.includes("private"), false);
+          assert.equal(error.message.includes("private-key"), false);
+          return true;
+        }
+      );
+    }
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("Gemini rejects system-only prompts without making an upstream request", async () => {
+  const originalFetch = globalThis.fetch;
+  let called = false;
+  globalThis.fetch = async () => {
+    called = true;
+    return new Response("{}", { status: 200 });
+  };
+  try {
+    await assert.rejects(
+      requestModel({
+        provider: "google",
+        env: { GEMINI_API_KEY: "test-secret" },
+        messages: [{ role: "system", content: "system rules" }]
+      }),
+      { message: "provider_empty_prompt" }
+    );
+    assert.equal(called, false);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
