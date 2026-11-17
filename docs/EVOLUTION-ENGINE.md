@@ -50,6 +50,13 @@ Deploy approved commits to preview/staging, run smoke and end-to-end tests, then
 Before enabling unattended runs, confirm GitHub Actions is enabled and that the repository's Actions token is allowed to create pull requests. If the repository restricts workflow-created pull requests, enable that repository setting or use a narrowly scoped GitHub App. Never put long-lived credentials in workflow YAML.
 
  
+
+### Runtime health endpoint — initial step
+
+The Pages Function at `GET /api/health` returns a minimal service status, deployment version (when a safe version identifier is available), and timestamp. It uses `Cache-Control: no-store` and does not expose provider configuration, secrets, database state, user data, or chat content. Automated tests cover the response shape and secret isolation.
+
+This endpoint confirms that the function can answer a request; it does **not** prove that D1, authentication, AI providers, marketplace operations, or the full user journey are healthy. External synthetic checks and alerting require a verified public Pages URL and are a separate rollout step.
+
 ### Innovation discovery — read-only radar
 
 The workflow `.github/workflows/innovation-radar.yml` runs weekly and on demand. It checks the latest public releases for the OpenAI, Google Gen AI, Anthropic, Groq, and LangChain SDK repositories and publishes a 30-day report artifact.
