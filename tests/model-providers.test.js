@@ -151,7 +151,7 @@ test("Gemini web search is opt-in and returns grounded source links through chat
     const data = await response.json();
     assert.equal(response.status, 200);
     assert.deepEqual(captured.tools, [{ google_search: {} }]);
-    assert.deepEqual(data.sources, [{ title: "Google Developers", url: "https://developers.google.com" }]);
+    assert.deepEqual(data.sources, [{ title: "Google Developers", url: "https://developers.google.com/" }]);
     assert.equal(data.reply, "پاسخ مستند");
   } finally { globalThis.fetch = originalFetch; }
 });
