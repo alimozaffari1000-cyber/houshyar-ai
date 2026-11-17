@@ -1,6 +1,6 @@
 import { readFileSync, writeFileSync } from "node:fs";
 
-const RULES = Object.freeze({
+const SOURCES = new Set(["npm-audit", "ci.build", "ci.tests", "runtime.health", "providers.health", "database.readiness"]);\n\nconst RULES = Object.freeze({
   BUILD_FAILED: { severity: "high", mode: "human_approval", action: "Review build logs and propose a minimal patch; do not deploy automatically." },
   TEST_FAILED: { severity: "high", mode: "human_approval", action: "Identify the failing test and isolate the regression before changing code." },
   SECURITY_ADVISORY: { severity: "critical", mode: "human_approval", action: "Verify the upstream advisory and patched version; do not guess dependency versions." },
@@ -14,7 +14,7 @@ function safeFinding(item) {
   if (!item || typeof item !== "object" || Array.isArray(item)) return null;
   const code = typeof item.code === "string" ? item.code.trim().toUpperCase() : "";
   if (!Object.hasOwn(RULES, code)) return null;
-  const source = typeof item.source === "string" && /^[a-z0-9_.:-]{1,64}$/i.test(item.source) ? item.source : "unspecified";
+  const source = typeof item.source === "string" && SOURCES.has(item.source) ? item.source : "unspecified";
   const observedAt = typeof item.observedAt === "string" && !Number.isNaN(Date.parse(item.observedAt)) ? new Date(item.observedAt).toISOString() : null;
   return { code, source, observedAt, ...RULES[code] };
 }
