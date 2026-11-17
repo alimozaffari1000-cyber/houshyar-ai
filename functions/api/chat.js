@@ -194,13 +194,14 @@ export async function onRequestPost({ request, env }) {
           provider: target.provider, env, messages, model: target.model,
           signal: compareController.signal, maxTokens: 1200, temperature: 0.5
         });
-        telemetry.log("comparison_success", { provider: target.provider, status: 200 });
+        telemetry.log("comparison_success", { provider: target.provider, status: 200, durationMs: performance.now() - providerStartedAt });
         return { provider: target.provider, model: result.model, reply: result.reply, usage: result.usage };
       } catch {
         telemetry.log("comparison_failure", {
           provider: target.provider,
           status: compareController.signal.aborted ? 504 : 502,
-          errorCode: compareController.signal.aborted ? "upstream_timeout" : "provider_error"
+          errorCode: compareController.signal.aborted ? "upstream_timeout" : "provider_error",
+          durationMs: performance.now() - providerStartedAt
         });
         throw new Error("comparison_provider_failed");
       } finally { clearTimeout(compareTimeout); }
