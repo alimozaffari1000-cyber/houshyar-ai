@@ -17,8 +17,8 @@ export async function onRequestGet({ request, env }) {
         "SELECT o.id, o.status, o.fulfillment_mode AS fulfillmentMode, o.buyer_note AS buyerNote, o.seller_note AS sellerNote, o.created_at AS createdAt, o.updated_at AS updatedAt, o.accepted_at AS acceptedAt, o.completed_at AS completedAt, s.name AS storeName, i.product_title AS productTitle, i.unit_price_minor AS unitPriceMinor, i.currency_code AS currency, i.quantity FROM marketplace_orders o JOIN merchant_stores s ON s.id = o.store_id JOIN marketplace_order_items i ON i.order_id = o.id WHERE s.user_id = ? ORDER BY o.created_at DESC LIMIT 50"
       ).bind(user.id).all()
     ]);
-    const own = Array.isArray(buyer.results) ? buyer.results : [];
-    const incoming = Array.isArray(seller.results) ? seller.results : [];
+    const own = Array.isArray(buyer.results) ? buyer.results.map(order => ({ ...order, viewerRole: "buyer" })) : [];
+    const incoming = Array.isArray(seller.results) ? seller.results.map(order => ({ ...order, viewerRole: "seller" })) : [];
     const unique = new Map();
     for (const order of [...own, ...incoming]) unique.set(order.id, order);
     return authJson({ orders: [...unique.values()].sort((a, b) => b.createdAt - a.createdAt).slice(0, 50) });
