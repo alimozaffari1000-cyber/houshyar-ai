@@ -133,3 +133,26 @@ test("workspace sync migration is documented and references account ownership", 
   assert.match(sql, /revision INTEGER NOT NULL/);
   assert.match(sql, /payload_json TEXT NOT NULL/);
 });
+
+test("workspace sync fails closed when rate-limit storage is unavailable", async () => {
+  const response = await onRequestGet({ request: request("/api/workspace/sync"), env: envFor(makeDb({ rate: false })) });
+  assert.equal(response.status, 503);
+  assert.equal((await response.json()).error, "AUTH_RATE_LIMIT_UNAVAILABLE");
+});
+
+test("workspace sync responses are never cacheable", async () => {
+  const response = await onRequestGet({ request: request("/api/workspace/sync"), env: envFor(makeDb()) });
+  assert.equal(response.headers.get("cache-control"), "no-store");
+  assert.equal(response.headers.get("x-content-type-options"), "nosniff");
+});
+
+test("workspace sync PUT rejects requests without an Origin header", async () => {
+  const noOrigin = new Request(origin + "/api/workspace/sync", {
+    method: "PUT",
+    headers: { cookie: "houshyar_session=valid-session", "content-type": "application/json" },
+    body: JSON.stringify({ revision: 0, workspace: { history: [], projects: [] } })
+  });
+  const response = await onRequestPut({ request: noOrigin, env: envFor(makeDb()) });
+  assert.equal(response.status, 403);
+  assert.equal((await response.json()).error, "ORIGIN_NOT_ALLOWED");
+});
