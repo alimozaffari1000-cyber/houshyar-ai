@@ -348,7 +348,7 @@ test('workspace backup validates format and merges without overwriting existing 
 test('workspace backup never evicts existing records when the local quota is full', async () => {
  const { mergeWorkspaceBackup } = await import('../src/workspace.js');
  const history=Array.from({length:30},(_,i)=>({id:'h'+i,title:'Chat '+i,createdAt:'2026-01-01T00:00:00.000Z',messages:[{role:'user',text:'m'+i}]}));
- const projects=Array.from({length:30},(_,i)=>({id:'p'+i,title:'Project '+i,prompt:'p'+i,createdAt:'2026-01-01T00:00:00.000Z}));
+ const projects=Array.from({length:30},(_,i)=>({id:'p'+i,title:'Project '+i,prompt:'p'+i,createdAt:'2026-01-01T00:00:00.000Z'}));
  const result=mergeWorkspaceBackup(history,projects,{format:'houshyar-workspace-backup',version:1,history:[{id:'incoming',title:'Incoming',createdAt:'2026-01-02T00:00:00.000Z',messages:[{role:'user',text:'incoming'}]}],projects:[{id:'incoming-p',title:'Incoming project',prompt:'x',createdAt:'2026-01-02T00:00:00.000Z}]});
  assert.equal(result.history.length,30);assert.equal(result.projects.length,30);
  assert.equal(result.history[0].id,'h0');assert.equal(result.projects[0].id,'p0');
