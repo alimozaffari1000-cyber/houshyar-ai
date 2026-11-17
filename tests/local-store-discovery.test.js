@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";\nimport { onRequestGet as searchStores } from "../functions/api/stores.js";
+import { readFile } from "node:fs/promises";
+import { onRequestGet as searchStores } from "../functions/api/stores.js";
 
 test("local store migration adds public location and delivery/pickup metadata safely", async () => {
   const sql = await readFile(new URL("../migrations/0006_local_store_discovery.sql", import.meta.url), "utf8");
@@ -31,7 +32,8 @@ test("store profile changes require an authenticated owner and HTTPS order links
   assert.match(source, /INVALID_STORE_COORDINATES/);
 });
 
-\ntest("public discovery filters delivery and paginates the sorted candidate set", async () => {
+
+test("public discovery filters delivery and paginates the sorted candidate set", async () => {
   let sql = "", bindings = [];
   const DB = { prepare(statement) { sql = statement; return { bind(...values) { bindings = values; return { async all() { return { results: [
     { productId:"far", title:"Apple", latitude:40.8, longitude:49.8, updatedAt:3 },
