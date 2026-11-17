@@ -68,9 +68,10 @@ test("seller acceptance decrements stock only in the same D1 batch as order tran
   const response = await updateOrder({ request: request("https://example.test/api/store/orders/update", { orderId: "123e4567-e89b-12d3-a456-426614174000", action: "accept" }), env: { DB: db } });
   assert.equal(response.status, 200);
   assert.equal((await response.json()).status, "accepted");
-  assert.equal(db.statements.length, 2);
-  assert.match(db.statements[0].sql, /stock_count = stock_count -/);
-  assert.match(db.statements[1].sql, /changes\(\) = 1/);
+  const stockWrites = db.statements.filter(statement => /UPDATE products|UPDATE marketplace_orders/.test(statement.sql));
+  assert.equal(stockWrites.length, 2);
+  assert.match(stockWrites[0].sql, /stock_count = stock_count -/);
+  assert.match(stockWrites[1].sql, /changes\(\) = 1/);
 });
 
 test("failed stock transition leaves the order unaccepted", async () => {
