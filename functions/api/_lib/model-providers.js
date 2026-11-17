@@ -9,7 +9,7 @@ function normalizeUsage(inputTokens, outputTokens, totalTokens) {
 
 const CLAUDE_DEFAULT_MODEL = "claude-sonnet-5-5";
 const GEMINI_DEFAULT_MODEL = "gemini-3.1-flash-lite";
-const OPENAI_DEFAULT_MODEL = "gpt-4.1-mini";
+const OPENAI_DEFAULT_MODEL = "gpt-6-luna";
 
 function validateProviderRequest({ messages, maxTokens, temperature }) {
   if (!Array.isArray(messages) || messages.length === 0 || messages.length > 32) {
@@ -58,20 +58,25 @@ export async function requestModel({ provider, env, messages, model, signal, max
   if (provider === "openai") {
     if (!env.OPENAI_API_KEY) throw new Error("provider_not_configured");
     const selectedModel = model || env.OPENAI_MODEL || OPENAI_DEFAULT_MODEL;
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    const instructions = messages.filter(item => item.role === "system").map(item => item.content).join("\n\n");
+    const input = messages.filter(item => item.role !== "system");
+    if (!input.length) throw new Error("provider_empty_prompt");
+    const response = await fetch("https://api.openai.com/v1/responses", {
       method: "POST",
       headers: { Authorization: `Bearer ${env.OPENAI_API_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ model: selectedModel, messages, max_tokens: maxTokens, temperature }),
+      body: JSON.stringify({ model: selectedModel, ...(instructions ? { instructions } : {}), input, max_output_tokens: maxTokens }),
       signal
     });
     if (!response.ok) throw new Error("provider_request_failed");
     const data = await response.json();
-    const reply = data?.choices?.[0]?.message?.content;
-    if (typeof reply !== "string" || !reply.trim()) throw new Error("provider_empty_reply");
+    const reply = Array.isArray(data?.output)
+      ? data.output.filter(item => item?.type === "message").flatMap(item => Array.isArray(item.content) ? item.content : []).filter(part => part?.type === "output_text" && typeof part.text === "string").map(part => part.text).join("\\n").trim()
+      : "";
+    if (!reply) throw new Error("provider_empty_reply");
     return {
-      reply: reply.trim(),
+      reply,
       model: data.model || selectedModel,
-      usage: data.usage ? normalizeUsage(data.usage.prompt_tokens, data.usage.completion_tokens, data.usage.total_tokens) : null
+      usage: data.usage ? normalizeUsage(data.usage.input_tokens, data.usage.output_tokens, data.usage.total_tokens) : null
     };
   }
 
