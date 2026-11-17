@@ -52,3 +52,19 @@ export function rankProviders(candidates, { mode = "balanced", requestedProvider
 
   return { selected: ranked[0].provider, reason: "best_observed_weighted_score", ranked };
 }
+
+export function rankProvidersFromObservations(configuredProviders, observations, { mode = "balanced", minSamples = 5 } = {}) {
+  const configured = Array.isArray(configuredProviders) ? configuredProviders : [];
+  const rows = Array.isArray(observations) ? observations : [];
+  const candidates = configured.filter(item => item?.available === true && PROVIDERS.has(item.id)).flatMap(item => {
+    const row = rows.find(value => value?.provider === item.id);
+    if (!row) return [];
+    const successes = finite(row.successes) ? Math.max(0, Math.floor(row.successes)) : 0;
+    const failures = finite(row.failures) ? Math.max(0, Math.floor(row.failures)) : 0;
+    const samples = successes + failures;
+    const latencyMs = finite(row.avgLatencyMs) && row.avgLatencyMs > 0 ? row.avgLatencyMs : null;
+    if (samples < minSamples || successes === 0 || latencyMs === null) return [];
+    return [{ provider: item.id, available: true, latencyMs, successRate: successes / samples }];
+  });
+  return rankProviders(candidates, { mode });
+}
