@@ -4,6 +4,7 @@ import { reserveDailyChat, releaseDailyChat } from "./_lib/daily-quota.js";
 import { selectAgentRequest } from "./_lib/agent-router.js";
 import { resolveProvider, requestModel, listAvailableProviders } from "./_lib/model-providers.js";
 import { getProviderRates, recordAiUsage } from "./_lib/usage-meter.js";
+import { parseDailySpendCap, reserveAiBudget, releaseAiBudget } from "./_lib/usage-budget.js";
 import { loadUserEntitlement } from "./_lib/billing-policy.js";
 
 const MAX_BODY_BYTES = 32 * 1024;
@@ -111,6 +112,10 @@ export async function onRequestPost({ request, env }) {
   let usageUserId = null;
   let entitlement = null;
   const usageMeteringEnabled = env.AI_USAGE_METERING_ENABLED === "true";
+  const spendGuardEnabled = env.AI_SPEND_GUARD_ENABLED === "true";
+  if (spendGuardEnabled && (!usageMeteringEnabled || env.AUTH_ENABLED !== "true" || !env.DB || !parseDailySpendCap(env.AI_DAILY_SPEND_CAP_MICRO_USD))) {
+    return json({ error: "AI_SPEND_GUARD_NOT_CONFIGURED", message: "کنترل سقف هزینه به ثبت مصرف، ورود کاربران، پایگاه داده و سقف روزانه معتبر نیاز دارد." }, 503);
+  }
   if (env.CHAT_PLAN_ENTITLEMENTS_ENABLED === "true" && env.CHAT_QUOTA_ENABLED !== "true") return json({ error: "PLAN_ENTITLEMENTS_NOT_CONFIGURED" }, 503);
   if (usageMeteringEnabled && (env.AUTH_ENABLED !== "true" || !env.DB)) return json({ error: "USAGE_METERING_NOT_CONFIGURED" }, 503);
   if (env.CHAT_QUOTA_ENABLED === "true") {
@@ -149,9 +154,15 @@ export async function onRequestPost({ request, env }) {
       usageUserId = user.id;
     } catch { return json({ error: "USAGE_METERING_UNAVAILABLE" }, 503); }
   }
-  const saveUsage = async (provider, modelName, usage, requestId, webSearch = false) => {
+  const saveUsage = async (provider, modelName, usage, requestId, webSearch = false, reservationId = null) => {
     if (!usageMeteringEnabled) return null;
-    return recordAiUsage({ db: env.DB, userId: usageUserId, provider, model: modelName, usage, requestId, webSearch, rates: getProviderRates(env, provider) });
+    return recordAiUsage({ db: env.DB, userId: usageUserId, provider, model: modelName, usage, requestId, webSearch, rates: getProviderRates(env, provider), reservationId });
+  };
+  let spendReservation = null;
+  const releaseSpendReservation = async () => {
+    if (!spendReservation?.id) return;
+    try { await releaseAiBudget({ db: env.DB, reservationId: spendReservation.id }); } catch { /* reservation expires automatically */ }
+    spendReservation = null;
   };
   const releaseQuota = async () => {
     if (!quotaReservation?.allowed || !quotaUserId) return;
@@ -191,6 +202,34 @@ export async function onRequestPost({ request, env }) {
   ];
   if (messages[messages.length - 1]?.role !== "user" || messages[messages.length - 1]?.content !== latest) {
     messages.push({ role: "user", content: latest });
+  }
+
+  if (spendGuardEnabled) {
+    if (body.compare === true) {
+      await releaseQuota();
+      return json({ error: "COMPARE_NOT_AVAILABLE_WITH_SPEND_GUARD", message: "برای مقایسه چند مدل، ابتدا کنترل هزینه باید از نرخ و سقف هر مدل پشتیبانی کند." }, 403);
+    }
+    if (body.webSearch === true && providerChoice.provider === "google") {
+      await releaseQuota();
+      return json({ error: "SEARCH_COST_NOT_COVERED", message: "هزینه جستجوی گوگل هنوز در سقف هزینه قابل محاسبه نیست؛ برای جلوگیری از هزینه نامشخص، این درخواست مسدود شد." }, 403);
+    }
+    try {
+      spendReservation = await reserveAiBudget({
+        db: env.DB, userId: usageUserId, requestId: crypto.randomUUID(),
+        capMicroUsd: env.AI_DAILY_SPEND_CAP_MICRO_USD,
+        promptBytes: new TextEncoder().encode(JSON.stringify(messages)).byteLength,
+        maxOutputTokens: 1200,
+        rates: getProviderRates(env, providerChoice.provider)
+      });
+    } catch {
+      await releaseQuota();
+      return json({ error: "AI_SPEND_GUARD_UNAVAILABLE", message: "بررسی سقف هزینه موقتاً در دسترس نیست." }, 503);
+    }
+    if (!spendReservation.allowed) {
+      await releaseQuota();
+      const status = spendReservation.reason === "DAILY_SPEND_CAP_REACHED" || spendReservation.reason === "REQUEST_EXCEEDS_DAILY_BUDGET" ? 429 : 503;
+      return json({ error: spendReservation.reason, message: status === 429 ? "سقف هزینه روزانه هوش مصنوعی به پایان رسیده است." : "نرخ قیمت یا تنظیمات سقف هزینه کامل نیست؛ درخواست برای جلوگیری از هزینه نامشخص متوقف شد." }, status);
+    }
   }
 
   if (body.compare === true) {
@@ -257,6 +296,7 @@ export async function onRequestPost({ request, env }) {
       webSearch: body.webSearch === true && providerChoice.provider === "google"
     });
   } catch {
+    await releaseSpendReservation();
     await releaseQuota();
     if (controller.signal.aborted) {
       return json({ error: "UPSTREAM_TIMEOUT", message: "پاسخ سرویس هوش مصنوعی بیش از زمان مجاز طول کشید." }, 504);
@@ -267,8 +307,9 @@ export async function onRequestPost({ request, env }) {
   }
   let usageRecord = null;
   if (usageMeteringEnabled) {
-    try { usageRecord = await saveUsage(providerChoice.provider, result.model, result.usage, crypto.randomUUID(), body.webSearch === true && providerChoice.provider === "google"); }
+    try { usageRecord = await saveUsage(providerChoice.provider, result.model, result.usage, spendReservation?.requestId || crypto.randomUUID(), body.webSearch === true && providerChoice.provider === "google", spendReservation?.id || null); }
     catch {
+      await releaseSpendReservation();
       await releaseQuota();
       return json({ error: "USAGE_RECORD_FAILED", message: "ثبت مصرف درخواست کامل نشد." }, 503);
     }
