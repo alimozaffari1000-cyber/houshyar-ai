@@ -21,7 +21,7 @@ export function estimateMaximumRequestCost({ promptBytes, maxOutputTokens = 1200
   });
 }
 
-export async function reserveAiBudget({ db, userId, requestId, capMicroUsd, promptBytes, maxOutputTokens = 1200, rates, now = Math.floor(Date.now() / 1000), reservationTtlSeconds = 120 }) {
+export async function reserveAiBudget({ db, userId, requestId, capMicroUsd, promptBytes, maxOutputTokens = 1200, rates, now = Math.floor(Date.now() / 1000), reservationTtlSeconds = 86400 }) {
   if (!db || !userId || !requestId) throw new Error("AI_BUDGET_STORAGE_UNAVAILABLE");
   const cap = parseDailySpendCap(capMicroUsd);
   const reserve = estimateMaximumRequestCost({ promptBytes, maxOutputTokens, ...rates });
@@ -30,6 +30,7 @@ export async function reserveAiBudget({ db, userId, requestId, capMicroUsd, prom
   const day = new Date(now * 1000).toISOString().slice(0, 10);
   const dayStart = Math.floor(Date.parse(day + "T00:00:00.000Z") / 1000);
   const dayEnd = dayStart + DAY_SECONDS;
+  await db.prepare("DELETE FROM ai_usage_budget_reservations WHERE expires_at <= ?").bind(now).run();
   const id = crypto.randomUUID();
   const row = await db.prepare(
     "INSERT INTO ai_usage_budget_reservations (id, user_id, request_id, usage_date, reserved_cost_micro_usd, expires_at, created_at) " +
