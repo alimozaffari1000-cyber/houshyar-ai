@@ -1,6 +1,8 @@
 import { readFileSync, writeFileSync } from "node:fs";
 
-const SOURCES = new Set(["npm-audit", "ci.build", "ci.tests", "runtime.health", "providers.health", "database.readiness"]);\n\nconst RULES = Object.freeze({
+const SOURCES = new Set(["npm-audit", "ci.build", "ci.tests", "runtime.health", "providers.health", "database.readiness"]);
+
+const RULES = Object.freeze({
   BUILD_FAILED: { severity: "high", mode: "human_approval", action: "Review build logs and propose a minimal patch; do not deploy automatically." },
   TEST_FAILED: { severity: "high", mode: "human_approval", action: "Identify the failing test and isolate the regression before changing code." },
   SECURITY_ADVISORY: { severity: "critical", mode: "human_approval", action: "Verify the upstream advisory and patched version; do not guess dependency versions." },
