@@ -30,3 +30,14 @@ test("seller dashboard exposes public location and fulfillment settings", async 
   assert.ok(ui.includes("/api/store/profile"));
   assert.ok(ui.includes("data-store-profile"));
 });
+
+test("marketplace UI supports cart checkout and seller order management", async () => {
+  const ui = await readFile(new URL("../src/marketplace.js", import.meta.url), "utf8");
+  assert.ok(ui.includes("data-market-checkout"));
+  assert.ok(ui.includes("data-cart-add"));
+  assert.ok(ui.includes('request("/api/orders"'));
+  assert.ok(ui.includes('request("/api/store/orders"'));
+  assert.ok(ui.includes("idempotencyKey:checkoutKey"));
+  assert.ok(ui.includes("data-order-status"));
+  assert.ok(ui.includes("cart.clear()"));
+});
