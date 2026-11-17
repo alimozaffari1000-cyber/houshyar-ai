@@ -19,7 +19,7 @@ export function getProviderRates(env, provider) {
     outputRate: safeRate(env[prefix + "_OUTPUT_MICRO_USD_PER_MILLION"])
   };
 }
-export async function recordAiUsage({ db, userId, provider, model, usage, requestId, webSearch = false, now = Math.floor(Date.now() / 1000), rates = {} }) {
+export async function recordAiUsage({ db, userId, provider, model, usage, requestId, webSearch = false, now = Math.floor(Date.now() / 1000), rates = {}, reservationId = null }) {
   if (!db || !userId || !requestId || !provider || !model) throw new Error("USAGE_LEDGER_NOT_CONFIGURED");
   const promptTokens = Number.isSafeInteger(usage?.promptTokens) && usage.promptTokens >= 0 ? usage.promptTokens : null;
   const completionTokens = Number.isSafeInteger(usage?.completionTokens) && usage.completionTokens >= 0 ? usage.completionTokens : null;
@@ -27,8 +27,17 @@ export async function recordAiUsage({ db, userId, provider, model, usage, reques
     (promptTokens != null && completionTokens != null ? promptTokens + completionTokens : null);
   const estimatedCostMicroUsd = promptTokens == null || completionTokens == null ? null :
     estimateUsageCostMicroUsd({ promptTokens, completionTokens, ...rates });
-  await db.prepare(
+  const insert = db.prepare(
     "INSERT INTO ai_usage_events (id, user_id, request_id, provider_code, model_code, prompt_tokens, completion_tokens, total_tokens, estimated_cost_micro_usd, web_search_used, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
-  ).bind(crypto.randomUUID(), userId, requestId, provider, model.slice(0, 120), promptTokens, completionTokens, totalTokens, estimatedCostMicroUsd, webSearch ? 1 : 0, now).run();
+  ).bind(crypto.randomUUID(), userId, requestId, provider, model.slice(0, 120), promptTokens, completionTokens, totalTokens, estimatedCostMicroUsd, webSearch ? 1 : 0, now);
+  if (reservationId) {
+    if (estimatedCostMicroUsd == null) throw new Error("AI_USAGE_COST_UNKNOWN");
+    await db.batch([
+      insert,
+      db.prepare("DELETE FROM ai_usage_budget_reservations WHERE id = ?").bind(reservationId)
+    ]);
+  } else {
+    await insert.run();
+  }
   return { promptTokens, completionTokens, totalTokens, estimatedCostMicroUsd };
 }
