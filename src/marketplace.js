@@ -181,6 +181,13 @@ export function initMarketplace(app, { locale = "fa" } = {}) {
         (item.entityType === "order" ? '<button type="button" data-notification-order>' + c.myOrders + '</button>' : '') +
         '</article>').join("");
   }
+  async function refreshNotificationCount() {
+    try {
+      const data = await request("/api/notifications?limit=1");
+      const counter = overlay.querySelector("[data-notification-count]");
+      if (counter) counter.textContent = Number(data.unreadCount || 0) > 0 ? "(" + Number(data.unreadCount) + ")" : "";
+    } catch { /* Notifications remain optional until the inbox migration is applied. */ }
+  }
   async function loadNotifications() {
     const target = overlay.querySelector(".marketplace-notifications");
     target.innerHTML = "";
@@ -214,7 +221,7 @@ export function initMarketplace(app, { locale = "fa" } = {}) {
       else say(error.status === 503 ? c.notReady : c.requestFailed);
     }
   }
-  trigger.addEventListener("click", () => { overlay.hidden = false; document.body.classList.add("marketplace-open"); showTab("browse"); loadCatalog(true); });
+  trigger.addEventListener("click", () => { overlay.hidden = false; document.body.classList.add("marketplace-open"); showTab("browse"); loadCatalog(true); refreshNotificationCount(); });
   overlay.querySelector("[data-market-close]").addEventListener("click", () => { overlay.hidden = true; document.body.classList.remove("marketplace-open"); });
   overlay.addEventListener("click", event => {
     if (event.target === overlay) { overlay.hidden = true; document.body.classList.remove("marketplace-open"); }
