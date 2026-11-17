@@ -206,14 +206,16 @@ test('workspace project duplicate detection excludes the project being edited', 
  assert.equal(isDuplicateWorkspaceProject(projects, 'New name', 'New prompt', 'p1'), false);
 });
 
-test('workspace project editing is wired with escaped values and cancel action', async () => {
+test('workspace project editing is wired with escaped values and localized controls', async () => {
  const js=await readFile(new URL('../src/workspace.js',import.meta.url),'utf8');
+ const i18n=await readFile(new URL('../src/i18n.js',import.meta.url),'utf8');
  assert.match(js,/data-action="edit-project"/);
  assert.match(js,/data-action="cancel-edit"/);
  assert.match(js,/esc\(editing\?\.title/);
  assert.match(js,/esc\(editing\?\.prompt/);
- assert.match(js,/workspaceUpdateProject/);
- assert.match(js,/workspaceProjectUpdated/);
+ for(const key of ['workspaceEdit','workspaceUpdateProject','workspaceCancelEdit','workspaceProjectUpdated']){
+  assert.equal((i18n.match(new RegExp(key+':','g'))||[]).length,12,key+' must exist in all 12 locales');
+ }
 });
 
 
