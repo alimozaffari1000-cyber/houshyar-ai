@@ -4,13 +4,26 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+      day: "monday"
+      time: "04:00"
+      timezone: "UTC"
     open-pull-requests-limit: 5
     groups:
       npm-production-and-development:
         patterns:
           - "*"
+    labels:
+      - "dependencies"
+      - "automated"
+
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
+      day: "monday"
+      time: "04:30"
+      timezone: "UTC"
     open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "automated"
