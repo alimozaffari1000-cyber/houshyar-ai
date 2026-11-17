@@ -40,12 +40,12 @@ export function initWorkspace(app,{getMessages,onLoadConversation,onUsePrompt}){
    content.querySelector(".workspace-project-form").addEventListener("submit",event=>{event.preventDefault();const form=event.currentTarget,title=form.elements.title.value.trim();if(!title){feedback.textContent=t("workspaceNameRequired");return}const item={id:globalThis.crypto?.randomUUID?.()||String(Date.now()),title,prompt:form.elements.prompt.value.trim(),createdAt:new Date().toISOString()};if(!write(PROJECTS_KEY,[item,...read(PROJECTS_KEY)].slice(0,MAX_ITEMS))){feedback.textContent=t("errorGeneric");return}feedback.textContent=t("workspaceProjectAdded");render()});
   }
  }
- opener.addEventListener("click",()=>{panel.hidden=false;feedback.textContent="";render()});
+ opener.addEventListener("click",()=>{panel.hidden=false;feedback.textContent="";render();panel.querySelector("[data-action=close]")?.focus()});
  panel.addEventListener("click",event=>{
   const b=event.target.closest("[data-action],[data-tab]");if(!b)return;
   if(b.dataset.tab){tab=b.dataset.tab;feedback.textContent="";render();return}
   const action=b.dataset.action,id=b.dataset.id;
-  if(action==="close"){panel.hidden=true;return}
+  if(action==="close"){panel.hidden=true;opener.focus();return}
   if(action==="save"){
    const messages=getMessages().map(m=>({role:m.role,text:String(m.text||"").slice(0,12000)})).filter(m=>["user","assistant"].includes(m.role));
    if(!messages.length){feedback.textContent=t("workspaceNeedMessages");return}
@@ -58,5 +58,15 @@ export function initWorkspace(app,{getMessages,onLoadConversation,onUsePrompt}){
   if(action==="use-project"){const item=read(PROJECTS_KEY).find(x=>x.id===id);if(item){panel.hidden=true;onUsePrompt(item.prompt||item.title)}return}
   if(action==="delete-history"||action==="delete-project"){const key=action==="delete-history"?HISTORY_KEY:PROJECTS_KEY;if(write(key,read(key).filter(x=>x.id!==id))){feedback.textContent=t("workspaceDeleted");render()}else feedback.textContent=t("errorGeneric")}
  });
- panel.addEventListener("keydown",event=>{if(event.key==="Escape")panel.hidden=true});
+ panel.addEventListener("keydown",event=>{
+  if(event.key==="Escape"){panel.hidden=true;opener.focus();return}
+  if(event.key!=="Tab")return;
+  const focusable=[...panel.querySelectorAll('button:not([disabled]),input:not([disabled]),textarea:not([disabled]),select:not([disabled]),a[href],[tabindex]:not([tabindex="-1"])')].filter(el=>!el.hidden);
+  if(!focusable.length){event.preventDefault();return}
+  const first=focusable[0],last=focusable[focusable.length-1];
+  if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus()}
+  else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus()}
+ });
+ panel.addEventListener("click",event=>{if(event.target===panel){panel.hidden=true;opener.focus()}});
+
 }
