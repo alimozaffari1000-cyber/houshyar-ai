@@ -40,6 +40,48 @@ test("provider adapters reject malformed or excessive inputs before making upstr
   }
 });
 
+test("OpenAI adapter uses the official API, normalizes usage, and keeps its key server-side", async () => {
+  const originalFetch = globalThis.fetch;
+  let captured;
+  globalThis.fetch = async (url, init) => {
+    captured = { url, headers: init.headers, body: JSON.parse(init.body) };
+    return new Response(JSON.stringify({ model: "gpt-4.1-mini", choices: [{ message: { content: "سلام از OpenAI" } }], usage: { prompt_tokens: 13, completion_tokens: 9, total_tokens: 22 } }), { status: 200, headers: { "content-type": "application/json" } });
+  };
+  try {
+    const result = await requestModel({ provider: "openai", env: { OPENAI_API_KEY: "openai-private-test-key" }, messages: [{ role: "system", content: "system rules" }, { role: "user", content: "سلام" }] });
+    assert.equal(captured.url, "https://api.openai.com/v1/chat/completions");
+    assert.equal(captured.headers.Authorization, "Bearer openai-private-test-key");
+    assert.equal(captured.body.model, "gpt-4.1-mini");
+    assert.equal(captured.body.messages[0].role, "system");
+    assert.equal(result.reply, "سلام از OpenAI");
+    assert.deepEqual(result.usage, { promptTokens: 13, completionTokens: 9, totalTokens: 22 });
+    assert.equal(JSON.stringify(result).includes("openai-private-test-key"), false);
+  } finally { globalThis.fetch = originalFetch; }
+});
+
+test("OpenAI is listed, selectable, and used as the final auto fallback", () => {
+  assert.equal(listAvailableProviders({ OPENAI_API_KEY: "k" }).find(item => item.id === "openai").available, true);
+  assert.deepEqual(resolveProvider({ OPENAI_API_KEY: "k" }, "auto", "balanced"), { provider: "openai", model: "gpt-4.1-mini" });
+  assert.deepEqual(resolveProvider({ GROQ_API_KEY: "g" }, "openai", "balanced"), { error: "PROVIDER_NOT_CONFIGURED", provider: "openai" });
+});
+
+test("chat API can serve OpenAI without requiring other provider keys", async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response(JSON.stringify({ model: "gpt-4.1-mini", choices: [{ message: { content: "پاسخ آزمایشی OpenAI" } }], usage: { prompt_tokens: 2, completion_tokens: 3, total_tokens: 5 } }), { status: 200, headers: { "content-type": "application/json" } });
+  try {
+    const request = new Request("https://houshyar.example/api/chat", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ message: "سلام", provider: "openai", mode: "balanced" }) });
+    const response = await onRequestPost({ request, env: { OPENAI_API_KEY: "openai-test-secret" } });
+    const data = await response.json();
+    assert.equal(response.status, 200);
+    assert.equal(data.provider, "openai");
+    assert.equal(data.reply, "پاسخ آزمایشی OpenAI");
+    assert.equal(data.model, "gpt-4.1-mini");
+    assert.equal(JSON.stringify(data).includes("openai-test-secret"), false);
+    const health = await onRequestGet({ env: { OPENAI_API_KEY: "openai-test-secret" } });
+    assert.equal(health.status, 200);
+    assert.equal((await health.json()).providers.find(item => item.id === "openai").available, true);
+  } finally { globalThis.fetch = originalFetch; }
+});
 test("provider availability reflects server-side secrets only", () => {
   assert.deepEqual(listAvailableProviders({ GROQ_API_KEY: "g" }).map(item => [item.id, item.available]), [
     ["groq", true], ["anthropic", false], ["google", false]
