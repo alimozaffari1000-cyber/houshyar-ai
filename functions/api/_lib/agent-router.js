@@ -32,6 +32,14 @@ export function routeAgentRequest(message) {
   return { ...agent, executionMode: "single_model_specialist", autonomousTools: false };
 }
 
+export function selectAgentRequest(message, requestedAgentId) {
+  if (typeof requestedAgentId === "string" && Object.hasOwn(AGENTS, requestedAgentId)) {
+    const agent = AGENTS[requestedAgentId];
+    return { ...agent, executionMode: "single_model_specialist", autonomousTools: false, selection: "user" };
+  }
+  return { ...routeAgentRequest(message), selection: "automatic" };
+}
+
 export function listAgents() {
   return Object.values(AGENTS).map(({ id, label, labelEn }) => ({
     id, label, labelEn, status: "available"
