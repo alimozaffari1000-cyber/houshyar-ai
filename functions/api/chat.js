@@ -4,6 +4,7 @@ import { reserveDailyChat, releaseDailyChat } from "./_lib/daily-quota.js";
 import { routeAgentRequest } from "./_lib/agent-router.js";
 import { resolveProvider, requestModel, listAvailableProviders } from "./_lib/model-providers.js";
 import { createRequestTelemetry } from "./_lib/observability.js";
+import { rankProvidersFromObservations } from "./_lib/provider-evaluator.js";
 
 const MAX_BODY_BYTES = 32 * 1024;
 const UPSTREAM_TIMEOUT_MS = 20_000;
@@ -149,7 +150,32 @@ export async function onRequestPost({ request, env, ctx }) {
 
   const requestedMode = ["fast", "balanced", "deep", "creative"].includes(body.mode) ? body.mode : "balanced";
   const requestedProvider = ["auto", "groq", "anthropic", "google"].includes(body.provider) ? body.provider : "auto";
-  const providerChoice = resolveProvider(env, requestedProvider, requestedMode);
+  let providerChoice = resolveProvider(env, requestedProvider, requestedMode);
+  let selectionStrategy = "configured_default";
+  // Automatic ranking is opt-in and uses only recent aggregate operational metrics.
+  // Missing schema, insufficient samples, or disabled telemetry keeps the established safe default.
+  if (requestedProvider === "auto" && env.OBSERVABILITY_ENABLED === "true" && env.DB && ["fast", "balanced"].includes(requestedMode)) {
+    try {
+      const since = Math.floor(Date.now() / 1000) - 24 * 3600;
+      const metrics = await env.DB.prepare(
+        "SELECT provider, SUM(CASE WHEN event = 'provider_success' THEN 1 ELSE 0 END) AS successes, SUM(CASE WHEN event = 'provider_failure' THEN 1 ELSE 0 END) AS failures, AVG(CASE WHEN event = 'provider_success' THEN elapsed_ms END) AS avg_latency_ms FROM operational_metrics WHERE created_at >= ? AND event IN ('provider_success', 'provider_failure') GROUP BY provider"
+      ).bind(since).all();
+      const observations = (Array.isArray(metrics?.results) ? metrics.results : []).map(row => ({
+        provider: row.provider,
+        successes: Number(row.successes) || 0,
+        failures: Number(row.failures) || 0,
+        avgLatencyMs: Number(row.avg_latency_ms) || 0
+      }));
+      const ranked = rankProvidersFromObservations(listAvailableProviders(env), observations, { mode: requestedMode === "fast" ? "speed" : "balanced" });
+      if (ranked.selected) {
+        const selected = listAvailableProviders(env).find(item => item.id === ranked.selected);
+        providerChoice = { provider: selected.id, model: selected.defaultModel };
+        selectionStrategy = "observed_performance";
+      }
+    } catch {
+      // A missing migration or unavailable metrics store must not block chat.
+    }
+  }
   if (providerChoice.error) {
     await releaseQuota();
     return json({ error: "PROVIDER_NOT_CONFIGURED", provider: providerChoice.provider, message: "ارائه‌دهنده انتخاب‌شده هنوز در تنظیمات سرور فعال نیست." }, 503);
@@ -248,6 +274,7 @@ export async function onRequestPost({ request, env, ctx }) {
     reply: result.reply,
     mode: requestedMode,
     provider: providerChoice.provider,
+    selectionStrategy,
     model: result.model,
     usage: result.usage,
     sources: Array.isArray(result.sources) ? result.sources : [],
