@@ -41,6 +41,14 @@ export async function onRequestGet({ request, env }) {
   if (region) { conditions.push("lower(s.region) = lower(?)"); bindings.push(region); }
   if (mode === "delivery") conditions.push("s.offers_delivery = 1");
   if (mode === "pickup") conditions.push("s.offers_pickup = 1");
+  let orderBy = "p.updated_at DESC";
+  if (lat !== null) {
+    // Coarse geographic ordering in SQL ensures nearby candidates enter the capped result set.
+    // Exact Haversine distances are calculated and sorted below.
+    orderBy = "CASE WHEN s.latitude IS NULL OR s.longitude IS NULL THEN 1 ELSE 0 END, " +
+      "((s.latitude - ?) * (s.latitude - ?) + (s.longitude - ?) * (s.longitude - ?)) ASC, p.updated_at DESC";
+    bindings.push(lat, lat, lon, lon);
+  }
   bindings.push(limit);
 
   try {
@@ -52,7 +60,7 @@ export async function onRequestGet({ request, env }) {
       "s.offers_delivery AS offersDelivery, s.offers_pickup AS offersPickup, " +
       "s.contact_phone AS contactPhone, s.order_url AS orderUrl " +
       "FROM products p JOIN merchant_stores s ON s.id = p.store_id WHERE " +
-      conditions.join(" AND ") + " ORDER BY p.updated_at DESC LIMIT ?"
+      conditions.join(" AND ") + " ORDER BY " + orderBy + " LIMIT ?"
     ).bind(...bindings).all();
     const rows = Array.isArray(result.results) ? result.results : [];
     const products = rows.map((row) => {
