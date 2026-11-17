@@ -53,7 +53,7 @@ export async function onRequestPatch({ request, env }) {
     const store = await env.DB.prepare("SELECT id FROM merchant_stores WHERE user_id = ? LIMIT 1").bind(user.id).first();
     if (!store) return authJson({ error: "STORE_NOT_FOUND" }, 404);
     const order = await env.DB.prepare(
-      "SELECT id, status, fulfillment FROM orders WHERE id = ? AND store_id = ? LIMIT 1"
+      "SELECT id, order_number AS orderNumber, status, fulfillment FROM orders WHERE id = ? AND store_id = ? LIMIT 1"
     ).bind(orderId, store.id).first();
     if (!order) return authJson({ error: "ORDER_NOT_FOUND" }, 404);
     if (!transitions[order.status]?.includes(nextStatus)) return authJson({ error: "INVALID_ORDER_TRANSITION" }, 409);
@@ -63,16 +63,28 @@ export async function onRequestPatch({ request, env }) {
     }
     const now = Math.floor(Date.now() / 1000);
     if (nextStatus !== "cancelled") {
-      const result = await env.DB.prepare(
-        "UPDATE orders SET status = ?, updated_at = ? WHERE id = ? AND store_id = ? AND status = ?"
-      ).bind(nextStatus, now, orderId, store.id, order.status).run();
-      if ((result?.meta?.changes ?? 0) !== 1) return authJson({ error: "ORDER_CHANGED_RELOAD" }, 409);
+      const results = await env.DB.batch([
+        env.DB.prepare(
+          "UPDATE orders SET status = ?, updated_at = ? WHERE id = ? AND store_id = ? AND status = ?"
+        ).bind(nextStatus, now, orderId, store.id, order.status),
+        env.DB.prepare(
+          "INSERT INTO user_notifications (id, recipient_user_id, kind, title, body, entity_type, entity_id, created_at) " +
+          "SELECT ?, buyer_user_id, 'marketplace_order_status', 'به‌روزرسانی سفارش', ?, 'order', ?, ? " +
+          "FROM orders WHERE id = ? AND status = ? AND changes() = 1"
+        ).bind(crypto.randomUUID(), "وضعیت سفارش " + order.orderNumber + " به «" + nextStatus + "» تغییر کرد.", orderId, now, orderId, nextStatus)
+      ]);
+      if ((results?.[0]?.meta?.changes ?? 0) !== 1) return authJson({ error: "ORDER_CHANGED_RELOAD" }, 409);
     } else {
       const itemRows = await env.DB.prepare("SELECT product_id AS productId, quantity FROM order_items WHERE order_id = ? AND product_id IS NOT NULL").bind(orderId).all();
       const items = Array.isArray(itemRows.results) ? itemRows.results : [];
       const statements = [env.DB.prepare(
         "UPDATE orders SET status = 'cancelled', updated_at = ? WHERE id = ? AND store_id = ? AND status = ?"
       ).bind(now, orderId, store.id, order.status)];
+      statements.push(env.DB.prepare(
+        "INSERT INTO user_notifications (id, recipient_user_id, kind, title, body, entity_type, entity_id, created_at) " +
+        "SELECT ?, buyer_user_id, 'marketplace_order_status', 'لغو سفارش', ?, 'order', ?, ? " +
+        "FROM orders WHERE id = ? AND status = 'cancelled' AND changes() = 1"
+      ).bind(crypto.randomUUID(), "سفارش " + order.orderNumber + " لغو شد.", orderId, now, orderId));
       if (items.length) {
         const ids = items.map(item => item.productId);
         statements.push(env.DB.prepare(
