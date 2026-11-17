@@ -298,3 +298,26 @@ test('workspace conversation sorting controls are wired and localized in all sup
  assert.match(css,/\.workspace-history-sort/);
  for(const key of ['workspaceSortLabel','workspaceSortNewest','workspaceSortOldest','workspaceSortTitle']) assert.equal((i18n.match(new RegExp(key+':','g'))||[]).length,12,key+' must exist in all 12 locales');
 });
+
+
+test('workspace bulk conversation removal is explicit, bounded, and does not mutate source history', async () => {
+ const { removeWorkspaceConversations } = await import('../src/workspace.js');
+ const history = [
+  { id: 'a', title: 'A', createdAt: '2026-01-01T00:00:00.000Z', messages: [{ role: 'user', text: 'a' }] },
+  { id: 'b', title: 'B', createdAt: '2026-01-02T00:00:00.000Z', messages: [{ role: 'user', text: 'b' }] },
+  { id: 'c', title: 'C', createdAt: '2026-01-03T00:00:00.000Z', messages: [{ role: 'user', text: 'c' }] }
+ ];
+ assert.deepEqual(removeWorkspaceConversations(history, ['a', 'c']).map(item => item.id), ['b']);
+ assert.deepEqual(removeWorkspaceConversations(history, []).map(item => item.id), ['a', 'b', 'c']);
+ assert.deepEqual(history.map(item => item.id), ['a', 'b', 'c']);
+});
+
+test('workspace bulk deletion requires an explicit confirmation UI and localized controls', async () => {
+ const js=await readFile(new URL('../src/workspace.js',import.meta.url),'utf8');
+ const i18n=await readFile(new URL('../src/i18n.js',import.meta.url),'utf8');
+ assert.match(js,/data-action="request-bulk-delete"/);
+ assert.match(js,/data-action="confirm-bulk-delete"/);
+ assert.match(js,/data-action="cancel-bulk-delete"/);
+ assert.match(js,/removeWorkspaceConversations/);
+ for(const key of ['workspaceSelectConversation','workspaceSelectAll','workspaceClearSelection','workspaceDeleteSelected','workspaceBulkDeletePrompt','workspaceConfirmDelete','workspaceCancelBulkDelete','workspaceBulkDeleted']) assert.equal((i18n.match(new RegExp(key+':','g'))||[]).length,12,key+' must exist in all 12 locales');
+});
