@@ -48,7 +48,8 @@ export async function onRequestGet({ request, env }) {
     if (!workspace || !Array.isArray(workspace.history) || !Array.isArray(workspace.projects)) {
       return authJson({ error: "WORKSPACE_DATA_UNAVAILABLE" }, 503);
     }
-    return authJson({ revision: Number(row.revision), updatedAt: Number(row.updatedAt), workspace });
+    const normalized = { history: normalizeHistory(workspace.history), projects: normalizeProjects(workspace.projects) };
+    return authJson({ revision: Number(row.revision), updatedAt: Number(row.updatedAt), workspace: normalized });
   } catch {
     return authJson({ error: "WORKSPACE_SYNC_UNAVAILABLE" }, 503);
   }
