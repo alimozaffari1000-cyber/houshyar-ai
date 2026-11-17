@@ -104,7 +104,7 @@ export function initWorkspace(app,{getMessages,onLoadConversation,onUsePrompt}){
    const currentHistory=read(HISTORY_KEY),currentProjects=read(PROJECTS_KEY);
    const getResponse=await fetch("/api/workspace/sync",{method:"GET",credentials:"same-origin",headers:{Accept:"application/json"}});
    const remote=await getResponse.json().catch(()=>({}));
-   if(getResponse.status===401){feedback.textContent=t("workspaceCloudSyncUnavailable");return}
+   if(getResponse.status===401){feedback.textContent=t("accountSignInPrompt");return}
    if(!getResponse.ok||!Number.isSafeInteger(remote.revision)||remote.revision<0||!remote.workspace){feedback.textContent=t("workspaceCloudSyncUnavailable");return}
    const merged=mergeWorkspaceSync(currentHistory,currentProjects,remote.workspace);
    if(!merged.ok){feedback.textContent=merged.reason==="capacity"?t("workspaceCloudSyncCapacity"):t("workspaceCloudSyncConflict");return}
