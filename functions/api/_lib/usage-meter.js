@@ -31,7 +31,7 @@ export async function recordAiUsage({ db, userId, provider, model, usage, reques
     "INSERT INTO ai_usage_events (id, user_id, request_id, provider_code, model_code, prompt_tokens, completion_tokens, total_tokens, estimated_cost_micro_usd, web_search_used, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
   ).bind(crypto.randomUUID(), userId, requestId, provider, model.slice(0, 120), promptTokens, completionTokens, totalTokens, estimatedCostMicroUsd, webSearch ? 1 : 0, now);
   if (reservationId) {
-    if (estimatedCostMicroUsd == null) throw new Error("AI_USAGE_COST_UNKNOWN");
+    // Keep an unpriced event when provider usage is missing; future guarded calls fail closed for this day.
     await db.batch([
       insert,
       db.prepare("DELETE FROM ai_usage_budget_reservations WHERE id = ?").bind(reservationId)
