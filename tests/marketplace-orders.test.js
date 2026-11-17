@@ -3,6 +3,24 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { onRequestGet, onRequestPost } from "../functions/api/orders.js";
 
+function authenticatedValidationDb() {
+  return {
+    prepare(sql) {
+      return {
+        bind() {
+          return {
+            async first() {
+              if (sql.includes("SELECT users.id")) return { id: "buyer-1", email: "buyer@example.test", role: "user" };
+              if (sql.includes("INSERT INTO api_rate_limits")) return { request_count: 1 };
+              return null;
+            }
+          };
+        }
+      };
+    }
+  };
+}
+
 const makeRequest = (body, { origin = "https://example.test", cookie = "houshyar_session=valid-session" } = {}) =>
   new Request("https://example.test/api/orders", {
     method: "POST",
@@ -30,12 +48,12 @@ test("order creation validates quantities, delivery address and one-store checko
   const db = { prepare() { throw new Error("database should not be touched"); } };
   const badQuantity = await onRequestPost({
     request: makeRequest({ items: [{ productId: "123e4567-e89b-12d3-a456-426614174000", quantity: 0 }] }),
-    env: { DB: db }
+    env: { DB: authenticatedValidationDb() }
   });
   assert.equal(badQuantity.status, 400);
   const noAddress = await onRequestPost({
     request: makeRequest({ items: [{ productId: "123e4567-e89b-12d3-a456-426614174000", quantity: 1 }], fulfillment: "delivery", recipientName: "Ali", contactPhone: "09123456789" }),
-    env: { DB: db }
+    env: { DB: authenticatedValidationDb() }
   });
   assert.equal(noAddress.status, 400);
 });
