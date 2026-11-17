@@ -25,7 +25,7 @@ export function initMarketplace(app, { locale = "fa" } = {}) {
   const productsNode = overlay.querySelector(".marketplace-products");
   const sellerNode = overlay.querySelector(".marketplace-seller-content");
   const more = overlay.querySelector(".marketplace-more");
-  let offset = 0, query = "", stateLocation = null;
+  let offset = 0, query = "", stateLocation = null, loadingCatalog = false;
   const say = message => { status.textContent = message || ""; };
   const request = async (url, options = {}) => {
     const response = await fetch(url, { credentials:"same-origin", cache:"no-store", ...options });
@@ -49,10 +49,12 @@ export function initMarketplace(app, { locale = "fa" } = {}) {
       money(product.priceMinor, locale) + ' ' + escape(product.currency || c.currency) + '</strong><small>' + c.store + ': ' + escape(product.storeName || "") + '</small><small>' + escape([product.city, product.region].filter(Boolean).join(" · ")) + '</small><small>' + escape(fulfillment) + '</small>' + distance + '<div>' + orderUrl + ' ' + phone + '</div></div></article>';
   };
   async function loadCatalog(reset = false) {
+    if (loadingCatalog) return;
     if (reset) { offset = 0; productsNode.innerHTML = ""; }
+    loadingCatalog = true;
     say(c.loading); more.hidden = true;
     try {
-      const params = new URLSearchParams({ limit:"30" });
+      const params = new URLSearchParams({ limit:"30", offset:String(offset) });
       if (query) params.set("q", query);
       const city = overlay.querySelector('[name="city"]').value.trim();
       const mode = overlay.querySelector('[name="mode"]').value;
@@ -60,10 +62,13 @@ export function initMarketplace(app, { locale = "fa" } = {}) {
       if (mode) params.set("mode", mode);
       if (stateLocation) { params.set("lat", String(stateLocation.latitude)); params.set("lon", String(stateLocation.longitude)); }
       const data = await request("/api/stores?" + params.toString());
-      productsNode.innerHTML = (data.products || []).map(productCard).join("");
-      more.hidden = true;
-      say((data.products || []).length ? "" : c.empty);
+      const products = Array.isArray(data.products) ? data.products : [];
+      productsNode.insertAdjacentHTML("beforeend", products.map(productCard).join(""));
+      offset += products.length;
+      more.hidden = products.length < 30;
+      say(offset ? "" : c.empty);
     } catch (error) { say(error.status === 503 ? c.catalogUnavailable : c.requestFailed); }
+    finally { loadingCatalog = false; }
   }
   function renderApplication() {
     sellerNode.innerHTML = '<div class="marketplace-form-card"><h3>' + c.applyTitle + '</h3><form data-store-apply>' +
