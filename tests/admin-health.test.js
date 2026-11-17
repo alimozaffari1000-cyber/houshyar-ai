@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { onRequestGet } from "../functions/api/admin/health.js";
 
 const tables = [
@@ -10,10 +11,11 @@ const tables = [
 
 async function fixture(role = "admin") {
   const token = "unit-test-session-token";
+  const tokenHash = createHash("sha256").update(token).digest("hex");
   const db = {
     prepare(sql) {
       if (sql.includes("SELECT users.id")) {
-        return { bind() { return { async first() {
+        return { bind(...values) { assert.equal(values[0], tokenHash); assert.equal(typeof values[1], "number"); return { async first() {
           return { id: "user-1", email: "admin@example.invalid", role };
         } }; } };
       }
