@@ -242,3 +242,32 @@ test('workspace conversation rename UI is wired and localized in all supported w
   assert.equal((i18n.match(new RegExp(key+':','g'))||[]).length,12,key+' must exist in all 12 locales');
  }
 });
+
+
+test('saved conversation search matches titles and message content without mutating history', async () => {
+ const { filterWorkspaceHistory } = await import('../src/workspace.js');
+ const history = [
+  { id: 'a', title: 'Travel plans', createdAt: '2026-01-01T00:00:00.000Z', messages: [{ role: 'user', text: 'Find hotels in Berlin' }] },
+  { id: 'b', title: 'Cooking', createdAt: '2026-01-02T00:00:00.000Z', messages: [{ role: 'user', text: 'Make a pasta recipe' }] },
+  { id: 'c', title: 'Coding', createdAt: '2026-01-03T00:00:00.000Z', messages: [{ role: 'assistant', text: 'Use JavaScript modules' }] }
+ ];
+ assert.deepEqual(filterWorkspaceHistory(history, 'travel').map(item => item.id), ['a']);
+ assert.deepEqual(filterWorkspaceHistory(history, 'BERLIN').map(item => item.id), ['a']);
+ assert.deepEqual(filterWorkspaceHistory(history, 'javascript').map(item => item.id), ['c']);
+ assert.deepEqual(filterWorkspaceHistory(history, 'missing'), []);
+ assert.deepEqual(filterWorkspaceHistory(history, '  ').map(item => item.id), ['a', 'b', 'c']);
+ assert.equal(history[0].title, 'Travel plans');
+});
+
+test('workspace conversation search UI is wired and localized in all supported workspace locales', async () => {
+ const js=await readFile(new URL('../src/workspace.js',import.meta.url),'utf8');
+ const css=await readFile(new URL('../src/style.css',import.meta.url),'utf8');
+ const i18n=await readFile(new URL('../src/i18n.js',import.meta.url),'utf8');
+ assert.match(js,/workspace-history-search/);
+ assert.match(js,/filterWorkspaceHistory/);
+ assert.match(js,/data-history-no-results/);
+ assert.match(css,/\.workspace-history-search/);
+ for(const key of ['workspaceSearchPlaceholder','workspaceSearchLabel','workspaceNoSearchResults']){
+  assert.equal((i18n.match(new RegExp(key+':','g'))||[]).length,12,key+' must exist in all 12 locales');
+ }
+});
