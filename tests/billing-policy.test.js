@@ -29,7 +29,7 @@ test("active subscription resolves only within its validity interval", () => {
 test("billing migration enforces one active subscription and append-only credits", async () => {
   const sql = await readFile(new URL("../migrations/0010_billing_entitlements.sql", import.meta.url), "utf8");
   assert.match(sql, /idx_user_subscriptions_one_active/);
-  assert.match(sql, /UNIQUE \(idempotency_key\)/);
+  assert.match(sql, /idempotency_key TEXT NOT NULL UNIQUE/);
   assert.match(sql, /CREDIT_LEDGER_IS_APPEND_ONLY/);
   assert.match(sql, /CHECK \(credit_delta <> 0\)/);
 });
@@ -38,8 +38,8 @@ test("chat enforces the active plan quota and blocks compare outside eligible pl
   const chat = await readFile(new URL("../functions/api/chat.js", import.meta.url), "utf8");
   assert.match(chat, /CHAT_PLAN_ENTITLEMENTS_ENABLED/);
   assert.match(chat, /loadUserEntitlement/);
-  assert.match(chat, /quotaLimit = entitlement\.plan\.dailyChatLimit/);
-  assert.match(chat, /quotaFeatures\?\.modelCompare !== true/);
+  assert.match(chat, /quotaLimit = entitlement \? entitlement\.plan\.dailyChatLimit/);
+  assert.match(chat, /entitlement\.plan\.features\.modelCompare !== true/);
   assert.match(chat, /PLAN_ENTITLEMENTS_NOT_CONFIGURED/);
 });
 
