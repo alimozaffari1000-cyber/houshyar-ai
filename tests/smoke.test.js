@@ -196,3 +196,22 @@ test('workspace prevents duplicate projects but permits distinct descriptions', 
  assert.equal(isDuplicateWorkspaceProject(projects, 'Another project', 'Build a site'), false);
  assert.equal(isDuplicateWorkspaceProject(projects, '', 'Build a site'), false);
 });
+
+
+test('workspace project duplicate detection excludes the project being edited', async () => {
+ const { isDuplicateWorkspaceProject } = await import('../src/workspace.js');
+ const projects = [{ id: 'p1', title: 'Website', prompt: 'Build a site', createdAt: '2026-01-01T00:00:00.000Z' }, { id: 'p2', title: 'Shop', prompt: 'Build a shop', createdAt: '2026-01-01T00:00:00.000Z' }];
+ assert.equal(isDuplicateWorkspaceProject(projects, 'Website', 'Build a site', 'p1'), false);
+ assert.equal(isDuplicateWorkspaceProject(projects, 'Website', 'Build a site', 'p2'), true);
+ assert.equal(isDuplicateWorkspaceProject(projects, 'New name', 'New prompt', 'p1'), false);
+});
+
+test('workspace project editing is wired with escaped values and cancel action', async () => {
+ const js=await readFile(new URL('../src/workspace.js',import.meta.url),'utf8');
+ assert.match(js,/data-action="edit-project"/);
+ assert.match(js,/data-action="cancel-edit"/);
+ assert.match(js,/esc\(editing\?\.title/);
+ assert.match(js,/esc\(editing\?\.prompt/);
+ assert.match(js,/workspaceUpdateProject/);
+ assert.match(js,/workspaceProjectUpdated/);
+});
