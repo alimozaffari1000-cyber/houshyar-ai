@@ -19,6 +19,7 @@ export async function onRequestGet({ request, env }) {
   const region = (url.searchParams.get("region") || "").trim().slice(0, 80);
   const mode = (url.searchParams.get("mode") || "").trim().toLowerCase();
   const limit = clamp(Number.parseInt(url.searchParams.get("limit") || "30", 10) || 30, 1, 50);
+  const offset = clamp(Number.parseInt(url.searchParams.get("offset") || "0", 10) || 0, 0, 10000);
   const latRaw = url.searchParams.get("lat");
   const lonRaw = url.searchParams.get("lon");
   const lat = latRaw === null ? null : Number(latRaw);
@@ -46,10 +47,11 @@ export async function onRequestGet({ request, env }) {
     // Coarse geographic ordering in SQL ensures nearby candidates enter the capped result set.
     // Exact Haversine distances are calculated and sorted below.
     orderBy = "CASE WHEN s.latitude IS NULL OR s.longitude IS NULL THEN 1 ELSE 0 END, " +
-      "((s.latitude - ?) * (s.latitude - ?) + (s.longitude - ?) * (s.longitude - ?)) ASC, p.updated_at DESC";
-    bindings.push(lat, lat, lon, lon);
+      "((s.latitude - ?) * (s.latitude - ?) + ((s.longitude - ?) * (s.longitude - ?)) * ?) ASC, p.updated_at DESC";
+    const longitudeScale = Math.cos(lat * Math.PI / 180) ** 2;
+    bindings.push(lat, lat, lon, lon, longitudeScale);
   }
-  bindings.push(limit);
+  bindings.push(limit, offset);
 
   try {
     const result = await env.DB.prepare(
@@ -60,7 +62,7 @@ export async function onRequestGet({ request, env }) {
       "s.offers_delivery AS offersDelivery, s.offers_pickup AS offersPickup, " +
       "s.contact_phone AS contactPhone, s.order_url AS orderUrl " +
       "FROM products p JOIN merchant_stores s ON s.id = p.store_id WHERE " +
-      conditions.join(" AND ") + " ORDER BY " + orderBy + " LIMIT ?"
+      conditions.join(" AND ") + " ORDER BY " + orderBy + " LIMIT ? OFFSET ?"
     ).bind(...bindings).all();
     const rows = Array.isArray(result.results) ? result.results : [];
     const products = rows.map((row) => {
@@ -73,7 +75,7 @@ export async function onRequestGet({ request, env }) {
       if (b.distanceKm === null) return -1;
       return a.distanceKm - b.distanceKm;
     });
-    return authJson({ products, count: products.length, locationUsedForThisSearch: lat !== null });
+    return authJson({ products, count: products.length, limit, offset, hasMore: products.length === limit, locationUsedForThisSearch: lat !== null });
   } catch {
     return authJson({ error: "CATALOG_UNAVAILABLE" }, 503);
   }
