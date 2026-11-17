@@ -8,6 +8,12 @@ export function normalizeWorkspaceHistory(value){
   .map(item=>({...item,title:item.title.slice(0,120),messages:item.messages.filter(m=>m&&["user","assistant"].includes(m.role)&&typeof m.text==="string").slice(-50).map(m=>({role:m.role,text:m.text.slice(0,12000)}))}))
   .filter(item=>item.messages.length>0).slice(0,MAX_ITEMS);
 }
+export function isDuplicateWorkspaceConversation(history,messages){
+ if(!Array.isArray(history)||!Array.isArray(messages)||!messages.length)return false;
+ const snapshot=messages.map(m=>({role:m.role,text:String(m.text??"").slice(0,12000)})).filter(m=>["user","assistant"].includes(m.role));
+ if(!snapshot.length)return false;
+ return normalizeWorkspaceHistory(history).some(item=>item.messages.length===snapshot.length&&item.messages.every((m,index)=>m.role===snapshot[index].role&&m.text===snapshot[index].text));
+}
 export function normalizeWorkspaceProjects(value){
  if(!Array.isArray(value))return[];
  return value.filter(item=>item&&typeof item==="object"&&typeof item.id==="string"&&typeof item.title==="string"&&validDate(item.createdAt))
@@ -50,8 +56,10 @@ export function initWorkspace(app,{getMessages,onLoadConversation,onUsePrompt}){
    const messages=getMessages().map(m=>({role:m.role,text:String(m.text||"").slice(0,12000)})).filter(m=>["user","assistant"].includes(m.role));
    if(!messages.length){feedback.textContent=t("workspaceNeedMessages");return}
    const title=(messages.find(m=>m.role==="user")?.text||t("workspaceUntitled")).slice(0,64);
+   const history=read(HISTORY_KEY);
+   if(isDuplicateWorkspaceConversation(history,messages)){feedback.textContent=t("workspaceAlreadySaved");return}
    const item={id:globalThis.crypto?.randomUUID?.()||String(Date.now()),title,messages,createdAt:new Date().toISOString()};
-   if(!write(HISTORY_KEY,[item,...read(HISTORY_KEY)].slice(0,MAX_ITEMS))){feedback.textContent=t("errorGeneric");return}
+   if(!write(HISTORY_KEY,[item,...history].slice(0,MAX_ITEMS))){feedback.textContent=t("errorGeneric");return}
    feedback.textContent=t("workspaceSaved");render();return
   }
   if(action==="open-chat"){const item=read(HISTORY_KEY).find(x=>x.id===id);if(item&&Array.isArray(item.messages)){panel.hidden=true;onLoadConversation(item.messages)}return}
