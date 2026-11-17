@@ -19,6 +19,7 @@ export async function onRequestGet({ request, env }) {
   const region = (url.searchParams.get("region") || "").trim().slice(0, 80);
   const mode = (url.searchParams.get("mode") || "").trim().toLowerCase();
   const limit = clamp(Number.parseInt(url.searchParams.get("limit") || "30", 10) || 30, 1, 50);
+  const offset = clamp(Number.parseInt(url.searchParams.get("offset") || "0", 10) || 0, 0, 500);
   const latRaw = url.searchParams.get("lat");
   const lonRaw = url.searchParams.get("lon");
   const lat = latRaw === null ? null : Number(latRaw);
@@ -41,7 +42,7 @@ export async function onRequestGet({ request, env }) {
   if (region) { conditions.push("lower(s.region) = lower(?)"); bindings.push(region); }
   if (mode === "delivery") conditions.push("s.offers_delivery = 1");
   if (mode === "pickup") conditions.push("s.offers_pickup = 1");
-  bindings.push(limit);
+  bindings.push(501);
 
   try {
     const result = await env.DB.prepare(
@@ -55,17 +56,20 @@ export async function onRequestGet({ request, env }) {
       conditions.join(" AND ") + " ORDER BY p.updated_at DESC LIMIT ?"
     ).bind(...bindings).all();
     const rows = Array.isArray(result.results) ? result.results : [];
-    const products = rows.map((row) => {
+    const truncated = rows.length > 500;
+    const products = rows.slice(0, 500).map((row) => {
       const distanceKmValue = lat === null || row.latitude === null || row.longitude === null
         ? null : Math.round(distanceKm(lat, lon, row.latitude, row.longitude) * 10) / 10;
       return { ...row, distanceKm: distanceKmValue };
     });
     if (lat !== null) products.sort((a, b) => {
+      if (a.distanceKm === null && b.distanceKm === null) return 0;
       if (a.distanceKm === null) return 1;
       if (b.distanceKm === null) return -1;
       return a.distanceKm - b.distanceKm;
     });
-    return authJson({ products, count: products.length, locationUsedForThisSearch: lat !== null });
+    const page = products.slice(offset, offset + limit);
+    return authJson({ products: page, count: page.length, limit, offset, hasMore: offset + page.length < products.length, truncated, locationUsedForThisSearch: lat !== null });
   } catch {
     return authJson({ error: "CATALOG_UNAVAILABLE" }, 503);
   }

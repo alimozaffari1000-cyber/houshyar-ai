@@ -70,12 +70,15 @@ test("marketplace UI is connected to home screen and uses authenticated store en
   const main = await readFile(new URL("../src/main.js", import.meta.url), "utf8");
   assert.match(main, /initMarketplace/);
   assert.match(main, /data-open-marketplace/);
-  assert.match(ui, /\/api\/store\/products/);
+  assert.match(ui, /\/api\/stores/);
   assert.match(ui, /\/api\/store\/mine/);
   assert.match(ui, /\/api\/store\/apply/);
   assert.match(ui, /\/api\/store\/products\/publish/);
   assert.match(ui, /escape\(product\.title\)/);
   assert.match(ui, /credentials:"same-origin"/);
+  assert.match(ui, /navigator\.geolocation/);
+  assert.match(ui, /data-market-near/);
+  assert.match(ui, /params\.set\("mode"/);
 });
 
 test("marketplace UI explains disabled payment and virtual try-on features", async () => {
