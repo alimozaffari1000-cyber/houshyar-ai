@@ -9,7 +9,7 @@ export function createRequestTelemetry({ request, route = "unknown", now = () =>
     return Math.max(0, Math.round(now() - startedAt));
   }
 
-  function log(event, { provider = "auto", status = 0, errorCode = "none" } = {}) {
+  function log(event, { provider = "auto", status = 0, errorCode = "none", durationMs } = {}) {
     if (!SAFE_EVENTS.has(event)) return;
     const safeProvider = SAFE_PROVIDERS.has(provider) ? provider : "auto";
     const safeStatus = Number.isInteger(status) && status >= 100 && status <= 599 ? status : 0;
@@ -22,7 +22,7 @@ export function createRequestTelemetry({ request, route = "unknown", now = () =>
       event,
       provider: safeProvider,
       status: safeStatus,
-      elapsed_ms: elapsedMs(),
+      elapsed_ms: Number.isFinite(durationMs) ? Math.max(0, Math.min(120000, Math.round(durationMs))) : elapsedMs(),
       error_code: safeError,
       timestamp: new Date().toISOString()
     }));
