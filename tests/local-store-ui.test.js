@@ -53,3 +53,13 @@ test("customer order history tab loads and renders authenticated order status an
   assert.ok(ui.includes("order.deliveryFeeMinor"));
   assert.ok(ui.includes("statusNames"));
 });
+
+test("marketplace notification inbox loads, counts unread items and marks them read", async () => {
+  const ui = await readFile(new URL("../src/marketplace.js", import.meta.url), "utf8");
+  assert.ok(ui.includes('data-market-tab="notifications"'));
+  assert.ok(ui.includes('data-market-view="notifications"'));
+  assert.ok(ui.includes('request("/api/notifications")'));
+  assert.ok(ui.includes('method:"PATCH"'));
+  assert.ok(ui.includes("data-notifications-read"));
+  assert.ok(ui.includes("data-notification-count"));
+});
