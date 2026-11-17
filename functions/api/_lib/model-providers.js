@@ -9,6 +9,7 @@ function normalizeUsage(inputTokens, outputTokens, totalTokens) {
 
 const CLAUDE_DEFAULT_MODEL = "claude-sonnet-5-5";
 const GEMINI_DEFAULT_MODEL = "gemini-3.1-flash-lite";
+const OPENAI_DEFAULT_MODEL = "gpt-4.1-mini";
 
 function validateProviderRequest({ messages, maxTokens, temperature }) {
   if (!Array.isArray(messages) || messages.length === 0 || messages.length > 32) {
@@ -35,16 +36,17 @@ export function listAvailableProviders(env = {}) {
   return [
     { id: "groq", available: Boolean(env.GROQ_API_KEY), defaultModel: env.GROQ_MODEL || "llama-3.3-70b-versatile" },
     { id: "anthropic", available: Boolean(env.CLAUDE_API_KEY), defaultModel: env.CLAUDE_MODEL || CLAUDE_DEFAULT_MODEL },
-    { id: "google", available: Boolean(env.GEMINI_API_KEY), defaultModel: env.GEMINI_MODEL || GEMINI_DEFAULT_MODEL }
+    { id: "google", available: Boolean(env.GEMINI_API_KEY), defaultModel: env.GEMINI_MODEL || GEMINI_DEFAULT_MODEL },
+    { id: "openai", available: Boolean(env.OPENAI_API_KEY), defaultModel: env.OPENAI_MODEL || OPENAI_DEFAULT_MODEL }
   ];
 }
 
 export function resolveProvider(env = {}, requested = "auto", mode = "balanced") {
   const available = listAvailableProviders(env);
-  const requestedId = ["groq", "anthropic", "google"].includes(requested) ? requested : "auto";
-  const configuredDefault = ["groq", "anthropic", "google"].includes(env.AI_DEFAULT_PROVIDER) ? env.AI_DEFAULT_PROVIDER : null;
+  const requestedId = ["groq", "anthropic", "google", "openai"].includes(requested) ? requested : "auto";
+  const configuredDefault = ["groq", "anthropic", "google", "openai"].includes(env.AI_DEFAULT_PROVIDER) ? env.AI_DEFAULT_PROVIDER : null;
   const selected = requestedId === "auto"
-    ? (mode === "deep" && env.CLAUDE_API_KEY ? "anthropic" : (configuredDefault || (env.GROQ_API_KEY ? "groq" : (env.CLAUDE_API_KEY ? "anthropic" : "google"))))
+    ? (mode === "deep" && env.CLAUDE_API_KEY ? "anthropic" : (configuredDefault || (env.GROQ_API_KEY ? "groq" : (env.CLAUDE_API_KEY ? "anthropic" : (env.GEMINI_API_KEY ? "google" : "openai")))))
     : requestedId;
   const provider = available.find(item => item.id === selected);
   if (!provider?.available) return { error: "PROVIDER_NOT_CONFIGURED", provider: selected };
@@ -53,6 +55,26 @@ export function resolveProvider(env = {}, requested = "auto", mode = "balanced")
 
 export async function requestModel({ provider, env, messages, model, signal, maxTokens = 1200, temperature = 0.5, webSearch = false }) {
   validateProviderRequest({ messages, maxTokens, temperature });
+  if (provider === "openai") {
+    if (!env.OPENAI_API_KEY) throw new Error("provider_not_configured");
+    const selectedModel = model || env.OPENAI_MODEL || OPENAI_DEFAULT_MODEL;
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${env.OPENAI_API_KEY}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ model: selectedModel, messages, max_tokens: maxTokens, temperature }),
+      signal
+    });
+    if (!response.ok) throw new Error("provider_request_failed");
+    const data = await response.json();
+    const reply = data?.choices?.[0]?.message?.content;
+    if (typeof reply !== "string" || !reply.trim()) throw new Error("provider_empty_reply");
+    return {
+      reply: reply.trim(),
+      model: data.model || selectedModel,
+      usage: data.usage ? normalizeUsage(data.usage.prompt_tokens, data.usage.completion_tokens, data.usage.total_tokens) : null
+    };
+  }
+
   if (provider === "google") {
     if (!env.GEMINI_API_KEY) throw new Error("provider_not_configured");
     const selectedModel = model || env.GEMINI_MODEL || GEMINI_DEFAULT_MODEL;
