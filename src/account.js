@@ -1,4 +1,5 @@
 import { translate as t, getLocale } from "./i18n.js";
+import { initUsageDashboard } from "./usage-dashboard.js";
 const safe = (value) => String(value ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
 const authErrorKey = (code, fallback) => ({
   AUTH_NOT_CONFIGURED: "accountNotReady",
@@ -58,6 +59,7 @@ export function initAccountPanel(app) {
         const q = data.quota?.enabled ? `<div class="quota-box"><b>${t("quotaToday",locale)}</b><strong>${number(data.quota.remaining)} / ${number(data.quota.limit)}</strong><small>${t("quotaUsed",locale)}: ${number(data.quota.used)} · ${t("quotaReset",locale)}: ${resetDate}</small></div>` : `<p class="account-muted">${t("quotaNotEnabled",getLocale())}</p>`;
         content.innerHTML = `<p class="account-email"></p>${q}<button type="button" id="account-logout" class="account-submit">${t("logout",getLocale())}</button>`;
         content.querySelector(".account-email").textContent = data.user.email;
+        initUsageDashboard(content, locale);
         content.querySelector("#account-logout").addEventListener("click", async () => {
           const out = await fetch("/api/auth/logout", { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "same-origin" });
           if (out.ok) { status.textContent = t("loggedOut",getLocale()); content.innerHTML = ""; }
