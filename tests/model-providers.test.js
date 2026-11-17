@@ -52,7 +52,9 @@ test("OpenAI adapter uses the official API, normalizes usage, and keeps its key 
     assert.equal(captured.url, "https://api.openai.com/v1/responses");
     assert.equal(captured.headers.Authorization, "Bearer openai-private-test-key");
     assert.equal(captured.body.model, "gpt-6-luna");
-    assert.equal(captured.body.instructions, "system rules");\n    assert.equal(captured.body.input[0].role, "user");\n    assert.equal(captured.body.max_output_tokens, 1200);
+    assert.equal(captured.body.instructions, "system rules");
+    assert.equal(captured.body.input[0].role, "user");
+    assert.equal(captured.body.max_output_tokens, 1200);
     assert.equal(result.reply, "سلام از OpenAI");
     assert.deepEqual(result.usage, { promptTokens: 13, completionTokens: 9, totalTokens: 22 });
     assert.equal(JSON.stringify(result).includes("openai-private-test-key"), false);
