@@ -31,7 +31,7 @@ export function parseMajorAmount(value, currencyCode) {
   const currency = getCurrencyDefinition(currencyCode);
   if (!currency || typeof value !== "string") return null;
   const input = value.trim();
-  const match = /^(0|[1-9]\\d*)(?:\\.(\\d+))?$/.exec(input);
+  const match = /^(0|[1-9]\d*)(?:\.(\d+))?$/.exec(input);
   if (!match) return null;
   const fraction = match[2] ?? "";
   if (fraction.length > currency.exponent) return null;
