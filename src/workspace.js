@@ -8,6 +8,13 @@ export function normalizeWorkspaceHistory(value){
   .map(item=>({...item,title:item.title.slice(0,120),messages:item.messages.filter(m=>m&&["user","assistant"].includes(m.role)&&typeof m.text==="string").slice(-50).map(m=>({role:m.role,text:m.text.slice(0,12000)}))}))
   .filter(item=>item.messages.length>0).slice(0,MAX_ITEMS);
 }
+export function sortWorkspaceHistory(history,order="newest"){
+ const normalized=normalizeWorkspaceHistory(history);
+ const sorted=[...normalized];
+ if(order==="oldest")return sorted.sort((a,b)=>Date.parse(a.createdAt)-Date.parse(b.createdAt));
+ if(order==="title")return sorted.sort((a,b)=>a.title.localeCompare(b.title,getLocale(),{sensitivity:"base"}));
+ return sorted.sort((a,b)=>Date.parse(b.createdAt)-Date.parse(a.createdAt));
+}
 export function filterWorkspaceHistory(history,query){
  const term=String(query??"").trim().toLocaleLowerCase();
  const normalized=normalizeWorkspaceHistory(history);
@@ -44,7 +51,7 @@ const write=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));return true}ca
 const formatDate=(value,options)=>{const date=new Date(value);return Number.isFinite(date.getTime())?new Intl.DateTimeFormat(getLocale(),options).format(date):""};
 export function initWorkspace(app,{getMessages,onLoadConversation,onUsePrompt}){
  const opener=app.querySelector("#workspace-open");if(!opener)return;
- let tab="history",editingProjectId="",editingHistoryId="";
+ let tab="history",editingProjectId="",editingHistoryId="",historySortOrder="newest";
  const panel=document.createElement("section");panel.className="workspace-overlay";panel.hidden=true;panel.setAttribute("aria-label",t("workspaceTitle"));
  panel.innerHTML='<div class="workspace-card" role="dialog" aria-modal="true" aria-labelledby="workspace-heading"><header class="workspace-head"><div><h2 id="workspace-heading">'+t("workspaceTitle")+'</h2><p>'+t("workspaceSubtitle")+'</p></div><button type="button" data-action="close" aria-label="'+t("workspaceClose")+'">✕</button></header><div class="workspace-tabs"><button type="button" data-tab="history">'+t("workspaceHistory")+'</button><button type="button" data-tab="projects">'+t("workspaceProjects")+'</button></div><div class="workspace-credit"><strong>'+t("workspaceQuotaTitle")+'</strong><p>'+t("workspaceQuotaPending")+'</p></div><div class="workspace-notice">'+t("workspaceLocalNotice")+'</div><p class="workspace-feedback" role="status"></p><div class="workspace-content"></div></div>';
  app.append(panel);
@@ -54,13 +61,14 @@ export function initWorkspace(app,{getMessages,onLoadConversation,onUsePrompt}){
   panel.querySelectorAll("[data-tab]").forEach(b=>b.classList.toggle("active",b.dataset.tab===tab));
   if(tab==="history"){
    const editing=history.find(item=>item.id===editingHistoryId);
-   let html='<div class="workspace-toolbar"><button type="button" class="workspace-primary" data-action="save">'+t("workspaceSaveChat")+'</button></div><input class="workspace-history-search" type="search" aria-label="'+t("workspaceSearchLabel")+'" placeholder="'+t("workspaceSearchPlaceholder")+'" autocomplete="off">';
+   let html='<div class="workspace-toolbar"><button type="button" class="workspace-primary" data-action="save">'+t("workspaceSaveChat")+'</button><label class="workspace-sort-label" for="workspace-history-sort">'+t("workspaceSortLabel")+'</label><select id="workspace-history-sort" class="workspace-history-sort" aria-label="'+t("workspaceSortLabel")+'"><option value="newest"'+(historySortOrder==="newest"?' selected':'')+'>'+t("workspaceSortNewest")+'</option><option value="oldest"'+(historySortOrder==="oldest"?' selected':'')+'>'+t("workspaceSortOldest")+'</option><option value="title"'+(historySortOrder==="title"?' selected':'')+'>'+t("workspaceSortTitle")+'</option></select></div><input class="workspace-history-search" type="search" aria-label="'+t("workspaceSearchLabel")+'" placeholder="'+t("workspaceSearchPlaceholder")+'" autocomplete="off">';
    if(editing)html+='<form class="workspace-history-form"><input name="title" maxlength="120" value="'+esc(editing.title)+'" required><div class="workspace-form-actions"><button class="workspace-primary" type="submit">'+t("workspaceUpdateTitle")+'</button><button type="button" data-action="cancel-history-edit">'+t("workspaceCancelRename")+'</button></div></form>';
    if(!history.length)html+='<p class="workspace-empty">'+t("workspaceNoHistory")+'</p>';
-   history.forEach(item=>{const date=formatDate(item.createdAt,{dateStyle:"medium",timeStyle:"short"});const first=(item.messages||[]).find(m=>m.role==="user");html+='<article class="workspace-item" data-history-item="'+esc(item.id)+'"><div><strong>'+esc(item.title)+'</strong><small>'+date+' · '+(item.messages||[]).length+'</small><p>'+esc(first?.text||"")+'</p></div><div class="workspace-item-actions"><button type="button" data-action="open-chat" data-id="'+esc(item.id)+'">'+t("workspaceOpenChat")+'</button><button type="button" data-action="edit-history" data-id="'+esc(item.id)+'">'+t("workspaceRename")+'</button><button type="button" data-action="delete-history" data-id="'+esc(item.id)+'">'+t("workspaceDelete")+'</button></div></article>'});
+   sortWorkspaceHistory(history,historySortOrder).forEach(item=>{const date=formatDate(item.createdAt,{dateStyle:"medium",timeStyle:"short"});const first=(item.messages||[]).find(m=>m.role==="user");html+='<article class="workspace-item" data-history-item="'+esc(item.id)+'"><div><strong>'+esc(item.title)+'</strong><small>'+date+' · '+(item.messages||[]).length+'</small><p>'+esc(first?.text||"")+'</p></div><div class="workspace-item-actions"><button type="button" data-action="open-chat" data-id="'+esc(item.id)+'">'+t("workspaceOpenChat")+'</button><button type="button" data-action="edit-history" data-id="'+esc(item.id)+'">'+t("workspaceRename")+'</button><button type="button" data-action="delete-history" data-id="'+esc(item.id)+'">'+t("workspaceDelete")+'</button></div></article>'});
    if(history.length)html+='<p class="workspace-empty" data-history-no-results hidden>'+t("workspaceNoSearchResults")+'</p>';
    content.innerHTML=html;
-   const search=content.querySelector(".workspace-history-search"),noResults=content.querySelector("[data-history-no-results]");
+   const search=content.querySelector(".workspace-history-search"),sort=content.querySelector(".workspace-history-sort"),noResults=content.querySelector("[data-history-no-results]");
+   sort?.addEventListener("change",()=>{historySortOrder=["newest","oldest","title"].includes(sort.value)?sort.value:"newest";render()});
    search?.addEventListener("input",()=>{const matches=new Set(filterWorkspaceHistory(history,search.value).map(item=>item.id));content.querySelectorAll("[data-history-item]").forEach(item=>{item.hidden=!matches.has(item.dataset.historyItem)});if(noResults)noResults.hidden=matches.size>0});
    const historyForm=content.querySelector(".workspace-history-form");
    historyForm?.addEventListener("submit",event=>{event.preventDefault();const title=event.currentTarget.elements.title.value.trim();if(!title){feedback.textContent=t("workspaceTitleRequired");return}const saved=read(HISTORY_KEY),current=saved.find(item=>item.id===editingHistoryId);if(!current){editingHistoryId="";render();return}const next=renameWorkspaceConversation(saved,editingHistoryId,title);if(!next||!write(HISTORY_KEY,next)){feedback.textContent=t("errorGeneric");return}editingHistoryId="";feedback.textContent=t("workspaceConversationRenamed");render()});
