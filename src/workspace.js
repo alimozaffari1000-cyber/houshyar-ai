@@ -14,6 +14,12 @@ export function isDuplicateWorkspaceConversation(history,messages){
  if(!snapshot.length)return false;
  return normalizeWorkspaceHistory(history).some(item=>item.messages.length===snapshot.length&&item.messages.every((m,index)=>m.role===snapshot[index].role&&m.text===snapshot[index].text));
 }
+export function isDuplicateWorkspaceProject(projects,title,prompt){
+ const normalizedTitle=String(title??"").trim().toLocaleLowerCase();
+ const normalizedPrompt=String(prompt??"").trim();
+ if(!Array.isArray(projects)||!normalizedTitle)return false;
+ return normalizeWorkspaceProjects(projects).some(item=>item.title.trim().toLocaleLowerCase()===normalizedTitle&&item.prompt.trim()===normalizedPrompt);
+}
 export function normalizeWorkspaceProjects(value){
  if(!Array.isArray(value))return[];
  return value.filter(item=>item&&typeof item==="object"&&typeof item.id==="string"&&typeof item.title==="string"&&validDate(item.createdAt))
@@ -43,7 +49,7 @@ export function initWorkspace(app,{getMessages,onLoadConversation,onUsePrompt}){
    if(!projects.length)html+='<p class="workspace-empty">'+t("workspaceNoProjects")+'</p>';
    projects.forEach(item=>{const date=formatDate(item.createdAt,{dateStyle:"medium"});html+='<article class="workspace-item"><div><strong>'+esc(item.title)+'</strong><small>'+date+'</small><p>'+esc(item.prompt||"")+'</p></div><div class="workspace-item-actions"><button type="button" data-action="use-project" data-id="'+esc(item.id)+'">'+t("workspaceUsePrompt")+'</button><button type="button" data-action="delete-project" data-id="'+esc(item.id)+'">'+t("workspaceDelete")+'</button></div></article>'});
    content.innerHTML=html;
-   content.querySelector(".workspace-project-form").addEventListener("submit",event=>{event.preventDefault();const form=event.currentTarget,title=form.elements.title.value.trim();if(!title){feedback.textContent=t("workspaceNameRequired");return}const item={id:globalThis.crypto?.randomUUID?.()||String(Date.now()),title,prompt:form.elements.prompt.value.trim(),createdAt:new Date().toISOString()};if(!write(PROJECTS_KEY,[item,...read(PROJECTS_KEY)].slice(0,MAX_ITEMS))){feedback.textContent=t("errorGeneric");return}feedback.textContent=t("workspaceProjectAdded");render()});
+   content.querySelector(".workspace-project-form").addEventListener("submit",event=>{event.preventDefault();const form=event.currentTarget,title=form.elements.title.value.trim(),prompt=form.elements.prompt.value.trim();if(!title){feedback.textContent=t("workspaceNameRequired");return}const savedProjects=read(PROJECTS_KEY);if(isDuplicateWorkspaceProject(savedProjects,title,prompt)){feedback.textContent=t("workspaceProjectAlreadyExists");return}const item={id:globalThis.crypto?.randomUUID?.()||String(Date.now()),title,prompt,createdAt:new Date().toISOString()};if(!write(PROJECTS_KEY,[item,...savedProjects].slice(0,MAX_ITEMS))){feedback.textContent=t("errorGeneric");return}feedback.textContent=t("workspaceProjectAdded");render()});
   }
  }
  opener.addEventListener("click",()=>{panel.hidden=false;feedback.textContent="";render();panel.querySelector("[data-action=close]")?.focus()});
