@@ -81,7 +81,7 @@ test("workspace sync stores only normalized user-owned records and advances revi
         ] }],
         projects: [{ id: "project-1", title: "  پروژه  ", prompt: "طرح", createdAt: "2026-01-01T00:00:00.000Z" }]
       }
-    }),
+    } }),
     env: envFor(db)
   });
   assert.equal(response.status, 200);
