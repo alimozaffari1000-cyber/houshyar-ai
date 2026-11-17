@@ -115,7 +115,7 @@ export function initWorkspace(app,{getMessages,onLoadConversation,onUsePrompt}){
   if(action==="edit-project"){editingProjectId=id;feedback.textContent="";render();content.querySelector('[name="title"]')?.focus();return}
   if(action==="cancel-edit"){editingProjectId="";feedback.textContent="";render();return}
   if(action==="use-project"){const item=read(PROJECTS_KEY).find(x=>x.id===id);if(item){panel.hidden=true;onUsePrompt(item.prompt||item.title)}return}
-  if(action==="delete-history"||action==="delete-project"){const key=action==="delete-history"?HISTORY_KEY:PROJECTS_KEY;if(action==="delete-project"&&editingProjectId===id)editingProjectId="";if(action==="delete-history"&&editingHistoryId===id)editingHistoryId="";if(write(key,read(key).filter(x=>x.id!==id))){feedback.textContent=t("workspaceDeleted");render()}else feedback.textContent=t("errorGeneric")}
+  if(action==="delete-history"||action==="delete-project"){const key=action==="delete-history"?HISTORY_KEY:PROJECTS_KEY;if(action==="delete-project"&&editingProjectId===id)editingProjectId="";if(action==="delete-history"&&editingHistoryId===id)editingHistoryId="";if(action==="delete-history"){selectedHistoryIds.delete(id);confirmBulkDelete=false}if(write(key,read(key).filter(x=>x.id!==id))){feedback.textContent=t("workspaceDeleted");render()}else feedback.textContent=t("errorGeneric")}
  });
  panel.addEventListener("keydown",event=>{
   if(event.key==="Escape"){panel.hidden=true;opener.focus();return}
