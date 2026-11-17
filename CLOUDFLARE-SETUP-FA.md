@@ -60,3 +60,15 @@
 مستند رسمی تفاوت Pages و Workers Builds:
 - https://developers.cloudflare.com/pages/configuration/build-configuration/
 - https://developers.cloudflare.com/workers/ci-cd/builds/configuration/
+
+
+## اتصال Google Gemini (اختیاری)
+
+برای فعال‌کردن Google Gemini در کنار ارائه‌دهندگان دیگر:
+1. در Google AI Studio یک API key بسازید و دسترسی و محدودیت‌های حساب و پروژه را بررسی کنید.
+2. در Cloudflare Pages → Settings → Variables and Secrets، مقدار `GEMINI_API_KEY` را فقط به‌صورت Secret در محیط Production یا Preview موردنظر ثبت کنید.
+3. در صورت نیاز، متغیر معمولی `GEMINI_MODEL` را تنظیم کنید؛ پیش‌فرض کد `gemini-2.5-flash` است.
+4. یک Deploy جدید از Pages انجام دهید و وضعیت `GET /api/chat` را بررسی کنید. خروجی health باید provider با شناسه `google` را configured نشان دهد.
+5. ابتدا در محیط Preview یک پیام آزمایشی ارسال کنید؛ تا زمان آزمون موفق، Google را provider پیش‌فرض production نکنید.
+
+کلید Gemini در مرورگر، متغیرهای `VITE_*`، Git یا پیام‌های چت قرار نمی‌گیرد. پیاده‌سازی فعلی از REST `generateContent` با هدر `x-goog-api-key` استفاده می‌کند؛ قابلیت‌هایی مانند Google Search grounding، Maps grounding، Live API و تولید تصویر هنوز یکپارچه نشده‌اند و باید جداگانه طراحی و هزینه‌سنجی شوند.
