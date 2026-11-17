@@ -33,3 +33,12 @@ test("billing migration enforces one active subscription and append-only credits
   assert.match(sql, /CREDIT_LEDGER_IS_APPEND_ONLY/);
   assert.match(sql, /CHECK \(credit_delta <> 0\)/);
 });
+
+test("chat enforces the active plan quota and blocks compare outside eligible plans", async () => {
+  const chat = await readFile(new URL("../functions/api/chat.js", import.meta.url), "utf8");
+  assert.match(chat, /CHAT_PLAN_ENTITLEMENTS_ENABLED/);
+  assert.match(chat, /loadUserEntitlement/);
+  assert.match(chat, /quotaLimit = entitlement\.plan\.dailyChatLimit/);
+  assert.match(chat, /quotaFeatures\?\.modelCompare !== true/);
+  assert.match(chat, /PLAN_ENTITLEMENTS_NOT_CONFIGURED/);
+});

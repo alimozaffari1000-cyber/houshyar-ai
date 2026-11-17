@@ -109,6 +109,7 @@ export async function onRequestPost({ request, env }) {
   let quotaUsageDate = null;
   let usageUserId = null;
   const usageMeteringEnabled = env.AI_USAGE_METERING_ENABLED === "true";
+  if (env.CHAT_PLAN_ENTITLEMENTS_ENABLED === "true" && env.CHAT_QUOTA_ENABLED !== "true") return json({ error: "PLAN_ENTITLEMENTS_NOT_CONFIGURED" }, 503);
   if (usageMeteringEnabled && (env.AUTH_ENABLED !== "true" || !env.DB)) return json({ error: "USAGE_METERING_NOT_CONFIGURED" }, 503);
   if (env.CHAT_QUOTA_ENABLED === "true") {
     if (env.AUTH_ENABLED !== "true" || !env.DB) {
