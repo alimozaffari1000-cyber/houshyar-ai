@@ -8,6 +8,12 @@ export function normalizeWorkspaceHistory(value){
   .map(item=>({...item,title:item.title.slice(0,120),messages:item.messages.filter(m=>m&&["user","assistant"].includes(m.role)&&typeof m.text==="string").slice(-50).map(m=>({role:m.role,text:m.text.slice(0,12000)}))}))
   .filter(item=>item.messages.length>0).slice(0,MAX_ITEMS);
 }
+export function filterWorkspaceHistory(history,query){
+ const term=String(query??"").trim().toLocaleLowerCase();
+ const normalized=normalizeWorkspaceHistory(history);
+ if(!term)return normalized;
+ return normalized.filter(item=>item.title.toLocaleLowerCase().includes(term)||item.messages.some(message=>message.text.toLocaleLowerCase().includes(term)));
+}
 export function isDuplicateWorkspaceConversation(history,messages){
  if(!Array.isArray(history)||!Array.isArray(messages)||!messages.length)return false;
  const snapshot=messages.map(m=>({role:m.role,text:String(m.text??"").slice(0,12000)})).filter(m=>["user","assistant"].includes(m.role));
@@ -48,11 +54,14 @@ export function initWorkspace(app,{getMessages,onLoadConversation,onUsePrompt}){
   panel.querySelectorAll("[data-tab]").forEach(b=>b.classList.toggle("active",b.dataset.tab===tab));
   if(tab==="history"){
    const editing=history.find(item=>item.id===editingHistoryId);
-   let html='<div class="workspace-toolbar"><button type="button" class="workspace-primary" data-action="save">'+t("workspaceSaveChat")+'</button></div>';
+   let html='<div class="workspace-toolbar"><button type="button" class="workspace-primary" data-action="save">'+t("workspaceSaveChat")+'</button></div><input class="workspace-history-search" type="search" aria-label="'+t("workspaceSearchLabel")+'" placeholder="'+t("workspaceSearchPlaceholder")+'" autocomplete="off">';
    if(editing)html+='<form class="workspace-history-form"><input name="title" maxlength="120" value="'+esc(editing.title)+'" required><div class="workspace-form-actions"><button class="workspace-primary" type="submit">'+t("workspaceUpdateTitle")+'</button><button type="button" data-action="cancel-history-edit">'+t("workspaceCancelRename")+'</button></div></form>';
    if(!history.length)html+='<p class="workspace-empty">'+t("workspaceNoHistory")+'</p>';
-   history.forEach(item=>{const date=formatDate(item.createdAt,{dateStyle:"medium",timeStyle:"short"});const first=(item.messages||[]).find(m=>m.role==="user");html+='<article class="workspace-item"><div><strong>'+esc(item.title)+'</strong><small>'+date+' · '+(item.messages||[]).length+'</small><p>'+esc(first?.text||"")+'</p></div><div class="workspace-item-actions"><button type="button" data-action="open-chat" data-id="'+esc(item.id)+'">'+t("workspaceOpenChat")+'</button><button type="button" data-action="edit-history" data-id="'+esc(item.id)+'">'+t("workspaceRename")+'</button><button type="button" data-action="delete-history" data-id="'+esc(item.id)+'">'+t("workspaceDelete")+'</button></div></article>'});
+   history.forEach(item=>{const date=formatDate(item.createdAt,{dateStyle:"medium",timeStyle:"short"});const first=(item.messages||[]).find(m=>m.role==="user");html+='<article class="workspace-item" data-history-item="'+esc(item.id)+'"><div><strong>'+esc(item.title)+'</strong><small>'+date+' · '+(item.messages||[]).length+'</small><p>'+esc(first?.text||"")+'</p></div><div class="workspace-item-actions"><button type="button" data-action="open-chat" data-id="'+esc(item.id)+'">'+t("workspaceOpenChat")+'</button><button type="button" data-action="edit-history" data-id="'+esc(item.id)+'">'+t("workspaceRename")+'</button><button type="button" data-action="delete-history" data-id="'+esc(item.id)+'">'+t("workspaceDelete")+'</button></div></article>'});
+   if(history.length)html+='<p class="workspace-empty" data-history-no-results hidden>'+t("workspaceNoSearchResults")+'</p>';
    content.innerHTML=html;
+   const search=content.querySelector(".workspace-history-search"),noResults=content.querySelector("[data-history-no-results]");
+   search?.addEventListener("input",()=>{const matches=new Set(filterWorkspaceHistory(history,search.value).map(item=>item.id));content.querySelectorAll("[data-history-item]").forEach(item=>{item.hidden=!matches.has(item.dataset.historyItem)});if(noResults)noResults.hidden=matches.size>0});
    const historyForm=content.querySelector(".workspace-history-form");
    historyForm?.addEventListener("submit",event=>{event.preventDefault();const title=event.currentTarget.elements.title.value.trim();if(!title){feedback.textContent=t("workspaceTitleRequired");return}const saved=read(HISTORY_KEY),current=saved.find(item=>item.id===editingHistoryId);if(!current){editingHistoryId="";render();return}const next=renameWorkspaceConversation(saved,editingHistoryId,title);if(!next||!write(HISTORY_KEY,next)){feedback.textContent=t("errorGeneric");return}editingHistoryId="";feedback.textContent=t("workspaceConversationRenamed");render()});
   }else{
