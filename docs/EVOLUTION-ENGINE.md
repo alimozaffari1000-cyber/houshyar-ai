@@ -78,3 +78,10 @@ This is a discovery mechanism, not an automatic upgrade system. Release metadata
 The workflow `.github/workflows/developer-scout.yml` runs weekly and on demand. It inventories source files, counts source lines, detects TODO/FIXME/HACK markers, and verifies that standard project checks are declared. It publishes a Markdown artifact for maintainer triage.
 
 This is intentionally a read-only engineering scout, not an LLM coding agent. It does not infer runtime defects, modify files, create pull requests, access secrets, or deploy. A future LLM-assisted developer must receive narrowly scoped permissions, work in isolated branches, add regression tests, pass all checks, and require human review.
+
+### Admin-only runtime diagnostics
+
+The endpoint `GET /api/admin/health` is protected by the active Houshyar session and the server-side `admin` role check. The frontend adds the diagnostics entry point only after `GET /api/auth/me` confirms an authenticated administrator; the endpoint independently enforces authorization on every request. The dashboard displays only aggregate readiness checks and a timestamp. It does not expose credentials, raw database errors, user records, or conversation content.
+
+The admin dashboard is observational only. It does not restart services, mutate data, change provider configuration, or deploy. If authentication or the database is not configured, diagnostics remain unavailable rather than bypassing access control.
+
