@@ -104,6 +104,14 @@ export function initMarketplace(app, { locale = "fa" } = {}) {
       '<label><input name="offersDelivery" type="checkbox" ' + (store.offersDelivery ? "checked" : "") + '> ' + (locale === "fa" ? "ارسال به منزل" : "Home delivery") + '</label>' +
       '<label><input name="offersPickup" type="checkbox" ' + (store.offersPickup ? "checked" : "") + '> ' + (locale === "fa" ? "تحویل حضوری" : "Store pickup") + '</label>' +
       '<button type="submit">' + (locale === "fa" ? "ذخیره اطلاعات" : "Save details") + '</button></form></div>' : ""; 
+    const orderRows = (data.orders || []).map(order => {
+      const next = order.status === "pending" ? [["confirmed", c.confirmOrder], ["cancelled", c.cancelOrder]] :
+        order.status === "confirmed" ? [["preparing", c.prepareOrder], ["cancelled", c.cancelOrder]] :
+        order.status === "preparing" ? [["ready", c.readyOrder]] :
+        order.status === "ready" ? (order.fulfillment === "delivery" ? [["shipped", c.shipOrder]] : [["completed", c.completeOrder]]) :
+        order.status === "shipped" ? [["completed", c.completeOrder]] : [];
+      return '<article class="marketplace-order-card"><b>' + escape(order.orderNumber) + '</b><span>' + escape(order.status) + ' · ' + money(order.totalMinor, locale) + ' ' + escape(order.currency) + '</span><small>' + escape(order.recipientName) + ' · ' + escape(order.contactPhone) + '</small><div>' + (order.items || []).map(item => escape(item.title) + ' × ' + item.quantity).join("، ") + '</div>' + next.map(([status, label]) => '<button type="button" data-order-status="' + status + '" data-order-id="' + escape(order.id) + '">' + label + '</button>').join("") + '</article>';
+    }).join("");
     const rows = (data.products || []).map(product => '<article class="marketplace-seller-product"><div><b>' + escape(product.title) + '</b><small>' +
       escape(product.category) + ' · ' + money(product.priceMinor, locale) + ' ' + escape(product.currency) + '</small></div><span class="marketplace-state">' +
       (product.status === "published" ? c.published : c.draft) + '</span>' +
@@ -115,11 +123,17 @@ export function initMarketplace(app, { locale = "fa" } = {}) {
       '<label>' + c.price + '<input name="priceMinor" type="number" min="1" step="1" required inputmode="numeric"></label>' +
       '<label>' + c.stock + '<input name="stockCount" type="number" min="0" max="1000000" step="1" value="0" required inputmode="numeric"></label>' +
       '<label>' + c.productDescription + '<textarea name="description" maxlength="5000" rows="3"></textarea></label><button type="submit">' + c.createProduct + '</button></form></div>' : '') +
-      '<div class="marketplace-seller-list"><h3>' + c.products + '</h3>' + (rows || '<p>' + c.noProducts + '</p>') + '</div>';
+      '<div class="marketplace-seller-list"><h3>' + c.products + '</h3>' + (rows || '<p>' + c.noProducts + '</p>') + '</div>' +
+      '<div class="marketplace-seller-list"><h3>' + c.orderList + '</h3>' + (orderRows || '<p>' + c.emptyCart + '</p>') + '</div>';
   }
   async function loadSeller() {
     sellerNode.innerHTML = ""; say(c.loading);
-    try { const data = await request("/api/store/mine"); renderSeller(data); say(""); }
+    try {
+      const data = await request("/api/store/mine");
+      const orders = await request("/api/store/orders").catch(() => ({ orders: [] }));
+      renderSeller({ ...data, orders: orders.orders || [] });
+      say("");
+    }
     catch (error) {
       if (error.status === 401) sellerNode.innerHTML = '<div class="marketplace-form-card"><p>' + c.login + '</p><button type="button" data-market-account>' + c.account + '</button></div>';
       else say(error.status === 503 ? c.notReady : c.requestFailed);
@@ -148,7 +162,16 @@ export function initMarketplace(app, { locale = "fa" } = {}) {
     }
     const remove = event.target.closest("[data-cart-remove]");
     if (remove) { cart.delete(remove.dataset.cartRemove); renderCart(); }
+    const orderAction = event.target.closest("[data-order-status]");
+    if (orderAction) updateOrderStatus(orderAction);
   });
+  async function updateOrderStatus(button) {
+    button.disabled = true; say(c.loading);
+    try {
+      await request("/api/store/orders", { method:"PATCH", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ orderId:button.dataset.orderId, status:button.dataset.orderStatus }) });
+      await loadSeller();
+    } catch { say(c.requestFailed); button.disabled = false; }
+  }
   async function publishProduct(button) {
     button.disabled = true; say(c.loading);
     try { await request("/api/store/products/publish", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ productId:button.dataset.publish }) }); say(c.publishedDone); await loadSeller(); }
