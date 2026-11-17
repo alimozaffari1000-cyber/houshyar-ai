@@ -422,3 +422,8 @@ button:focus-visible,textarea:focus-visible,select:focus-visible{
 .answer-sources{display:flex;flex-wrap:wrap;gap:8px 16px;margin:10px 0 0;padding:10px 0 0 18px;border-top:1px solid var(--line);color:#91a6bf;font-size:11px;line-height:1.6}
 .answer-sources a{color:#83c8ff;text-decoration:underline;text-underline-offset:3px;overflow-wrap:anywhere}
 .answer-sources a:focus-visible{outline:2px solid currentColor;outline-offset:3px;border-radius:3px}
+
+
+/* Specialist agent selector */
+#agent-select{background:#15263d;border:1px solid #344d69;border-radius:9px;color:#e8f3ff;padding:7px 28px 7px 10px;font:11px Vazirmatn;max-width:205px}
+#agent-select:focus-visible{outline:2px solid #58d9bd;outline-offset:2px}
