@@ -57,6 +57,15 @@ The Pages Function at `GET /api/health` returns a minimal service status, deploy
 
 This endpoint confirms that the function can answer a request; it does **not** prove that D1, authentication, AI providers, marketplace operations, or the full user journey are healthy. External synthetic checks and alerting require a verified public Pages URL and are a separate rollout step.
 
+
+### Synthetic runtime monitoring
+
+The workflow `.github/workflows/runtime-health-monitor.yml` checks the deployed `/api/health` endpoint every 15 minutes once the repository variable `HOUSHYAR_PUBLIC_URL` is configured. It can also be run manually with a public HTTPS base URL. The checker uses a fixed health path, rejects non-HTTPS/local/IP-literal/credential-bearing targets, disallows redirects, applies an 8-second request timeout, and retries at most three times with bounded backoff.
+
+To enable the scheduled check, add the repository Actions variable `HOUSHYAR_PUBLIC_URL` with the public base URL of the deployed Pages site (for example, the site's origin; do not include `/api/health`). No API key or other secret is required. If the variable is absent, scheduled runs are skipped. A failed check makes the workflow fail and is visible in GitHub Actions; notification routing is not configured by this workflow.
+
+The monitor does not restart services, change Cloudflare settings, access user data, or trigger deployment/rollback. It measures only public endpoint reachability and response shape, not downstream D1 or AI-provider health.
+
 ### Innovation discovery — read-only radar
 
 The workflow `.github/workflows/innovation-radar.yml` runs weekly and on demand. It checks the latest public releases for the OpenAI, Google Gen AI, Anthropic, Groq, and LangChain SDK repositories and publishes a 30-day report artifact.
