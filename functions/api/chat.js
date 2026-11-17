@@ -59,7 +59,7 @@ async function readJsonLimited(request) {
 }
 
 export async function onRequestPost({ request, env }) {
-  const telemetry = createRequestTelemetry({ request, route: "chat" });
+  const telemetry = createRequestTelemetry({ request, route: "chat", env, ctx: arguments[0]?.ctx });
   if (!env.GROQ_API_KEY && !env.CLAUDE_API_KEY && !env.GEMINI_API_KEY) return json({ error: "AI_NOT_CONFIGURED", message: "هیچ ارائه‌دهنده هوش مصنوعی پیکربندی نشده است." }, 503);
   const contentType = (request.headers.get("content-type") || "").split(";", 1)[0].trim().toLowerCase();
   if (contentType !== "application/json") {
