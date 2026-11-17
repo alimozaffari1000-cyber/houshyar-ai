@@ -63,8 +63,13 @@ export async function requestModel({ provider, env, messages, model, signal, max
     for (const chunk of data?.candidates?.[0]?.groundingMetadata?.groundingChunks || []) {
       const uri = chunk?.web?.uri;
       const title = chunk?.web?.title;
-      if (typeof uri !== "string" || !/^https:\/\//i.test(uri) || sourceMap.has(uri)) continue;
-      sourceMap.set(uri, { title: typeof title === "string" && title.trim() ? title.trim().slice(0, 200) : uri, url: uri });
+      if (typeof uri !== "string") continue;
+      let parsedUri;
+      try { parsedUri = new URL(uri); } catch { continue; }
+      if (parsedUri.protocol !== "https:" || !parsedUri.hostname || parsedUri.username || parsedUri.password) continue;
+      const safeUri = parsedUri.href;
+      if (sourceMap.has(safeUri)) continue;
+      sourceMap.set(safeUri, { title: typeof title === "string" && title.trim() ? title.trim().slice(0, 200) : safeUri, url: safeUri });
       if (sourceMap.size >= 8) break;
     }
     return {
