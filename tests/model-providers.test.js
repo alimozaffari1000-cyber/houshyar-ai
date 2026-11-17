@@ -207,3 +207,35 @@ test("chat API enables Google grounding only for an explicitly selected Gemini p
     globalThis.fetch = originalFetch;
   }
 });
+
+
+test("auto mode ignores an unavailable default provider and falls back to configured Groq", () => {
+  const result = resolveProvider({
+    AI_DEFAULT_PROVIDER: "google",
+    GROQ_API_KEY: "configured-groq"
+  }, "auto", "balanced");
+  assert.equal(result.provider, "groq");
+  assert.equal(result.model, "llama-3.3-70b-versatile");
+});
+
+test("auto mode falls back through configured providers when preferred provider is absent", () => {
+  assert.equal(resolveProvider({ AI_DEFAULT_PROVIDER: "anthropic", GEMINI_API_KEY: "g" }, "auto", "balanced").provider, "google");
+  assert.equal(resolveProvider({ GROQ_API_KEY: "g", GEMINI_API_KEY: "x" }, "auto", "deep").provider, "groq");
+});
+
+test("explicit unavailable provider never silently falls back", () => {
+  assert.deepEqual(resolveProvider({
+    GROQ_API_KEY: "configured-groq",
+    AI_DEFAULT_PROVIDER: "groq"
+  }, "google", "balanced"), {
+    error: "PROVIDER_NOT_CONFIGURED",
+    provider: "google"
+  });
+});
+
+test("auto mode reports unconfigured when no provider secret is available", () => {
+  assert.deepEqual(resolveProvider({ AI_DEFAULT_PROVIDER: "google" }, "auto", "balanced"), {
+    error: "PROVIDER_NOT_CONFIGURED",
+    provider: "auto"
+  });
+});
