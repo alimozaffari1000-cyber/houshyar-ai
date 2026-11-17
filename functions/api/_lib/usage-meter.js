@@ -13,7 +13,7 @@ export function estimateUsageCostMicroUsd({ promptTokens = 0, completionTokens =
   return Number.isSafeInteger(Math.round(estimate)) ? Math.round(estimate) : null;
 }
 export function getProviderRates(env, provider) {
-  const prefix = provider === "anthropic" ? "CLAUDE" : provider === "google" ? "GEMINI" : "GROQ";
+  const prefix = provider === "anthropic" ? "CLAUDE" : provider === "google" ? "GEMINI" : provider === "openai" ? "OPENAI" : "GROQ";
   return {
     inputRate: safeRate(env[prefix + "_INPUT_MICRO_USD_PER_MILLION"]),
     outputRate: safeRate(env[prefix + "_OUTPUT_MICRO_USD_PER_MILLION"])
