@@ -1,6 +1,5 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createHash } from "node:crypto";
 import { onRequestGet } from "../functions/api/admin/health.js";
 
 const tables = [
@@ -11,7 +10,6 @@ const tables = [
 
 async function fixture(role = "admin") {
   const token = "unit-test-session-token";
-  const tokenHash = createHash("sha256").update(token).digest("hex");
   const db = {
     prepare(sql) {
       if (sql.includes("SELECT users.id")) {
@@ -28,7 +26,7 @@ async function fixture(role = "admin") {
   const request = new Request("https://example.invalid/api/admin/health", {
     headers: { Cookie: "houshyar_session=" + token }
   });
-  return { env: { AUTH_ENABLED: "true", DB: db, GROQ_API_KEY: "test-provider-secret" }, request, tokenHash };
+  return { env: { AUTH_ENABLED: "true", DB: db, GROQ_API_KEY: "test-provider-secret" }, request };
 }
 
 test("admin health endpoint rejects unauthenticated requests", async () => {
