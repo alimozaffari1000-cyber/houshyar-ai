@@ -59,7 +59,17 @@ test("order creation validates quantities, delivery address and one-store checko
   assert.equal(noAddress.status, 400);
 });
 
-test("order creation requires a bounded idempotency key before product lookup", async () => {\n  const response = await onRequestPost({\n    request: makeRequest({ items: [{ productId: "123e4567-e89b-12d3-a456-426614174000", quantity: 1 }], fulfillment: "pickup", recipientName: "Ali", contactPhone: "09123456789" }),\n    env: { DB: authenticatedValidationDb() }\n  });\n  assert.equal(response.status, 400);\n  assert.equal((await response.json()).error, "INVALID_ORDER_IDEMPOTENCY_KEY");\n});\n\ntest("customer order history requires an authenticated session", async () => {
+test("order creation requires a bounded idempotency key before product lookup", async () => {
+  const payload = { items: [{ productId: "123e4567-e89b-12d3-a456-426614174000", quantity: 1 }], fulfillment: "pickup", recipientName: "Ali", contactPhone: "09123456789" };
+  const missing = await onRequestPost({ request: makeRequest(payload), env: { DB: authenticatedValidationDb() } });
+  assert.equal(missing.status, 400);
+  assert.equal((await missing.json()).error, "INVALID_ORDER_IDEMPOTENCY_KEY");
+  const oversized = await onRequestPost({ request: makeRequest({ ...payload, idempotencyKey: "x".repeat(81) }), env: { DB: authenticatedValidationDb() } });
+  assert.equal(oversized.status, 400);
+  assert.equal((await oversized.json()).error, "INVALID_ORDER_IDEMPOTENCY_KEY");
+});
+
+test("customer order history requires an authenticated session", async () => {
   const response = await onRequestGet({
     request: new Request("https://example.test/api/orders"),
     env: { DB: { prepare() { throw new Error("must not query"); } } }
