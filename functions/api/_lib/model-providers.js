@@ -1,3 +1,12 @@
+function normalizeUsage(inputTokens, outputTokens, totalTokens) {
+  if (!Number.isSafeInteger(inputTokens) || inputTokens < 0 ||
+      !Number.isSafeInteger(outputTokens) || outputTokens < 0) return null;
+  const total = Number.isSafeInteger(totalTokens) && totalTokens >= 0
+    ? totalTokens : inputTokens + outputTokens;
+  if (!Number.isSafeInteger(total)) return null;
+  return { promptTokens: inputTokens, completionTokens: outputTokens, totalTokens: total };
+}
+
 const CLAUDE_DEFAULT_MODEL = "claude-sonnet-5-5";
 const GEMINI_DEFAULT_MODEL = "gemini-3.1-flash-lite";
 
@@ -62,11 +71,7 @@ export async function requestModel({ provider, env, messages, model, signal, max
       reply,
       sources: [...sourceMap.values()],
       model: data.modelVersion || selectedModel,
-      usage: usage ? {
-        promptTokens: usage.promptTokenCount || 0,
-        completionTokens: usage.candidatesTokenCount || 0,
-        totalTokens: usage.totalTokenCount || ((usage.promptTokenCount || 0) + (usage.candidatesTokenCount || 0))
-      } : null
+      usage: usage ? normalizeUsage(usage.promptTokenCount, usage.candidatesTokenCount, usage.totalTokenCount) : null
     };
   }
 
@@ -100,11 +105,7 @@ export async function requestModel({ provider, env, messages, model, signal, max
     return {
       reply,
       model: data.model || model || env.CLAUDE_MODEL || CLAUDE_DEFAULT_MODEL,
-      usage: data.usage ? {
-        promptTokens: data.usage.input_tokens || 0,
-        completionTokens: data.usage.output_tokens || 0,
-        totalTokens: (data.usage.input_tokens || 0) + (data.usage.output_tokens || 0)
-      } : null
+      usage: data.usage ? normalizeUsage(data.usage.input_tokens, data.usage.output_tokens) : null
     };
   }
 
