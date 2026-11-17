@@ -31,7 +31,7 @@ const write=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));return true}ca
 const formatDate=(value,options)=>{const date=new Date(value);return Number.isFinite(date.getTime())?new Intl.DateTimeFormat(getLocale(),options).format(date):""};
 export function initWorkspace(app,{getMessages,onLoadConversation,onUsePrompt}){
  const opener=app.querySelector("#workspace-open");if(!opener)return;
- let tab="history",editingProjectId="";
+ let tab="history",editingProjectId="",editingHistoryId="";
  const panel=document.createElement("section");panel.className="workspace-overlay";panel.hidden=true;panel.setAttribute("aria-label",t("workspaceTitle"));
  panel.innerHTML='<div class="workspace-card" role="dialog" aria-modal="true" aria-labelledby="workspace-heading"><header class="workspace-head"><div><h2 id="workspace-heading">'+t("workspaceTitle")+'</h2><p>'+t("workspaceSubtitle")+'</p></div><button type="button" data-action="close" aria-label="'+t("workspaceClose")+'">✕</button></header><div class="workspace-tabs"><button type="button" data-tab="history">'+t("workspaceHistory")+'</button><button type="button" data-tab="projects">'+t("workspaceProjects")+'</button></div><div class="workspace-credit"><strong>'+t("workspaceQuotaTitle")+'</strong><p>'+t("workspaceQuotaPending")+'</p></div><div class="workspace-notice">'+t("workspaceLocalNotice")+'</div><p class="workspace-feedback" role="status"></p><div class="workspace-content"></div></div>';
  app.append(panel);
@@ -40,10 +40,14 @@ export function initWorkspace(app,{getMessages,onLoadConversation,onUsePrompt}){
   const history=read(HISTORY_KEY),projects=read(PROJECTS_KEY);
   panel.querySelectorAll("[data-tab]").forEach(b=>b.classList.toggle("active",b.dataset.tab===tab));
   if(tab==="history"){
+   const editing=history.find(item=>item.id===editingHistoryId);
    let html='<div class="workspace-toolbar"><button type="button" class="workspace-primary" data-action="save">'+t("workspaceSaveChat")+'</button></div>';
+   if(editing)html+='<form class="workspace-history-form"><input name="title" maxlength="120" value="'+esc(editing.title)+'" required><div class="workspace-form-actions"><button class="workspace-primary" type="submit">'+t("workspaceUpdateTitle")+'</button><button type="button" data-action="cancel-history-edit">'+t("workspaceCancelRename")+'</button></div></form>';
    if(!history.length)html+='<p class="workspace-empty">'+t("workspaceNoHistory")+'</p>';
-   history.forEach(item=>{const date=formatDate(item.createdAt,{dateStyle:"medium",timeStyle:"short"});const first=(item.messages||[]).find(m=>m.role==="user");html+='<article class="workspace-item"><div><strong>'+esc(item.title)+'</strong><small>'+date+' · '+(item.messages||[]).length+'</small><p>'+esc(first?.text||"")+'</p></div><div class="workspace-item-actions"><button type="button" data-action="open-chat" data-id="'+esc(item.id)+'">'+t("workspaceOpenChat")+'</button><button type="button" data-action="delete-history" data-id="'+esc(item.id)+'">'+t("workspaceDelete")+'</button></div></article>'});
+   history.forEach(item=>{const date=formatDate(item.createdAt,{dateStyle:"medium",timeStyle:"short"});const first=(item.messages||[]).find(m=>m.role==="user");html+='<article class="workspace-item"><div><strong>'+esc(item.title)+'</strong><small>'+date+' · '+(item.messages||[]).length+'</small><p>'+esc(first?.text||"")+'</p></div><div class="workspace-item-actions"><button type="button" data-action="open-chat" data-id="'+esc(item.id)+'">'+t("workspaceOpenChat")+'</button><button type="button" data-action="edit-history" data-id="'+esc(item.id)+'">'+t("workspaceRename")+'</button><button type="button" data-action="delete-history" data-id="'+esc(item.id)+'">'+t("workspaceDelete")+'</button></div></article>'});
    content.innerHTML=html;
+   const historyForm=content.querySelector(".workspace-history-form");
+   historyForm?.addEventListener("submit",event=>{event.preventDefault();const title=event.currentTarget.elements.title.value.trim();if(!title){feedback.textContent=t("workspaceTitleRequired");return}const saved=read(HISTORY_KEY),current=saved.find(item=>item.id===editingHistoryId);if(!current){editingHistoryId="";render();return}const next=saved.map(item=>item.id===editingHistoryId?{...item,title:title.slice(0,120)}:item);if(!write(HISTORY_KEY,next)){feedback.textContent=t("errorGeneric");return}editingHistoryId="";feedback.textContent=t("workspaceConversationRenamed");render()});
   }else{
    const editing=projects.find(item=>item.id===editingProjectId);
    let html='<form class="workspace-project-form"><input name="title" maxlength="80" placeholder="'+t("workspaceProjectName")+'" value="'+esc(editing?.title||"")+'" required><textarea name="prompt" maxlength="5000" rows="3" placeholder="'+t("workspaceProjectPrompt")+'">'+esc(editing?.prompt||"")+'</textarea><div class="workspace-form-actions"><button class="workspace-primary" type="submit">'+t(editing?"workspaceUpdateProject":"workspaceAddProject")+'</button>'+(editing?'<button type="button" data-action="cancel-edit">'+t("workspaceCancelEdit")+'</button>':'')+'</div></form>';
@@ -70,10 +74,12 @@ export function initWorkspace(app,{getMessages,onLoadConversation,onUsePrompt}){
    feedback.textContent=t("workspaceSaved");render();return
   }
   if(action==="open-chat"){const item=read(HISTORY_KEY).find(x=>x.id===id);if(item&&Array.isArray(item.messages)){panel.hidden=true;onLoadConversation(item.messages)}return}
+  if(action==="edit-history"){editingHistoryId=id;feedback.textContent="";render();content.querySelector(".workspace-history-form [name=title]")?.focus();return}
+  if(action==="cancel-history-edit"){editingHistoryId="";feedback.textContent="";render();return}
   if(action==="edit-project"){editingProjectId=id;feedback.textContent="";render();content.querySelector('[name="title"]')?.focus();return}
   if(action==="cancel-edit"){editingProjectId="";feedback.textContent="";render();return}
   if(action==="use-project"){const item=read(PROJECTS_KEY).find(x=>x.id===id);if(item){panel.hidden=true;onUsePrompt(item.prompt||item.title)}return}
-  if(action==="delete-history"||action==="delete-project"){const key=action==="delete-history"?HISTORY_KEY:PROJECTS_KEY;if(action==="delete-project"&&editingProjectId===id)editingProjectId="";if(write(key,read(key).filter(x=>x.id!==id))){feedback.textContent=t("workspaceDeleted");render()}else feedback.textContent=t("errorGeneric")}
+  if(action==="delete-history"||action==="delete-project"){const key=action==="delete-history"?HISTORY_KEY:PROJECTS_KEY;if(action==="delete-project"&&editingProjectId===id)editingProjectId="";if(action==="delete-history"&&editingHistoryId===id)editingHistoryId="";if(write(key,read(key).filter(x=>x.id!==id))){feedback.textContent=t("workspaceDeleted");render()}else feedback.textContent=t("errorGeneric")}
  });
  panel.addEventListener("keydown",event=>{
   if(event.key==="Escape"){panel.hidden=true;opener.focus();return}
