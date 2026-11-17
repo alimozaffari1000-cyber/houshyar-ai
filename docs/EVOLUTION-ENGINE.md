@@ -85,3 +85,5 @@ The endpoint `GET /api/admin/health` is protected by the active Houshyar session
 
 The admin dashboard is observational only. It does not restart services, mutate data, change provider configuration, or deploy. If authentication or the database is not configured, diagnostics remain unavailable rather than bypassing access control.
 
+The synthetic monitor also opens or updates a deduplicated GitHub issue when a configured endpoint check fails, then closes that automation-labeled incident after a later successful check. This requires the repository Actions token to have issue write permission. No email, SMS, or external paging integration is configured. Manual runs without a target URL are skipped rather than generating a false outage alert.
+
