@@ -144,6 +144,7 @@ test("approved seller creates a draft product with integer pricing", async () =>
   assert.equal(response.status, 201);
   assert.equal(body.product.status, "draft");
   assert.equal(body.product.priceMinor, 1250000);
+  assert.equal(body.product.currencyExponent, 0);
   assert.match(insertedSql, /'draft'/);
   assert.ok(insertedValues.includes(1250000));
   assert.ok(insertedValues.includes("IRR"));
