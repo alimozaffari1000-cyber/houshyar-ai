@@ -1,6 +1,6 @@
 const COPY = {
-  fa: { open:"بازارگاه", title:"بازارگاه هوش‌یار", subtitle:"محصولات فروشگاه‌های تأییدشده را ببین یا فروشگاه خودت را راه‌اندازی کن.", close:"بستن", browse:"فروشگاه‌ها", seller:"پنل فروشنده", search:"جست‌وجوی محصول یا فروشگاه…", find:"جست‌وجو", city:"شهر (اختیاری)", allModes:"همه روش‌های دریافت", delivery:"ارسال به منزل", pickup:"دریافت حضوری", near:"نزدیک من", locating:"در حال دریافت موقعیت…", locationDenied:"دسترسی به موقعیت داده نشد؛ می‌توانی نام شهر را وارد کنی.", distance:"فاصله", order:"سفارش", deliveryAvailable:"ارسال دارد", pickupAvailable:"تحویل حضوری دارد", limited:"نتایج محدودند؛ برای دقیق‌تر شدن جست‌وجو شهر یا عبارت را مشخص کن.", loading:"در حال دریافت اطلاعات…", empty:"هنوز محصولی برای نمایش وجود ندارد.", more:"محصولات بیشتر", login:"برای ورود به پنل فروشنده ابتدا وارد حساب شو.", account:"ورود به حساب", applyTitle:"درخواست ایجاد فروشگاه", storeName:"نام فروشگاه", slug:"نشانی کوتاه انگلیسی (مثلاً aria-shop)", description:"معرفی فروشگاه", apply:"ارسال درخواست", pending:"درخواست فروشگاهت برای بررسی مدیر ارسال شده است.", suspended:"این فروشگاه موقتاً غیرفعال است.", active:"فروشگاه تأیید شده است.", productTitle:"نام محصول", category:"دسته‌بندی انگلیسی (مثلاً fashion)", price:"قیمت به ریال", stock:"موجودی", productDescription:"توضیحات محصول", createProduct:"ثبت محصول", products:"محصولات من", draft:"پیش‌نویس", published:"منتشرشده", publish:"انتشار محصول", noProducts:"هنوز محصولی ثبت نکرده‌ای.", submitted:"درخواست ثبت شد.", created:"محصول به‌صورت پیش‌نویس ثبت شد.", publishedDone:"محصول منتشر شد.", requestFailed:"درخواست انجام نشد. دوباره تلاش کن.", catalogUnavailable:"دریافت فروشگاه‌ها موقتاً ممکن نیست.", currency:"ریال", store:"فروشگاه", noStore:"هنوز فروشگاهی ثبت نکرده‌ای.", priceInvalid:"قیمت باید عدد صحیح و بیشتر از صفر باشد.", stockInvalid:"موجودی باید عدد صحیح و صفر یا بیشتر باشد.", notReady:"پایگاه داده فروشگاه هنوز در محیط انتشار راه‌اندازی نشده است.", note:"در این نسخه پرداخت، سبد خرید، ارسال تصویر و پرو مجازی فعال نیستند." },
-  en: { open:"Marketplace", title:"Houshyar Marketplace", subtitle:"Browse approved shops or apply to open your own store.", close:"Close", browse:"Browse products", seller:"Seller dashboard", search:"Search products or shops…", find:"Search", city:"City (optional)", allModes:"Any fulfillment", delivery:"Home delivery", pickup:"Pickup", near:"Near me", locating:"Getting your location…", locationDenied:"Location access was not granted; you can enter a city instead.", distance:"Distance", order:"Order", deliveryAvailable:"Delivery available", pickupAvailable:"Pickup available", limited:"Results are capped; narrow the search by city or keyword.", loading:"Loading…", empty:"No products are available yet.", more:"Load more", login:"Sign in to access the seller dashboard.", account:"Open account", applyTitle:"Apply for a store", storeName:"Store name", slug:"Short URL slug (e.g. aria-shop)", description:"Store description", apply:"Submit application", pending:"Your store application is awaiting administrator review.", suspended:"This store is temporarily suspended.", active:"Your store is approved.", productTitle:"Product name", category:"Category slug (e.g. fashion)", price:"Price in IRR", stock:"Stock quantity", productDescription:"Product description", createProduct:"Save product", products:"My products", draft:"Draft", published:"Published", publish:"Publish product", noProducts:"You have not added products yet.", submitted:"Application submitted.", created:"Product saved as a draft.", publishedDone:"Product published.", requestFailed:"Request failed. Please try again.", catalogUnavailable:"The catalog is temporarily unavailable.", currency:"IRR", store:"Store", noStore:"You do not have a store yet.", priceInvalid:"Price must be a positive whole number.", stockInvalid:"Stock must be a non-negative whole number.", notReady:"The marketplace database is not configured in this deployment yet.", note:"Checkout, payments, image uploads and virtual try-on are not enabled in this version." }
+  fa: { open:"بازارگاه", title:"بازارگاه هوش‌یار", subtitle:"محصولات فروشگاه‌های تأییدشده را ببین یا فروشگاه خودت را راه‌اندازی کن.", close:"بستن", browse:"فروشگاه‌ها", seller:"پنل فروشنده", search:"جست‌وجوی محصول یا فروشگاه…", find:"جست‌وجو", city:"شهر (اختیاری)", allModes:"همه روش‌های دریافت", delivery:"ارسال به منزل", pickup:"دریافت حضوری", near:"نزدیک من", locating:"در حال دریافت موقعیت…", locationDenied:"دسترسی به موقعیت داده نشد؛ می‌توانی نام شهر را وارد کنی.", distance:"فاصله", order:"سفارش", deliveryAvailable:"ارسال دارد", pickupAvailable:"تحویل حضوری دارد", limited:"نتایج محدودند؛ برای دقیق‌تر شدن جست‌وجو شهر یا عبارت را مشخص کن.", loading:"در حال دریافت اطلاعات…", empty:"هنوز محصولی برای نمایش وجود ندارد.", more:"محصولات بیشتر", login:"برای ورود به پنل فروشنده ابتدا وارد حساب شو.", account:"ورود به حساب", applyTitle:"درخواست ایجاد فروشگاه", storeName:"نام فروشگاه", slug:"نشانی کوتاه انگلیسی (مثلاً aria-shop)", description:"معرفی فروشگاه", apply:"ارسال درخواست", pending:"درخواست فروشگاهت برای بررسی مدیر ارسال شده است.", suspended:"این فروشگاه موقتاً غیرفعال است.", active:"فروشگاه تأیید شده است.", productTitle:"نام محصول", category:"دسته‌بندی انگلیسی (مثلاً fashion)", price:"قیمت به ریال", stock:"موجودی", productDescription:"توضیحات محصول", createProduct:"ثبت محصول", products:"محصولات من", draft:"پیش‌نویس", published:"منتشرشده", publish:"انتشار محصول", noProducts:"هنوز محصولی ثبت نکرده‌ای.", submitted:"درخواست ثبت شد.", created:"محصول به‌صورت پیش‌نویس ثبت شد.", publishedDone:"محصول منتشر شد.", requestFailed:"درخواست انجام نشد. دوباره تلاش کن.", catalogUnavailable:"دریافت فروشگاه‌ها موقتاً ممکن نیست.", currency:"ریال", store:"فروشگاه", noStore:"هنوز فروشگاهی ثبت نکرده‌ای.", priceInvalid:"قیمت باید عدد صحیح و بیشتر از صفر باشد.", stockInvalid:"موجودی باید عدد صحیح و صفر یا بیشتر باشد.", notReady:"پایگاه داده فروشگاه هنوز در محیط انتشار راه‌اندازی نشده است.", note:"ثبت سفارش در این مرحله درخواست به فروشنده است؛ پرداخت آنلاین و ارسال تصویر هنوز فعال نیست.", orders:"سفارش‌ها", orderRequest:"درخواست سفارش", quantity:"تعداد", pendingOrder:"در انتظار تأیید", acceptedOrder:"پذیرفته‌شده", rejectedOrder:"ردشده", completedOrder:"تکمیل‌شده", cancelledOrder:"لغوشده", acceptOrder:"پذیرش", rejectOrder:"رد سفارش", completeOrder:"تکمیل سفارش", cancelOrder:"لغو سفارش", orderCreated:"درخواست سفارش برای فروشنده ارسال شد.", orderUpdated:"وضعیت سفارش تغییر کرد.", noOrders:"هنوز سفارشی ثبت نشده است.", buyer:"خریدار", seller:"فروشنده", orderFailed:"ثبت یا تغییر سفارش انجام نشد." },
+  en: { open:"Marketplace", title:"Houshyar Marketplace", subtitle:"Browse approved shops or apply to open your own store.", close:"Close", browse:"Browse products", seller:"Seller dashboard", search:"Search products or shops…", find:"Search", city:"City (optional)", allModes:"Any fulfillment", delivery:"Home delivery", pickup:"Pickup", near:"Near me", locating:"Getting your location…", locationDenied:"Location access was not granted; you can enter a city instead.", distance:"Distance", order:"Order", deliveryAvailable:"Delivery available", pickupAvailable:"Pickup available", limited:"Results are capped; narrow the search by city or keyword.", loading:"Loading…", empty:"No products are available yet.", more:"Load more", login:"Sign in to access the seller dashboard.", account:"Open account", applyTitle:"Apply for a store", storeName:"Store name", slug:"Short URL slug (e.g. aria-shop)", description:"Store description", apply:"Submit application", pending:"Your store application is awaiting administrator review.", suspended:"This store is temporarily suspended.", active:"Your store is approved.", productTitle:"Product name", category:"Category slug (e.g. fashion)", price:"Price in IRR", stock:"Stock quantity", productDescription:"Product description", createProduct:"Save product", products:"My products", draft:"Draft", published:"Published", publish:"Publish product", noProducts:"You have not added products yet.", submitted:"Application submitted.", created:"Product saved as a draft.", publishedDone:"Product published.", requestFailed:"Request failed. Please try again.", catalogUnavailable:"The catalog is temporarily unavailable.", currency:"IRR", store:"Store", noStore:"You do not have a store yet.", priceInvalid:"Price must be a positive whole number.", stockInvalid:"Stock must be a non-negative whole number.", notReady:"The marketplace database is not configured in this deployment yet.", note:"Orders are requests to sellers in this version; online checkout and image uploads are not enabled.", orders:"Orders", orderRequest:"Request order", quantity:"Quantity", pendingOrder:"Awaiting seller", acceptedOrder:"Accepted", rejectedOrder:"Rejected", completedOrder:"Completed", cancelledOrder:"Cancelled", acceptOrder:"Accept", rejectOrder:"Reject", completeOrder:"Complete", cancelOrder:"Cancel", orderCreated:"Order request sent to the seller.", orderUpdated:"Order status updated.", noOrders:"No orders yet.", buyer:"Buyer", seller:"Seller", orderFailed:"Could not create or update the order." }
 };
 const copyFor = locale => COPY[locale] || COPY.en;
 const escape = value => String(value ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
@@ -19,11 +19,11 @@ export function initMarketplace(app, { locale = "fa" } = {}) {
     '<nav class="marketplace-tabs" aria-label="' + c.title + '"><button type="button" data-market-tab="browse" class="active">' + c.browse + '</button><button type="button" data-market-tab="seller">' + c.seller + '</button></nav>' +
     '<div class="marketplace-status" role="status" aria-live="polite"></div>' +
     '<section data-market-view="browse"><form class="marketplace-search"><input name="q" maxlength="80" placeholder="' + c.search + '" aria-label="' + c.search + '"><input name="city" maxlength="80" placeholder="' + c.city + '" aria-label="' + c.city + '"><select name="mode" aria-label="' + c.allModes + '"><option value="">' + c.allModes + '</option><option value="delivery">' + c.delivery + '</option><option value="pickup">' + c.pickup + '</option></select><button type="submit">' + c.find + '</button><button type="button" data-market-near>' + c.near + '</button></form><div class="marketplace-products" aria-live="polite"></div><button type="button" class="marketplace-more" hidden>' + c.more + '</button></section>' +
-    '<section data-market-view="seller" hidden><div class="marketplace-seller-content"></div></section><p class="marketplace-note">' + c.note + '</p></div>';
+    '<section data-market-view="seller" hidden><div class="marketplace-seller-content"></div></section><section data-market-view="orders" hidden><div class="marketplace-orders-content"></div></section><p class="marketplace-note">' + c.note + '</p></div>';
   app.append(overlay);
   const status = overlay.querySelector(".marketplace-status");
   const productsNode = overlay.querySelector(".marketplace-products");
-  const sellerNode = overlay.querySelector(".marketplace-seller-content");
+  const sellerNode = overlay.querySelector(".marketplace-seller-content");\n  const ordersNode = overlay.querySelector(".marketplace-orders-content");
   const more = overlay.querySelector(".marketplace-more");
   let offset = 0, query = "", city = "", mode = "", coordinates = null;
   const say = message => { status.textContent = message || ""; };
@@ -37,7 +37,7 @@ export function initMarketplace(app, { locale = "fa" } = {}) {
     overlay.querySelectorAll("[data-market-tab]").forEach(button => button.classList.toggle("active", button.dataset.marketTab === tab));
     overlay.querySelectorAll("[data-market-view]").forEach(view => { view.hidden = view.dataset.marketView !== tab; });
     say("");
-    if (tab === "seller") loadSeller();
+    if (tab === "seller") loadSeller();\n    if (tab === "orders") loadOrders();
   };
   const productCard = product => {
     const place = [product.city, product.region].filter(Boolean).join(" · ");
@@ -45,10 +45,12 @@ export function initMarketplace(app, { locale = "fa" } = {}) {
     const fulfillment = (product.offersDelivery ? '<small>' + c.deliveryAvailable + '</small>' : '') + (product.offersPickup ? '<small>' + c.pickupAvailable + '</small>' : '');
     let orderLink = '';
     try { const orderUrl = new URL(product.orderUrl); if (orderUrl.protocol === 'https:') orderLink = '<a href="' + escape(orderUrl.href) + '" target="_blank" rel="noopener noreferrer">' + c.order + '</a>'; } catch {}
+    const modes = (product.offersDelivery ? '<option value="delivery">' + c.delivery + '</option>' : '') + (product.offersPickup ? '<option value="pickup">' + c.pickup + '</option>' : '');
+    const orderForm = modes ? '<form class="marketplace-order-form" data-order-create><input type="hidden" name="productId" value="' + escape(product.productId) + '"><select name="fulfillmentMode" aria-label="' + c.allModes + '">' + modes + '</select><input name="quantity" type="number" min="1" max="100" value="1" aria-label="' + c.quantity + '"><button type="submit">' + c.orderRequest + '</button></form>' : '';
     return '<article class="marketplace-product"><div class="marketplace-product-art" aria-hidden="true">✧</div><div class="marketplace-product-info">' +
       '<span class="marketplace-category">' + escape(product.category) + '</span><h3>' + escape(product.title) + '</h3><p>' + escape(product.description || '') + '</p><strong>' +
       money(product.priceMinor, locale) + ' ' + escape(product.currency || c.currency) + '</strong><small>' + c.store + ': ' + escape(product.storeName || '') + '</small>' +
-      (place ? '<small>' + escape(place) + '</small>' : '') + distance + fulfillment + orderLink + '</div></article>';
+      (place ? '<small>' + escape(place) + '</small>' : '') + distance + fulfillment + orderLink + orderForm + '</div></article>';
   };
   async function loadCatalog(reset = false) {
     if (reset) { offset = 0; productsNode.innerHTML = ""; }
@@ -89,6 +91,32 @@ export function initMarketplace(app, { locale = "fa" } = {}) {
       '<label>' + c.productDescription + '<textarea name="description" maxlength="5000" rows="3"></textarea></label><button type="submit">' + c.createProduct + '</button></form></div>' : '') +
       '<div class="marketplace-seller-list"><h3>' + c.products + '</h3>' + (rows || '<p>' + c.noProducts + '</p>') + '</div>';
   }
+  const orderStatus = status => ({ pending:c.pendingOrder, accepted:c.acceptedOrder, rejected:c.rejectedOrder, completed:c.completedOrder, cancelled:c.cancelledOrder })[status] || status;
+  function renderOrders(data) {
+    const rows = (data.orders || []).map(order => {
+      const buyerSide = order.viewerRole === "buyer";
+      const actions = buyerSide && order.status === "pending"
+        ? '<button type="button" data-order-action="cancel" data-order-id="' + escape(order.id) + '">' + c.cancelOrder + '</button>'
+        : !buyerSide && order.status === "pending"
+          ? '<button type="button" data-order-action="accept" data-order-id="' + escape(order.id) + '">' + c.acceptOrder + '</button><button type="button" data-order-action="reject" data-order-id="' + escape(order.id) + '">' + c.rejectOrder + '</button>'
+          : !buyerSide && order.status === "accepted"
+            ? '<button type="button" data-order-action="complete" data-order-id="' + escape(order.id) + '">' + c.completeOrder + '</button>' : '';
+      return '<article class="marketplace-order"><div><b>' + escape(order.productTitle) + '</b><small>' + escape(order.storeName) + ' · ' + escape(order.quantity) + ' × ' + money(order.unitPriceMinor, locale) + ' ' + escape(order.currency) + '</small><small>' + (buyerSide ? c.buyer : c.seller) + ' · ' + escape(order.fulfillmentMode) + '</small><small>' + escape(order.buyerNote || '') + '</small></div><span class="marketplace-state">' + escape(orderStatus(order.status)) + '</span>' + actions + '</article>';
+    }).join("");
+    ordersNode.innerHTML = rows || '<p>' + c.noOrders + '</p>';
+  }
+  async function loadOrders() {
+    ordersNode.innerHTML = ""; say(c.loading);
+    try { const data = await request("/api/store/orders"); renderOrders(data); say(""); }
+    catch (error) { say(error.status === 401 ? c.login : c.orderFailed); }
+  }
+  async function updateOrder(button) {
+    button.disabled = true; say(c.loading);
+    try {
+      await request("/api/store/orders/update", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ orderId:button.dataset.orderId, action:button.dataset.orderAction }) });
+      say(c.orderUpdated); await loadOrders();
+    } catch { say(c.orderFailed); button.disabled = false; }
+  }
   async function loadSeller() {
     sellerNode.innerHTML = ""; say(c.loading);
     try { const data = await request("/api/store/mine"); renderSeller(data); say(""); }
@@ -124,6 +152,16 @@ export function initMarketplace(app, { locale = "fa" } = {}) {
   more.addEventListener("click", () => loadCatalog(false));
   overlay.addEventListener("submit", async event => {
     const form = event.target;
+    if (form.matches("[data-order-create]")) {
+      event.preventDefault();
+      const quantity = Number(form.elements.quantity.value);
+      if (!Number.isSafeInteger(quantity) || quantity < 1 || quantity > 100) { say(c.orderFailed); return; }
+      const button = form.querySelector("button[type=submit]"); button.disabled = true; say(c.loading);
+      try {
+        await request("/api/store/orders", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ productId:form.elements.productId.value, quantity, fulfillmentMode:form.elements.fulfillmentMode.value }) });
+        say(c.orderCreated); form.reset(); form.elements.quantity.value = "1";
+      } catch (error) { say(error.status === 401 ? c.login : c.orderFailed); button.disabled = false; }
+    }
     if (form.matches("[data-store-apply]")) {
       event.preventDefault(); const button = form.querySelector("button[type=submit]"); button.disabled = true; say(c.loading);
       try { await request("/api/store/apply", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ name:form.elements.name.value, slug:form.elements.slug.value, description:form.elements.description.value }) }); say(c.submitted); await loadSeller(); }
