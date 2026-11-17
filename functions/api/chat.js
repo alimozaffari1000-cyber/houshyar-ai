@@ -167,7 +167,7 @@ export async function onRequestPost({ request, env }) {
     messages.push({ role: "user", content: latest });
   }
 
-  if (body.compare === true) {
+  if (body.compare === true && !(body.webSearch === true && providerChoice.provider === "google")) {
     let compareTargets;
     if (env.GROQ_API_KEY && env.CLAUDE_API_KEY) {
       compareTargets = [
