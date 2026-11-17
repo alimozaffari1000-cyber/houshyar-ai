@@ -56,6 +56,11 @@ jobs:
               "",
               "Check the Cloudflare Pages deployment and the public `/api/health` endpoint. Do not add credentials or user data to this issue."
             ].join("\\n");
+            try {
+              await github.rest.issues.createLabel({ owner, repo, name: "automated-runtime-alert", color: "D93F0B", description: "Automatically managed Houshyar runtime availability alert" });
+            } catch (error) {
+              if (error.status !== 422) throw error;
+            }
             if (existing) {
               await github.rest.issues.createComment({ owner, repo, issue_number: existing.number, body: "Another failed check was recorded. Workflow run: " + runUrl });
             } else {
