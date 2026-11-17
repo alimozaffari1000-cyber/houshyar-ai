@@ -215,7 +215,8 @@ export async function onRequestPost({ request, env }) {
   try {
     result = await requestModel({
       provider: providerChoice.provider, env, messages, model,
-      signal: controller.signal, maxTokens: 1200, temperature: 0.5
+      signal: controller.signal, maxTokens: 1200, temperature: 0.5,
+      webSearch: body.webSearch === true && providerChoice.provider === "google"
     });
   } catch {
     await releaseQuota();
@@ -232,6 +233,7 @@ export async function onRequestPost({ request, env }) {
     provider: providerChoice.provider,
     model: result.model,
     usage: result.usage,
+    sources: Array.isArray(result.sources) ? result.sources : [],
     agent: { id: selectedAgent.id, label: selectedAgent.label, labelEn: selectedAgent.labelEn }
   });
 }
