@@ -1,6 +1,11 @@
 name: Houshyar Developer Scout
 
 on:
+  pull_request:
+    paths:
+      - "scripts/developer-scout.mjs"
+      - "package.json"
+      - ".github/workflows/developer-scout.yml"
   workflow_dispatch:
   schedule:
     - cron: "13 5 * * 1"
