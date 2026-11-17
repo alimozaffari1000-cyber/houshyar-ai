@@ -1,6 +1,6 @@
 const labels = {
-  fa: { button: "سلامت سامانه", title: "داشبورد سلامت هوش‌یار", loading: "در حال دریافت وضعیت…", close: "بستن", retry: "تلاش دوباره", ready: "آماده", configured: "فعال", notConfigured: "تنظیم نشده", degraded: "نیازمند بررسی", unavailable: "گزارش سلامت در دسترس نیست", auth: "نشست مدیریتی معتبر نیست." },
-  en: { button: "System health", title: "Houshyar health dashboard", loading: "Loading status…", close: "Close", retry: "Retry", ready: "Ready", configured: "Configured", notConfigured: "Not configured", degraded: "Needs attention", unavailable: "Health report unavailable", auth: "Admin session is not valid." }
+  fa: { button: "سلامت سامانه", title: "داشبورد سلامت هوش‌یار", loading: "در حال دریافت وضعیت…", close: "بستن", retry: "تلاش دوباره", ready: "آماده", configured: "فعال", notConfigured: "تنظیم نشده", degraded: "نیازمند بررسی", unavailable: "گزارش سلامت در دسترس نیست", auth: "نشست مدیریتی معتبر نیست.", metrics: "عملکرد ۲۴ ساعت اخیر", requests: "درخواست‌ها", failures: "خطاها", latency: "میانگین تأخیر", metricsDisabled: "ثبت شاخص‌ها هنوز فعال نشده است.", metricsUnavailable: "شاخص‌ها فعلاً در دسترس نیستند." },
+  en: { button: "System health", title: "Houshyar health dashboard", loading: "Loading status…", close: "Close", retry: "Retry", ready: "Ready", configured: "Configured", notConfigured: "Not configured", degraded: "Needs attention", unavailable: "Health report unavailable", auth: "Admin session is not valid.", metrics: "Last 24 hours", requests: "Requests", failures: "Failures", latency: "Average latency", metricsDisabled: "Metrics collection is not enabled.", metricsUnavailable: "Metrics are currently unavailable." }
 };
 const getLabels = () => labels[document.documentElement.lang] || labels.fa;
 const make = (tag, className, value) => {
@@ -40,6 +40,34 @@ function renderChecks(container, report, copy) {
   }
   container.append(make("small", "admin-health-time", new Date(report.timestamp || Date.now()).toLocaleString()));
 }
+async function fetchMetrics() {
+  const response = await fetch("/api/admin/metrics", { credentials: "same-origin", headers: { Accept: "application/json" }, cache: "no-store" });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok && response.status !== 503) throw new Error(data.error || "METRICS_UNAVAILABLE");
+  return data;
+}
+function renderMetrics(container, report, copy) {
+  container.append(make("h3", "admin-metrics-title", copy.metrics));
+  if (report.status === "disabled") {
+    container.append(make("p", "admin-metrics-note", copy.metricsDisabled));
+    return;
+  }
+  if (report.status !== "ready") {
+    container.append(make("p", "admin-metrics-note", copy.metricsUnavailable));
+    return;
+  }
+  const totals = report.totals || {};
+  const summary = make("div", "admin-metrics-summary");
+  summary.append(make("span", "", copy.requests + ": " + (Number(totals.requests) || 0)));
+  summary.append(make("span", "", copy.failures + ": " + (Number(totals.failures) || 0)));
+  container.append(summary);
+  for (const item of Array.isArray(report.providers) ? report.providers : []) {
+    const row = make("div", "admin-health-check");
+    row.append(make("span", "", String(item.provider || "unknown") + " / " + String(item.event || "")));
+    row.append(make("strong", "is-ok", copy.requests + ": " + (Number(item.requests) || 0) + " · " + copy.latency + ": " + (Number(item.avgLatencyMs) || 0) + " ms"));
+    container.append(row);
+  }
+}
 function openPanel() {
   const copy = getLabels();
   const overlay = make("div", "admin-health-overlay");
@@ -61,6 +89,7 @@ function openPanel() {
     try {
       const report = await fetchHealth();
       renderChecks(content, report, copy);
+      try { renderMetrics(content, await fetchMetrics(), copy); } catch { renderMetrics(content, { status: "unavailable" }, copy); }
     } catch {
       content.textContent = copy.unavailable;
     }
