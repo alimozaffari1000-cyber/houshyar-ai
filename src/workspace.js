@@ -96,12 +96,39 @@ export function initWorkspace(app,{getMessages,onLoadConversation,onUsePrompt}){
  panel.innerHTML='<div class="workspace-card" role="dialog" aria-modal="true" aria-labelledby="workspace-heading"><header class="workspace-head"><div><h2 id="workspace-heading">'+t("workspaceTitle")+'</h2><p>'+t("workspaceSubtitle")+'</p></div><button type="button" data-action="close" aria-label="'+t("workspaceClose")+'">✕</button></header><div class="workspace-tabs"><button type="button" data-tab="history">'+t("workspaceHistory")+'</button><button type="button" data-tab="projects">'+t("workspaceProjects")+'</button></div><div class="workspace-credit"><strong>'+t("workspaceQuotaTitle")+'</strong><p>'+t("workspaceQuotaPending")+'</p></div><div class="workspace-notice">'+t("workspaceLocalNotice")+'</div><p class="workspace-feedback" role="status"></p><div class="workspace-content"></div></div>';
  app.append(panel);
  const content=panel.querySelector(".workspace-content"),feedback=panel.querySelector(".workspace-feedback");
+ async function syncCloudWorkspace(button){
+  if(button?.disabled)return;
+  if(button)button.disabled=true;
+  feedback.textContent=t("workspaceCloudSyncing");
+  try{
+   const currentHistory=read(HISTORY_KEY),currentProjects=read(PROJECTS_KEY);
+   const getResponse=await fetch("/api/workspace/sync",{method:"GET",credentials:"same-origin",headers:{Accept:"application/json"}});
+   const remote=await getResponse.json().catch(()=>({}));
+   if(getResponse.status===401){feedback.textContent=t("workspaceCloudSyncUnavailable");return}
+   if(!getResponse.ok||!Number.isSafeInteger(remote.revision)||remote.revision<0||!remote.workspace){feedback.textContent=t("workspaceCloudSyncUnavailable");return}
+   const merged=mergeWorkspaceSync(currentHistory,currentProjects,remote.workspace);
+   if(!merged.ok){feedback.textContent=merged.reason==="capacity"?t("workspaceCloudSyncCapacity"):t("workspaceCloudSyncConflict");return}
+   const putResponse=await fetch("/api/workspace/sync",{method:"PUT",credentials:"same-origin",headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify({revision:remote.revision,workspace:{history:merged.history,projects:merged.projects}})});
+   const saved=await putResponse.json().catch(()=>({}));
+   if(putResponse.status===409){feedback.textContent=t("workspaceCloudSyncConflict");return}
+   if(putResponse.status===413){feedback.textContent=t("workspaceCloudSyncTooLarge");return}
+   if(!putResponse.ok||saved.saved!==true){feedback.textContent=t("workspaceCloudSyncUnavailable");return}
+   if(!write(HISTORY_KEY,merged.history)){feedback.textContent=t("errorGeneric");return}
+   if(!write(PROJECTS_KEY,merged.projects)){
+    write(HISTORY_KEY,currentHistory);write(PROJECTS_KEY,currentProjects);
+    feedback.textContent=t("errorGeneric");return
+   }
+   feedback.textContent=t("workspaceCloudSyncDone");
+   render();
+  }catch{feedback.textContent=t("workspaceCloudSyncUnavailable")}
+  finally{if(button?.isConnected)button.disabled=false}
+ }
  function render(){
   const history=read(HISTORY_KEY),projects=read(PROJECTS_KEY);
   panel.querySelectorAll("[data-tab]").forEach(b=>b.classList.toggle("active",b.dataset.tab===tab));
   if(tab==="history"){
    const editing=history.find(item=>item.id===editingHistoryId);
-   let html='<div class="workspace-toolbar"><button type="button" class="workspace-primary" data-action="save">'+t("workspaceSaveChat")+'</button><label class="workspace-sort-label" for="workspace-history-sort">'+t("workspaceSortLabel")+'</label><select id="workspace-history-sort" class="workspace-history-sort" aria-label="'+t("workspaceSortLabel")+'"><option value="newest"'+(historySortOrder==="newest"?' selected':'')+'>'+t("workspaceSortNewest")+'</option><option value="oldest"'+(historySortOrder==="oldest"?' selected':'')+'>'+t("workspaceSortOldest")+'</option><option value="title"'+(historySortOrder==="title"?' selected':'')+'>'+t("workspaceSortTitle")+'</option></select><button type="button" data-action="select-all-history">'+t("workspaceSelectAll")+'</button><button type="button" data-action="clear-history-selection">'+t("workspaceClearSelection")+'</button><button type="button" data-action="export-backup">'+t("workspaceExportBackup")+'</button><button type="button" data-action="import-backup">'+t("workspaceImportBackup")+'</button><input type="file" accept="application/json,.json" data-backup-file hidden><button type="button" data-action="request-bulk-delete"'+(selectedHistoryIds.size?'':' disabled')+'>'+t("workspaceDeleteSelected")+' ('+selectedHistoryIds.size+')</button></div><input class="workspace-history-search" type="search" aria-label="'+t("workspaceSearchLabel")+'" placeholder="'+t("workspaceSearchPlaceholder")+'" autocomplete="off">';
+   let html='<div class="workspace-toolbar"><button type="button" class="workspace-primary" data-action="save">'+t("workspaceSaveChat")+'</button><button type="button" data-action="cloud-sync">'+t("workspaceCloudSync")+'</button><label class="workspace-sort-label" for="workspace-history-sort">'+t("workspaceSortLabel")+'</label><select id="workspace-history-sort" class="workspace-history-sort" aria-label="'+t("workspaceSortLabel")+'"><option value="newest"'+(historySortOrder==="newest"?' selected':'')+'>'+t("workspaceSortNewest")+'</option><option value="oldest"'+(historySortOrder==="oldest"?' selected':'')+'>'+t("workspaceSortOldest")+'</option><option value="title"'+(historySortOrder==="title"?' selected':'')+'>'+t("workspaceSortTitle")+'</option></select><button type="button" data-action="select-all-history">'+t("workspaceSelectAll")+'</button><button type="button" data-action="clear-history-selection">'+t("workspaceClearSelection")+'</button><button type="button" data-action="export-backup">'+t("workspaceExportBackup")+'</button><button type="button" data-action="import-backup">'+t("workspaceImportBackup")+'</button><input type="file" accept="application/json,.json" data-backup-file hidden><button type="button" data-action="request-bulk-delete"'+(selectedHistoryIds.size?'':' disabled')+'>'+t("workspaceDeleteSelected")+' ('+selectedHistoryIds.size+')</button></div><input class="workspace-history-search" type="search" aria-label="'+t("workspaceSearchLabel")+'" placeholder="'+t("workspaceSearchPlaceholder")+'" autocomplete="off">';
    if(editing)html+='<form class="workspace-history-form"><input name="title" maxlength="120" value="'+esc(editing.title)+'" required><div class="workspace-form-actions"><button class="workspace-primary" type="submit">'+t("workspaceUpdateTitle")+'</button><button type="button" data-action="cancel-history-edit">'+t("workspaceCancelRename")+'</button></div></form>';
    if(confirmBulkDelete&&selectedHistoryIds.size)html+='<div class="workspace-bulk-confirm" role="group"><p>'+t("workspaceBulkDeletePrompt")+' ('+selectedHistoryIds.size+')</p><button type="button" class="workspace-danger" data-action="confirm-bulk-delete">'+t("workspaceConfirmDelete")+'</button><button type="button" data-action="cancel-bulk-delete">'+t("workspaceCancelBulkDelete")+'</button></div>';
    if(!history.length)html+='<p class="workspace-empty">'+t("workspaceNoHistory")+'</p>';
@@ -130,6 +157,7 @@ export function initWorkspace(app,{getMessages,onLoadConversation,onUsePrompt}){
   if(b.dataset.tab){tab=b.dataset.tab;feedback.textContent="";render();return}
   const action=b.dataset.action,id=b.dataset.id;
   if(action==="close"){panel.hidden=true;opener.focus();return}
+  if(action==="cloud-sync"){syncCloudWorkspace(b);return}
   if(action==="export-backup"){const backup=createWorkspaceBackup(read(HISTORY_KEY),read(PROJECTS_KEY));const blob=new Blob([JSON.stringify(backup,null,2)],{type:"application/json"});const url=URL.createObjectURL(blob),link=document.createElement("a");link.href=url;link.download="houshyar-workspace-backup.json";link.click();URL.revokeObjectURL(url);feedback.textContent=t("workspaceBackupExported");return}
   if(action==="import-backup"){content.querySelector("[data-backup-file]")?.click();return}
   if(action==="select-all-history"){content.querySelectorAll("[data-select-history]").forEach(box=>{if(!box.closest("[data-history-item]")?.hidden){box.checked=true;selectedHistoryIds.add(box.dataset.selectHistory)}});const bulk=content.querySelector('[data-action="request-bulk-delete"]');if(bulk){bulk.disabled=!selectedHistoryIds.size;bulk.textContent=t("workspaceDeleteSelected")+" ("+selectedHistoryIds.size+")"}return}
