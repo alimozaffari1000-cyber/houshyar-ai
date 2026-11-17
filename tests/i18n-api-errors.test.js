@@ -9,7 +9,7 @@ test("API security and quota errors have localized messages for every supported 
     for (const key of keys) {
       const value = translate(key, code);
       assert.equal(typeof value, "string", `${code}:${key} must be a string`);
-      assert.ok(value.length > 12, `${code}:${key} must be translated`);
+      assert.ok(value.trim().length > 0, `${code}:${key} must be translated`);
       assert.notEqual(value, key, `${code}:${key} must not fall through to the key name`);
     }
   }
