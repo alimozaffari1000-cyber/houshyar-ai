@@ -92,3 +92,31 @@ test("seller order API requires authentication, ownership and valid state transi
   assert.match(source, /changes\(\) = 1/);
   assert.match(source, /stock_count = stock_count \+/);
 });
+
+test("order creation and seller status changes create recipient-scoped notifications", async () => {
+  const create = await readFile(new URL("../functions/api/orders.js", import.meta.url), "utf8");
+  const update = await readFile(new URL("../functions/api/store/orders.js", import.meta.url), "utf8");
+  assert.match(create, /INSERT INTO user_notifications/);
+  assert.match(create, /s\.user_id/);
+  assert.match(update, /INSERT INTO user_notifications/);
+  assert.match(update, /buyer_user_id/);
+  assert.match(update, /changes\(\) = 1/);
+});
+
+test("notification API enforces authentication, origin and UUID-bounded read requests", async () => {
+  const api = await readFile(new URL("../functions/api/notifications.js", import.meta.url), "utf8");
+  assert.match(api, /getSessionUser/);
+  assert.match(api, /originAllowed/);
+  assert.match(api, /recipient_user_id = \?/);
+  assert.match(api, /ids.length > 50/);
+  assert.match(api, /uuidPattern/);
+  assert.match(api, /read_at IS NULL/);
+});
+
+test("notification migration scopes inbox rows to users and indexes unread ordering", async () => {
+  const sql = await readFile(new URL("../migrations/0008_user_notifications.sql", import.meta.url), "utf8");
+  assert.match(sql, /REFERENCES users\(id\) ON DELETE CASCADE/);
+  assert.match(sql, /recipient_user_id, read_at, created_at DESC/);
+  assert.match(sql, /marketplace_order_received/);
+  assert.match(sql, /marketplace_order_status/);
+});
