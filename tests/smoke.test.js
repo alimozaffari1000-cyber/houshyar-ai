@@ -111,3 +111,12 @@ test('adaptive mode and explicit response feedback are connected to the chat UI'
  assert.match(ui,/recordLearningFeedback/);
  assert.match(ui,/Helpful/);
 });
+
+
+test('mobile chat controls use a bounded responsive layout without fixed-width overflow', async () => {
+ const css=await readFile(new URL('../src/style.css',import.meta.url),'utf8');
+ assert.match(css,/@media\(max-width:560px\)\{\s*\.mode-control\{/);
+ assert.match(css,/grid-template-columns:minmax\(0,1fr\) minmax\(0,1\.35fr\)/);
+ assert.match(css,/\.mode-control>select,[\s\S]*?min-width:0/);
+ assert.match(css,/@media\(max-width:380px\)/);
+});
