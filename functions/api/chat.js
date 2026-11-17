@@ -128,7 +128,7 @@ export async function onRequestPost({ request, env }) {
           return json({ error: "FEATURE_NOT_AVAILABLE", feature: "modelCompare", plan: entitlement.plan.code, message: "این قابلیت در پلن فعلی فعال نیست." }, 403);
         }
       }
-      const quotaLimit = entitlement?.plan?.dailyChatLimit ?? env.FREE_DAILY_CHAT_LIMIT;
+      const quotaLimit = entitlement ? entitlement.plan.dailyChatLimit : env.FREE_DAILY_CHAT_LIMIT;
       quotaReservation = await reserveDailyChat({ db: env.DB, userId: quotaUserId, limit: quotaLimit });
       quotaUsageDate = quotaReservation.usageDate;
       if (!quotaReservation.allowed) {
