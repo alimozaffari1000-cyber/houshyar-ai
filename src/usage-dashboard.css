@@ -1,0 +1,8 @@
+.account-usage-open{width:100%;margin:12px 0 0;padding:10px;border:1px solid rgba(110,231,196,.3);border-radius:10px;background:rgba(110,231,196,.07);color:#a9f2dc;font:12px Vazirmatn;cursor:pointer}
+.usage-dashboard{margin-top:12px;padding:14px;border:1px solid rgba(145,180,218,.18);border-radius:13px;background:#0d1b2c;color:#dce8f7;font-size:11px;line-height:1.8}
+.usage-dashboard[hidden]{display:none}.usage-period{margin:0 0 9px;color:#9aacc5}
+.usage-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+.usage-metrics>div{min-width:0;padding:9px;border:1px solid rgba(145,180,218,.14);border-radius:9px;background:rgba(255,255,255,.025)}
+.usage-metrics small,.usage-metrics strong{display:block}.usage-metrics small{color:#91a6bf;font-size:9px}.usage-metrics strong{margin-top:4px;color:#83efd1;font-size:13px;overflow-wrap:anywhere}
+.usage-dashboard h4{margin:13px 0 5px;color:#dce8f7;font-size:11px}
+.usage-list{list-style:none;margin:0;padding:0}.usage-list li{display:flex;justify-content:space-between;gap:10px;padding:7px 2px;border-bottom:1px solid rgba(145,180,218,.1)}.usage-list li:last-child{border-bottom:0}.usage-list b,.usage-list span{overflow-wrap:anywhere}.usage-list small{display:block;color:#8da2bb;font-size:9px}.usage-recent li{align-items:center}.usage-warning{padding:8px;border-radius:8px;background:rgba(255,190,90,.08);color:#f2c98b}
