@@ -30,6 +30,35 @@ test("rejects excessive decoded pixel dimensions and closes bitmap", async () =>
   assert.equal(closed, true);
 });
 
+test("rejects non-finite file sizes and malformed decoded dimensions", async () => {
+  let decodeCalls = 0;
+  let closed = 0;
+  for (const size of [Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY]) {
+    const result = await validateVisualImage(file({ size }), async () => {
+      decodeCalls += 1;
+      return { width: 1, height: 1 };
+    });
+    assert.deepEqual(result, { valid: false, reason: "unsupported" });
+  }
+  assert.equal(decodeCalls, 0);
+
+  const invalidDimensions = [
+    { width: 0, height: 1 },
+    { width: -1, height: 1 },
+    { width: 1.5, height: 1 },
+    { width: Number.NaN, height: 1 },
+    { width: 1, height: Number.POSITIVE_INFINITY }
+  ];
+  for (const dimensions of invalidDimensions) {
+    const result = await validateVisualImage(file(), async () => ({
+      ...dimensions,
+      close() { closed += 1; }
+    }));
+    assert.deepEqual(result, { valid: false, reason: "dimensions" });
+  }
+  assert.equal(closed, invalidDimensions.length);
+});
+
 test("rejects corrupt images and missing browser decoder safely", async () => {
   assert.deepEqual(await validateVisualImage(file(), async () => { throw new Error("bad image"); }), { valid: false, reason: "decode_failed" });
   assert.deepEqual(await validateVisualImage(file(), null), { valid: false, reason: "decoder_unavailable" });
