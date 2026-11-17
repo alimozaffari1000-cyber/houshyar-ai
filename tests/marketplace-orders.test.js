@@ -84,7 +84,7 @@ test("order idempotency lookup precedes product reads and recovers unique-key ra
   assert.ok(keyLookup >= 0 && productLookup > keyLookup);
   assert.match(source, /UNIQUE|constraint/i);
   assert.match(source, /existing: true/);
-  assert.match(source, /idempotencyKey && \/UNIQUE\|constraint\/i);
+  assert.ok(source.includes("idempotencyKey && /UNIQUE|constraint/i"));
 });
 
 test("order API derives prices from database and guards stock and price in its write", async () => {
