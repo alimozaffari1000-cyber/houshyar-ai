@@ -29,6 +29,7 @@ export function initMarketplace(app, { locale = "fa" } = {}) {
   const checkoutForm = overlay.querySelector("[data-market-checkout]");
   const cart = new Map();
   const catalogProducts = new Map();
+  let checkoutKey = crypto.randomUUID();
   let offset = 0, query = "", stateLocation = null, loadingCatalog = false;
   const say = message => { status.textContent = message || ""; };
   const request = async (url, options = {}) => {
@@ -205,9 +206,9 @@ export function initMarketplace(app, { locale = "fa" } = {}) {
           contactPhone:form.elements.contactPhone.value,
           deliveryAddress:form.elements.deliveryAddress.value,
           buyerNote:form.elements.buyerNote.value,
-          idempotencyKey:crypto.randomUUID()
+          idempotencyKey:checkoutKey
         }) });
-        cart.clear(); renderCart(); form.reset(); renderCart();
+        cart.clear(); renderCart(); form.reset(); checkoutKey = crypto.randomUUID(); renderCart();
         say(c.orderCreated + data.order.orderNumber);
       } catch (error) {
         if (error.status === 401) say(c.login);
