@@ -1,17 +1,20 @@
 const CLAUDE_DEFAULT_MODEL = "claude-sonnet-5-5";
+const GEMINI_DEFAULT_MODEL = "gemini-2.5-flash";
 
 export function listAvailableProviders(env = {}) {
   return [
     { id: "groq", available: Boolean(env.GROQ_API_KEY), defaultModel: env.GROQ_MODEL || "llama-3.3-70b-versatile" },
-    { id: "anthropic", available: Boolean(env.CLAUDE_API_KEY), defaultModel: env.CLAUDE_MODEL || CLAUDE_DEFAULT_MODEL }
+    { id: "anthropic", available: Boolean(env.CLAUDE_API_KEY), defaultModel: env.CLAUDE_MODEL || CLAUDE_DEFAULT_MODEL },
+    { id: "google", available: Boolean(env.GEMINI_API_KEY), defaultModel: env.GEMINI_MODEL || GEMINI_DEFAULT_MODEL }
   ];
 }
 
 export function resolveProvider(env = {}, requested = "auto", mode = "balanced") {
   const available = listAvailableProviders(env);
-  const requestedId = ["groq", "anthropic"].includes(requested) ? requested : "auto";
+  const requestedId = ["groq", "anthropic", "google"].includes(requested) ? requested : "auto";
+  const configuredDefault = ["groq", "anthropic", "google"].includes(env.AI_DEFAULT_PROVIDER) ? env.AI_DEFAULT_PROVIDER : null;
   const selected = requestedId === "auto"
-    ? (mode === "deep" && env.CLAUDE_API_KEY ? "anthropic" : (["groq", "anthropic"].includes(env.AI_DEFAULT_PROVIDER) ? env.AI_DEFAULT_PROVIDER : (env.GROQ_API_KEY ? "groq" : "anthropic")))
+    ? (mode === "deep" && env.CLAUDE_API_KEY ? "anthropic" : (configuredDefault || (env.GROQ_API_KEY ? "groq" : (env.CLAUDE_API_KEY ? "anthropic" : "google"))))
     : requestedId;
   const provider = available.find(item => item.id === selected);
   if (!provider?.available) return { error: "PROVIDER_NOT_CONFIGURED", provider: selected };
@@ -19,6 +22,43 @@ export function resolveProvider(env = {}, requested = "auto", mode = "balanced")
 }
 
 export async function requestModel({ provider, env, messages, model, signal, maxTokens = 1200, temperature = 0.5 }) {
+  if (provider === "google") {
+    if (!env.GEMINI_API_KEY) throw new Error("provider_not_configured");
+    const selectedModel = model || env.GEMINI_MODEL || GEMINI_DEFAULT_MODEL;
+    const system = messages.filter(item => item.role === "system").map(item => item.content).join("\n\n");
+    const contents = messages.filter(item => item.role !== "system" && ["user", "assistant"].includes(item.role)).map(item => ({
+      role: item.role === "assistant" ? "model" : "user",
+      parts: [{ text: item.content }]
+    }));
+    if (!contents.length) throw new Error("provider_empty_prompt");
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(selectedModel)}:generateContent`, {
+      method: "POST",
+      headers: { "x-goog-api-key": env.GEMINI_API_KEY, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ...(system ? { systemInstruction: { parts: [{ text: system }] } } : {}),
+        contents,
+        generationConfig: { maxOutputTokens: maxTokens, temperature }
+      }),
+      signal
+    });
+    if (!response.ok) throw new Error("provider_request_failed");
+    const data = await response.json();
+    const reply = Array.isArray(data?.candidates?.[0]?.content?.parts)
+      ? data.candidates[0].content.parts.filter(part => typeof part?.text === "string").map(part => part.text).join("\n").trim()
+      : "";
+    if (!reply) throw new Error("provider_empty_reply");
+    const usage = data.usageMetadata;
+    return {
+      reply,
+      model: data.modelVersion || selectedModel,
+      usage: usage ? {
+        promptTokens: usage.promptTokenCount || 0,
+        completionTokens: usage.candidatesTokenCount || 0,
+        totalTokens: usage.totalTokenCount || ((usage.promptTokenCount || 0) + (usage.candidatesTokenCount || 0))
+      } : null
+    };
+  }
+
   if (provider === "anthropic") {
     if (!env.CLAUDE_API_KEY) throw new Error("provider_not_configured");
     const system = messages.filter(item => item.role === "system").map(item => item.content).join("\n\n");
