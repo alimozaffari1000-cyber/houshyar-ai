@@ -20,14 +20,18 @@ jobs:
         with:
           node-version: 24
       - name: Install dependencies
+        id: install
         run: npm install --ignore-scripts --no-audit
       - name: Scan tracked files for common secret patterns
         run: npm run security:scan
       - name: Audit dependency vulnerabilities
+        id: audit
         run: npm audit --audit-level=high
       - name: Run project tests
+        if: always() && steps.install.outcome == 'success'
         run: npm run qa
       - name: Verify production build
+        if: always() && steps.install.outcome == 'success'
         run: npm run build
       - name: Report security failure
         if: failure() && github.event_name != 'pull_request'
