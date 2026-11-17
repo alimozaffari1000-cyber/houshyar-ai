@@ -58,7 +58,7 @@ async function readJsonLimited(request) {
 }
 
 export async function onRequestPost({ request, env }) {
-  if (!env.GROQ_API_KEY && !env.CLAUDE_API_KEY) return json({ error: "AI_NOT_CONFIGURED", message: "هیچ ارائه‌دهنده هوش مصنوعی پیکربندی نشده است." }, 503);
+  if (!env.GROQ_API_KEY && !env.CLAUDE_API_KEY && !env.GEMINI_API_KEY) return json({ error: "AI_NOT_CONFIGURED", message: "هیچ ارائه‌دهنده هوش مصنوعی پیکربندی نشده است." }, 503);
   const contentType = (request.headers.get("content-type") || "").split(";", 1)[0].trim().toLowerCase();
   if (contentType !== "application/json") {
     return json({ error: "UNSUPPORTED_MEDIA_TYPE", message: "نوع محتوای درخواست باید JSON باشد." }, 415);
@@ -146,7 +146,7 @@ export async function onRequestPost({ request, env }) {
   }
 
   const requestedMode = ["fast", "balanced", "deep", "creative"].includes(body.mode) ? body.mode : "balanced";
-  const requestedProvider = ["auto", "groq", "anthropic"].includes(body.provider) ? body.provider : "auto";
+  const requestedProvider = ["auto", "groq", "anthropic", "google"].includes(body.provider) ? body.provider : "auto";
   const providerChoice = resolveProvider(env, requestedProvider, requestedMode);
   if (providerChoice.error) {
     await releaseQuota();
@@ -155,7 +155,9 @@ export async function onRequestPost({ request, env }) {
   const groqModelByMode = { fast: env.GROQ_MODEL_FAST, balanced: env.GROQ_MODEL, deep: env.GROQ_MODEL_DEEP, creative: env.GROQ_MODEL_CREATIVE };
   const model = providerChoice.provider === "anthropic"
     ? (env.CLAUDE_MODEL || providerChoice.model)
-    : (groqModelByMode[requestedMode] || providerChoice.model);
+    : providerChoice.provider === "google"
+      ? (env.GEMINI_MODEL || providerChoice.model)
+      : (groqModelByMode[requestedMode] || providerChoice.model);
   const selectedAgent = routeAgentRequest(latest);
   const messages = [
     { role: "system", content: "تو هوش‌یار، یک دستیار چندمنظوره و چندزبانه دقیق و کاربردی هستی. پاسخ را به زبان کاربر، روشن و مرحله‌ای ارائه کن. اطلاعات نامطمئن را قطعی جلوه نده. برای موضوعات پزشکی، مالی و حقوقی محدودیت‌ها و ریسک‌ها را روشن کن. هرگز ادعا نکن جستجوی زنده، اقدام بیرونی، اجرای کد یا دسترسی به ابزار انجام داده‌ای مگر واقعاً انجام شده باشد.\n\nنقش تخصصی این درخواست: " + selectedAgent.instruction },
