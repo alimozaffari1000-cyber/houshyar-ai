@@ -18,14 +18,14 @@ export function initMarketplace(app, { locale = "fa" } = {}) {
     '<header class="marketplace-head"><div><h2 id="marketplace-title">' + c.title + '</h2><p>' + c.subtitle + '</p></div><button type="button" data-market-close aria-label="' + c.close + '">×</button></header>' +
     '<nav class="marketplace-tabs" aria-label="' + c.title + '"><button type="button" data-market-tab="browse" class="active">' + c.browse + '</button><button type="button" data-market-tab="seller">' + c.seller + '</button></nav>' +
     '<div class="marketplace-status" role="status" aria-live="polite"></div>' +
-    '<section data-market-view="browse"><form class="marketplace-search"><input name="q" maxlength="80" placeholder="' + c.search + '" aria-label="' + c.search + '"><button type="submit">' + c.find + '</button></form><div class="marketplace-products" aria-live="polite"></div><button type="button" class="marketplace-more" hidden>' + c.more + '</button></section>' +
+    '<section data-market-view="browse"><form class="marketplace-search"><input name="q" maxlength="80" placeholder="' + c.search + '" aria-label="' + c.search + '"><input name="city" maxlength="80" placeholder="' + (locale === "fa" ? "نام شهر" : "City") + '"><select name="mode" aria-label="' + (locale === "fa" ? "روش دریافت" : "Fulfillment") + '"><option value="">' + (locale === "fa" ? "همه روش‌ها" : "Any option") + '</option><option value="delivery">' + (locale === "fa" ? "ارسال به منزل" : "Home delivery") + '</option><option value="pickup">' + (locale === "fa" ? "تحویل حضوری" : "Pickup") + '</option></select><button type="submit">' + c.find + '</button><button type="button" data-nearby>' + (locale === "fa" ? "نزدیک من" : "Near me") + '</button></form><div class="marketplace-products" aria-live="polite"></div><button type="button" class="marketplace-more" hidden>' + c.more + '</button></section>' +
     '<section data-market-view="seller" hidden><div class="marketplace-seller-content"></div></section><p class="marketplace-note">' + c.note + '</p></div>';
   app.append(overlay);
   const status = overlay.querySelector(".marketplace-status");
   const productsNode = overlay.querySelector(".marketplace-products");
   const sellerNode = overlay.querySelector(".marketplace-seller-content");
   const more = overlay.querySelector(".marketplace-more");
-  let offset = 0, query = "";
+  let offset = 0, query = "", stateLocation = null;
   const say = message => { status.textContent = message || ""; };
   const request = async (url, options = {}) => {
     const response = await fetch(url, { credentials:"same-origin", cache:"no-store", ...options });
@@ -46,13 +46,17 @@ export function initMarketplace(app, { locale = "fa" } = {}) {
     if (reset) { offset = 0; productsNode.innerHTML = ""; }
     say(c.loading); more.hidden = true;
     try {
-      const params = new URLSearchParams({ limit:"12", offset:String(offset) });
+      const params = new URLSearchParams({ limit:"30" });
       if (query) params.set("q", query);
-      const data = await request("/api/store/products?" + params.toString());
-      productsNode.insertAdjacentHTML("beforeend", (data.products || []).map(productCard).join(""));
-      offset += (data.products || []).length;
-      more.hidden = data.hasMore !== true;
-      say((data.products || []).length || offset ? "" : c.empty);
+      const city = overlay.querySelector('[name="city"]').value.trim();
+      const mode = overlay.querySelector('[name="mode"]').value;
+      if (city) params.set("city", city);
+      if (mode) params.set("mode", mode);
+      if (stateLocation) { params.set("lat", String(stateLocation.latitude)); params.set("lon", String(stateLocation.longitude)); }
+      const data = await request("/api/stores?" + params.toString());
+      productsNode.innerHTML = (data.products || []).map(productCard).join("");
+      more.hidden = true;
+      say((data.products || []).length ? "" : c.empty);
     } catch (error) { say(error.status === 503 ? c.catalogUnavailable : c.requestFailed); }
   }
   function renderApplication() {
@@ -101,7 +105,16 @@ export function initMarketplace(app, { locale = "fa" } = {}) {
     catch { say(c.requestFailed); button.disabled = false; }
   }
   overlay.querySelectorAll("[data-market-tab]").forEach(button => button.addEventListener("click", () => showTab(button.dataset.marketTab)));
-  overlay.querySelector(".marketplace-search").addEventListener("submit", event => { event.preventDefault(); query = event.currentTarget.elements.q.value.trim(); loadCatalog(true); });
+  overlay.querySelector(".marketplace-search").addEventListener("submit", event => { event.preventDefault(); query = event.currentTarget.elements.q.value.trim(); stateLocation = null; loadCatalog(true); });
+  overlay.querySelector("[data-nearby]").addEventListener("click", () => {
+    if (!navigator.geolocation) { say(locale === "fa" ? "مکان‌یابی در دسترس نیست." : "Geolocation is unavailable."); return; }
+    say(c.loading);
+    navigator.geolocation.getCurrentPosition(position => {
+      stateLocation = { latitude: position.coords.latitude, longitude: position.coords.longitude };
+      loadCatalog(true);
+    }, () => say(locale === "fa" ? "مکان‌یابی انجام نشد یا اجازه داده نشد." : "Location permission denied or unavailable."),
+    { enableHighAccuracy:false, timeout:10000, maximumAge:300000 });
+  });
   more.addEventListener("click", () => loadCatalog(false));
   overlay.addEventListener("submit", async event => {
     const form = event.target;
