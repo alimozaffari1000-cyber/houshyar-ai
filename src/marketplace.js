@@ -42,7 +42,7 @@ export function initMarketplace(app, { locale = "fa" } = {}) {
   const productCard = product => {
     const distance = Number.isFinite(product.distanceKm) ? '<small>' + (locale === "fa" ? "فاصله: " : "Distance: ") + money(product.distanceKm, locale) + ' km</small>' : "";
     const fulfillment = [product.offersDelivery ? (locale === "fa" ? "ارسال دارد" : "Delivery") : "", product.offersPickup ? (locale === "fa" ? "تحویل حضوری" : "Pickup") : ""].filter(Boolean).join(" · ");
-    const orderUrl = typeof product.orderUrl === "string" && product.orderUrl.startsWith("https://") ? '<a href="' + escape(product.orderUrl) + '" target="_blank" rel="noopener noreferrer">' + (locale === "fa" ? "سفارش آنلاین" : "Order online") + '</a>' : "";
+    const orderUrl = typeof product.orderUrl === "string" && /^https:\/\//i.test(product.orderUrl) ? '<a href="' + escape(product.orderUrl) + '" target="_blank" rel="noopener noreferrer">' + (locale === "fa" ? "سفارش آنلاین" : "Order online") + '</a>' : "";
     const phone = typeof product.contactPhone === "string" && /^[+0-9() .-]{6,30}$/.test(product.contactPhone) ? '<a href="tel:' + escape(product.contactPhone) + '">' + (locale === "fa" ? "تماس" : "Call") + '</a>' : "";
     return '<article class="marketplace-product"><div class="marketplace-product-art" aria-hidden="true">✧</div><div class="marketplace-product-info">' +
       '<span class="marketplace-category">' + escape(product.category) + '</span><h3>' + escape(product.title) + '</h3><p>' + escape(product.description || "") + '</p><strong>' +
