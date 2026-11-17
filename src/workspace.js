@@ -14,6 +14,13 @@ export function isDuplicateWorkspaceConversation(history,messages){
  if(!snapshot.length)return false;
  return normalizeWorkspaceHistory(history).some(item=>item.messages.length===snapshot.length&&item.messages.every((m,index)=>m.role===snapshot[index].role&&m.text===snapshot[index].text));
 }
+export function renameWorkspaceConversation(history,id,title){
+ const nextTitle=String(title??"").trim().slice(0,120);
+ if(!id||!nextTitle||!Array.isArray(history))return null;
+ const normalized=normalizeWorkspaceHistory(history);
+ if(!normalized.some(item=>item.id===id))return null;
+ return normalized.map(item=>item.id===id?{...item,title:nextTitle}:item);
+}
 export function isDuplicateWorkspaceProject(projects,title,prompt,excludeId=""){
  const normalizedTitle=String(title??"").trim().toLocaleLowerCase();
  const normalizedPrompt=String(prompt??"").trim();
@@ -47,7 +54,7 @@ export function initWorkspace(app,{getMessages,onLoadConversation,onUsePrompt}){
    history.forEach(item=>{const date=formatDate(item.createdAt,{dateStyle:"medium",timeStyle:"short"});const first=(item.messages||[]).find(m=>m.role==="user");html+='<article class="workspace-item"><div><strong>'+esc(item.title)+'</strong><small>'+date+' · '+(item.messages||[]).length+'</small><p>'+esc(first?.text||"")+'</p></div><div class="workspace-item-actions"><button type="button" data-action="open-chat" data-id="'+esc(item.id)+'">'+t("workspaceOpenChat")+'</button><button type="button" data-action="edit-history" data-id="'+esc(item.id)+'">'+t("workspaceRename")+'</button><button type="button" data-action="delete-history" data-id="'+esc(item.id)+'">'+t("workspaceDelete")+'</button></div></article>'});
    content.innerHTML=html;
    const historyForm=content.querySelector(".workspace-history-form");
-   historyForm?.addEventListener("submit",event=>{event.preventDefault();const title=event.currentTarget.elements.title.value.trim();if(!title){feedback.textContent=t("workspaceTitleRequired");return}const saved=read(HISTORY_KEY),current=saved.find(item=>item.id===editingHistoryId);if(!current){editingHistoryId="";render();return}const next=saved.map(item=>item.id===editingHistoryId?{...item,title:title.slice(0,120)}:item);if(!write(HISTORY_KEY,next)){feedback.textContent=t("errorGeneric");return}editingHistoryId="";feedback.textContent=t("workspaceConversationRenamed");render()});
+   historyForm?.addEventListener("submit",event=>{event.preventDefault();const title=event.currentTarget.elements.title.value.trim();if(!title){feedback.textContent=t("workspaceTitleRequired");return}const saved=read(HISTORY_KEY),current=saved.find(item=>item.id===editingHistoryId);if(!current){editingHistoryId="";render();return}const next=renameWorkspaceConversation(saved,editingHistoryId,title);if(!next||!write(HISTORY_KEY,next)){feedback.textContent=t("errorGeneric");return}editingHistoryId="";feedback.textContent=t("workspaceConversationRenamed");render()});
   }else{
    const editing=projects.find(item=>item.id===editingProjectId);
    let html='<form class="workspace-project-form"><input name="title" maxlength="80" placeholder="'+t("workspaceProjectName")+'" value="'+esc(editing?.title||"")+'" required><textarea name="prompt" maxlength="5000" rows="3" placeholder="'+t("workspaceProjectPrompt")+'">'+esc(editing?.prompt||"")+'</textarea><div class="workspace-form-actions"><button class="workspace-primary" type="submit">'+t(editing?"workspaceUpdateProject":"workspaceAddProject")+'</button>'+(editing?'<button type="button" data-action="cancel-edit">'+t("workspaceCancelEdit")+'</button>':'')+'</div></form>';
