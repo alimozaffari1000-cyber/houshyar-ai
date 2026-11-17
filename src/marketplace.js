@@ -25,6 +25,10 @@ export function initMarketplace(app, { locale = "fa" } = {}) {
   const productsNode = overlay.querySelector(".marketplace-products");
   const sellerNode = overlay.querySelector(".marketplace-seller-content");
   const more = overlay.querySelector(".marketplace-more");
+  const cartNode = overlay.querySelector("[data-cart-items]");
+  const checkoutForm = overlay.querySelector("[data-market-checkout]");
+  const cart = new Map();
+  const catalogProducts = new Map();
   let offset = 0, query = "", stateLocation = null, loadingCatalog = false;
   const say = message => { status.textContent = message || ""; };
   const request = async (url, options = {}) => {
@@ -46,8 +50,16 @@ export function initMarketplace(app, { locale = "fa" } = {}) {
     const phone = typeof product.contactPhone === "string" && /^[+0-9() .-]{6,30}$/.test(product.contactPhone) ? '<a href="tel:' + escape(product.contactPhone) + '">' + (locale === "fa" ? "تماس" : "Call") + '</a>' : "";
     return '<article class="marketplace-product"><div class="marketplace-product-art" aria-hidden="true">✧</div><div class="marketplace-product-info">' +
       '<span class="marketplace-category">' + escape(product.category) + '</span><h3>' + escape(product.title) + '</h3><p>' + escape(product.description || "") + '</p><strong>' +
-      money(product.priceMinor, locale) + ' ' + escape(product.currency || c.currency) + '</strong><small>' + c.store + ': ' + escape(product.storeName || "") + '</small><small>' + escape([product.city, product.region].filter(Boolean).join(" · ")) + '</small><small>' + escape(fulfillment) + '</small>' + distance + '<div>' + orderUrl + ' ' + phone + '</div></div></article>';
+      money(product.priceMinor, locale) + ' ' + escape(product.currency || c.currency) + '</strong><small>' + c.store + ': ' + escape(product.storeName || "") + '</small><small>' + escape([product.city, product.region].filter(Boolean).join(" · ")) + '</small><small>' + escape(fulfillment) + '</small>' + distance + '<div>' + orderUrl + ' ' + phone + '</div><button type="button" data-cart-add="' + escape(product.id) + '">' + c.addCart + '</button></div></article>';
   };
+  function renderCart() {
+    if (!cart.size) { cartNode.innerHTML = "<p>" + c.emptyCart + "</p>"; checkoutForm.hidden = true; return; }
+    cartNode.innerHTML = [...cart.values()].map(item => '<div class="marketplace-cart-row"><span>' + escape(item.title) + " × " + item.quantity + '</span><strong>' + money(item.priceMinor * item.quantity, locale) + " " + escape(item.currency) + '</strong><button type="button" data-cart-remove="' + escape(item.id) + '">' + c.remove + "</button></div>").join("");
+    checkoutForm.hidden = false;
+    const delivery = checkoutForm.elements.fulfillment.value === "delivery";
+    checkoutForm.querySelector("[data-delivery-address]").hidden = !delivery;
+    checkoutForm.elements.deliveryAddress.required = delivery;
+  }
   async function loadCatalog(reset = false) {
     if (loadingCatalog) return;
     if (reset) { offset = 0; productsNode.innerHTML = ""; }
@@ -63,6 +75,7 @@ export function initMarketplace(app, { locale = "fa" } = {}) {
       if (stateLocation) { params.set("lat", String(stateLocation.latitude)); params.set("lon", String(stateLocation.longitude)); }
       const data = await request("/api/stores?" + params.toString());
       const products = Array.isArray(data.products) ? data.products : [];
+      products.forEach(product => catalogProducts.set(product.id, product));
       productsNode.insertAdjacentHTML("beforeend", products.map(productCard).join(""));
       offset += products.length;
       more.hidden = products.length < 30;
