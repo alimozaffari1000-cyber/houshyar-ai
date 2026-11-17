@@ -1,6 +1,6 @@
 const labels = {
-  fa: { button: "سلامت سامانه", title: "داشبورد سلامت هوش‌یار", loading: "در حال دریافت وضعیت…", close: "بستن", retry: "تلاش دوباره", ready: "آماده", degraded: "نیازمند بررسی", unavailable: "گزارش سلامت در دسترس نیست", auth: "نشست مدیریتی معتبر نیست." },
-  en: { button: "System health", title: "Houshyar health dashboard", loading: "Loading status…", close: "Close", retry: "Retry", ready: "Ready", degraded: "Needs attention", unavailable: "Health report unavailable", auth: "Admin session is not valid." }
+  fa: { button: "سلامت سامانه", title: "داشبورد سلامت هوش‌یار", loading: "در حال دریافت وضعیت…", close: "بستن", retry: "تلاش دوباره", ready: "آماده", configured: "فعال", notConfigured: "تنظیم نشده", degraded: "نیازمند بررسی", unavailable: "گزارش سلامت در دسترس نیست", auth: "نشست مدیریتی معتبر نیست." },
+  en: { button: "System health", title: "Houshyar health dashboard", loading: "Loading status…", close: "Close", retry: "Retry", ready: "Ready", configured: "Configured", notConfigured: "Not configured", degraded: "Needs attention", unavailable: "Health report unavailable", auth: "Admin session is not valid." }
 };
 const getLabels = () => labels[document.documentElement.lang] || labels.fa;
 const make = (tag, className, value) => {
@@ -17,13 +17,25 @@ async function fetchHealth() {
 }
 function renderChecks(container, report, copy) {
   container.replaceChildren();
-  const heading = make("h3", "", report.status === "ready" ? copy.ready : copy.degraded);
-  container.append(heading);
+  container.append(make("h3", "", report.status === "ready" ? copy.ready : copy.degraded));
   const checks = report.checks && typeof report.checks === "object" ? report.checks : {};
+  const rows = [];
   for (const [name, value] of Object.entries(checks)) {
+    if (!value || typeof value !== "object") continue;
+    const status = typeof value.status === "string" ? value.status : (value.ready === true ? "ready" : "unavailable");
+    rows.push([name, status]);
+    if (value.providers && typeof value.providers === "object") {
+      for (const [provider, enabled] of Object.entries(value.providers)) {
+        rows.push([name + " / " + provider, enabled === true ? "configured" : "not_configured"]);
+      }
+    }
+  }
+  for (const [name, status] of rows) {
+    const ok = ["ready", "configured"].includes(status);
     const row = make("div", "admin-health-check");
     row.append(make("span", "", name.replaceAll("_", " ")));
-    row.append(make("strong", value === true ? "is-ok" : "is-warning", value === true ? copy.ready : copy.degraded));
+    const label = status === "ready" ? copy.ready : status === "configured" ? copy.configured : status === "not_configured" ? copy.notConfigured : copy.degraded;
+    row.append(make("strong", ok ? "is-ok" : "is-warning", label));
     container.append(row);
   }
   container.append(make("small", "admin-health-time", new Date(report.timestamp || Date.now()).toLocaleString()));
