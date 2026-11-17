@@ -149,3 +149,14 @@ test("approved seller creates a draft product with integer pricing", async () =>
   assert.ok(insertedValues.includes(1250000));
   assert.ok(insertedValues.includes("IRR"));
 });
+
+
+test("seller product creation rejects unsupported currency codes", async () => {
+  const db = authenticatedDb({ store: { id: "store-1", status: "active" } });
+  const response = await onRequestPost({
+    request: req("https://example.test/api/store/products", { title: "Cotton Shirt", category: "fashion", priceMinor: 1250, currency: "XYZ" }, "https://example.test", "houshyar_session=valid-session"),
+    env: { DB: db }
+  });
+  assert.equal(response.status, 400);
+  assert.equal((await response.json()).error, "UNSUPPORTED_CURRENCY");
+});
