@@ -177,3 +177,12 @@ test('workspace dialog restores focus, traps keyboard navigation, and closes on 
  assert.match(js,/!event\.shiftKey&&document\.activeElement===last/);
  assert.match(js,/if\(event\.target===panel\)\{panel\.hidden=true;opener\.focus\(\)\}/);
 });
+
+
+test('workspace detects identical saved conversations and allows changed transcripts', async () => {
+ const { isDuplicateWorkspaceConversation } = await import('../src/workspace.js');
+ const history = [{ id: 'one', title: 'Chat', createdAt: '2026-01-01T00:00:00.000Z', messages: [{ role: 'user', text: 'hello' }, { role: 'assistant', text: 'hi' }] }];
+ assert.equal(isDuplicateWorkspaceConversation(history, [{ role: 'user', text: 'hello' }, { role: 'assistant', text: 'hi' }]), true);
+ assert.equal(isDuplicateWorkspaceConversation(history, [{ role: 'user', text: 'hello' }, { role: 'assistant', text: 'different' }]), false);
+ assert.equal(isDuplicateWorkspaceConversation(history, []), false);
+});
