@@ -97,3 +97,20 @@ Collection is **opt-in**. It requires the Pages D1 binding `DB`, the migration t
 The admin-only endpoint `GET /api/admin/metrics` returns 24-hour aggregates after checking the same active session and server-side admin role. The admin dashboard displays provider request counts, failures, and average latency. Until the migration and opt-in setting are configured, it explicitly reports metrics as disabled; it never fabricates data. The endpoint does not return individual request rows.
 
 Apply the migration to the configured D1 database using the project's Wrangler D1 migration process. Do not enable collection in production until the D1 binding, backup/restore process, retention policy, and administrator access have been reviewed.
+
+### Human-approved repair advisor
+
+`scripts/repair-advisor.mjs` converts a JSON list of allowlisted diagnostic finding codes into a bounded repair plan. It recognizes build/test failures, security advisories, health endpoint failures, provider outages, pending database schemas, and latency regressions. Unknown codes and free-form diagnostic details are discarded; source labels are restricted to a short safe character set.
+
+Example input:
+
+```json
+{
+  "findings": [
+    { "code": "SECURITY_ADVISORY", "source": "npm-audit" },
+    { "code": "PROVIDER_UNAVAILABLE", "source": "runtime.health" }
+  ]
+}
+```
+
+Run with `npm run agent:repair-plan -- findings.json repair-plan.json`. The output is advisory-only and marks every finding for human approval. The tool never edits source files, installs dependencies, runs migrations, changes Cloudflare settings, restarts services, rolls back releases, or deploys. Unknown or malformed input produces no repair action. It is a planning component, not an autonomous repair agent.
