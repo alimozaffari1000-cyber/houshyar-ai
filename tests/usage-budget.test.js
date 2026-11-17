@@ -19,7 +19,7 @@ test("maximum reservation includes a conservative input bound and full output al
 
 test("budget reservation uses one conditional insert and fails closed for unknown rates", async () => {
   let sql, args;
-  const db = { prepare(value) { sql = value; return { bind(...values) { args = values; return { async first() { return { id: "reservation-1" }; } }; } }; } };
+  const db = { prepare(value) { sql = value; return { bind(...values) { args = values; return { async run() { return { success: true }; }, async first() { return { id: "reservation-1" }; } }; } }; } };
   const result = await reserveAiBudget({ db, userId: "u1", requestId: "r1", capMicroUsd: 1000000, promptBytes: 100, rates: { inputRate: 1000000, outputRate: 2000000 }, now: 1700000000 });
   assert.equal(result.allowed, true);
   assert.match(sql, /INSERT INTO ai_usage_budget_reservations/);
