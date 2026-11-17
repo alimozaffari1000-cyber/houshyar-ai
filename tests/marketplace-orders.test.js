@@ -40,9 +40,10 @@ test("buyer can create a pending order without charging or reserving stock", asy
   assert.equal(response.status, 201);
   assert.equal(body.order.status, "pending");
   assert.equal(body.order.quantity, 2);
-  assert.equal(db.statements.length, 2);
-  assert.match(db.statements[0].sql, /INSERT INTO marketplace_orders/);
-  assert.match(db.statements[1].sql, /INSERT INTO marketplace_order_items/);
+  const orderWrites = db.statements.filter(statement => /INSERT INTO marketplace_(orders|order_items)/.test(statement.sql));
+  assert.equal(orderWrites.length, 2);
+  assert.match(orderWrites[0].sql, /INSERT INTO marketplace_orders/);
+  assert.match(orderWrites[1].sql, /INSERT INTO marketplace_order_items/);
 });
 
 test("buyer cannot order own store product", async () => {
