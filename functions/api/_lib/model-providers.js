@@ -10,6 +10,27 @@ function normalizeUsage(inputTokens, outputTokens, totalTokens) {
 const CLAUDE_DEFAULT_MODEL = "claude-sonnet-5-5";
 const GEMINI_DEFAULT_MODEL = "gemini-3.1-flash-lite";
 
+function validateProviderRequest({ messages, maxTokens, temperature }) {
+  if (!Array.isArray(messages) || messages.length === 0 || messages.length > 32) {
+    throw new Error("provider_invalid_request");
+  }
+  let totalChars = 0;
+  for (const item of messages) {
+    if (!item || !["system", "user", "assistant"].includes(item.role) ||
+        typeof item.content !== "string" || !item.content.trim() || item.content.length > 12000) {
+      throw new Error("provider_invalid_request");
+    }
+    totalChars += item.content.length;
+    if (totalChars > 32000) throw new Error("provider_invalid_request");
+  }
+  if (!Number.isSafeInteger(maxTokens) || maxTokens < 1 || maxTokens > 8192) {
+    throw new Error("provider_invalid_request");
+  }
+  if (typeof temperature !== "number" || !Number.isFinite(temperature) || temperature < 0 || temperature > 2) {
+    throw new Error("provider_invalid_request");
+  }
+}
+
 export function listAvailableProviders(env = {}) {
   return [
     { id: "groq", available: Boolean(env.GROQ_API_KEY), defaultModel: env.GROQ_MODEL || "llama-3.3-70b-versatile" },
@@ -31,6 +52,7 @@ export function resolveProvider(env = {}, requested = "auto", mode = "balanced")
 }
 
 export async function requestModel({ provider, env, messages, model, signal, maxTokens = 1200, temperature = 0.5, webSearch = false }) {
+  validateProviderRequest({ messages, maxTokens, temperature });
   if (provider === "google") {
     if (!env.GEMINI_API_KEY) throw new Error("provider_not_configured");
     const selectedModel = model || env.GEMINI_MODEL || GEMINI_DEFAULT_MODEL;
