@@ -1,5 +1,6 @@
 import { getSessionUser, originAllowed } from "../_lib/auth.js";
 import { authJson, readAuthBody, enforceAuthRateLimit } from "../_lib/auth-flow.js";
+import { getCurrencyDefinition } from "../../../src/payments/money.js";
 
 const slugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
@@ -57,7 +58,8 @@ export async function onRequestPost({ request, env }) {
   if (!slugPattern.test(category) || category.length > 60) return authJson({ error: "INVALID_CATEGORY" }, 400);
   if (!Number.isSafeInteger(priceMinor) || priceMinor <= 0) return authJson({ error: "INVALID_PRICE" }, 400);
   if (!Number.isSafeInteger(stockCount) || stockCount < 0 || stockCount > 1000000) return authJson({ error: "INVALID_STOCK" }, 400);
-  if (!/^[A-Z]{3}$/.test(currency)) return authJson({ error: "INVALID_CURRENCY" }, 400);
+  const currencyDefinition = getCurrencyDefinition(currency);
+  if (!currencyDefinition) return authJson({ error: "UNSUPPORTED_CURRENCY" }, 400);
   try {
     const store = await env.DB.prepare("SELECT id, status FROM merchant_stores WHERE user_id = ? LIMIT 1").bind(user.id).first();
     if (!store) return authJson({ error: "STORE_NOT_FOUND" }, 404);
@@ -67,7 +69,7 @@ export async function onRequestPost({ request, env }) {
     await env.DB.prepare(
       "INSERT INTO products (id, store_id, title, slug, description, category, price_minor, currency_code, stock_count, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft', ?, ?)"
     ).bind(id, store.id, title, slug, description, category, priceMinor, currency, stockCount, now, now).run();
-    return authJson({ created: true, product: { id, title, slug, category, priceMinor, currency, stockCount, status: "draft" } }, 201);
+    return authJson({ created: true, product: { id, title, slug, category, priceMinor, currency, currencyExponent: currencyDefinition.exponent, stockCount, status: "draft" } }, 201);
   } catch {
     return authJson({ error: "PRODUCT_CREATE_CONFLICT" }, 409);
   }
