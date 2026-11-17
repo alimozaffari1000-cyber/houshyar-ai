@@ -47,3 +47,30 @@ test("customer order history requires an authenticated session", async () => {
   });
   assert.equal(response.status, 401);
 });
+
+test("order API derives prices from database and guards stock and price in its write", async () => {
+  const source = await readFile(new URL("../functions/api/orders.js", import.meta.url), "utf8");
+  assert.match(source, /SELECT p\.id, p\.title, p\.price_minor AS priceMinor/);
+  assert.match(source, /stock_count >=/);
+  assert.match(source, /price_minor = CASE/);
+  assert.match(source, /INSERT INTO order_items/);
+  assert.match(source, /WHERE changes\(\) =/);
+  assert.doesNotMatch(source, /body\.priceMinor/);
+});
+
+test("order API enforces seller fulfillment settings and idempotency", async () => {
+  const source = await readFile(new URL("../functions/api/orders.js", import.meta.url), "utf8");
+  assert.match(source, /DELIVERY_NOT_AVAILABLE/);
+  assert.match(source, /PICKUP_NOT_AVAILABLE/);
+  assert.match(source, /idempotencyKey/);
+  assert.match(source, /UNIQUE|constraint/);
+});
+
+test("seller order API requires authentication, ownership and valid state transitions", async () => {
+  const source = await readFile(new URL("../functions/api/store/orders.js", import.meta.url), "utf8");
+  assert.match(source, /getSessionUser/);
+  assert.match(source, /WHERE id = \? AND store_id = \?/);
+  assert.match(source, /INVALID_ORDER_TRANSITION/);
+  assert.match(source, /changes\(\) = 1/);
+  assert.match(source, /stock_count = stock_count \+/);
+});
