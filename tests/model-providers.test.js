@@ -269,3 +269,46 @@ test("Gemini rejects system-only prompts without making an upstream request", as
     globalThis.fetch = originalFetch;
   }
 });
+
+
+test("partial model comparison waits for successful calls before returning a safe failure", async () => {
+  const originalFetch = globalThis.fetch;
+  let groqCompleted = false;
+  const requested = [];
+  globalThis.fetch = async url => {
+    requested.push(String(url));
+    if (String(url).includes("api.groq.com")) {
+      await new Promise(resolve => setTimeout(resolve, 30));
+      groqCompleted = true;
+      return new Response(JSON.stringify({
+        model: "llama-test",
+        choices: [{ message: { content: "پاسخ موفق گروک" } }],
+        usage: { prompt_tokens: 5, completion_tokens: 6, total_tokens: 11 }
+      }), { status: 200, headers: { "content-type": "application/json" } });
+    }
+    return new Response(JSON.stringify({
+      error: "private upstream diagnostic",
+      detail: "claude-private-key"
+    }), { status: 401, headers: { "content-type": "application/json" } });
+  };
+  try {
+    const request = new Request("https://houshyar.example/api/chat", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ message: "مقایسه کن", compare: true })
+    });
+    const response = await onRequestPost({
+      request,
+      env: { GROQ_API_KEY: "groq-test", CLAUDE_API_KEY: "claude-private-key" }
+    });
+    const data = await response.json();
+    assert.equal(response.status, 502);
+    assert.equal(data.error, "COMPARISON_FAILED");
+    assert.equal(groqCompleted, true);
+    assert.equal(requested.length, 2);
+    assert.equal(JSON.stringify(data).includes("private"), false);
+    assert.equal(JSON.stringify(data).includes("claude-private-key"), false);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
