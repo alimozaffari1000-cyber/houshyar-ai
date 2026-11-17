@@ -167,7 +167,7 @@ export async function onRequestPost({ request, env }) {
     messages.push({ role: "user", content: latest });
   }
 
-  if (body.compare === true) {
+  if (body.compare === true && !(body.webSearch === true && providerChoice.provider === "google")) {
     let compareTargets;
     if (env.GROQ_API_KEY && env.CLAUDE_API_KEY) {
       compareTargets = [
@@ -215,7 +215,8 @@ export async function onRequestPost({ request, env }) {
   try {
     result = await requestModel({
       provider: providerChoice.provider, env, messages, model,
-      signal: controller.signal, maxTokens: 1200, temperature: 0.5
+      signal: controller.signal, maxTokens: 1200, temperature: 0.5,
+      webSearch: body.webSearch === true && providerChoice.provider === "google"
     });
   } catch {
     await releaseQuota();
@@ -232,6 +233,7 @@ export async function onRequestPost({ request, env }) {
     provider: providerChoice.provider,
     model: result.model,
     usage: result.usage,
+    sources: Array.isArray(result.sources) ? result.sources : [],
     agent: { id: selectedAgent.id, label: selectedAgent.label, labelEn: selectedAgent.labelEn }
   });
 }
