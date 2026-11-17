@@ -111,3 +111,19 @@ test('adaptive mode and explicit response feedback are connected to the chat UI'
  assert.match(ui,/recordLearningFeedback/);
  assert.match(ui,/Helpful/);
 });
+
+
+test('Google Search grounding is limited to Gemini and renders sanitized source links', async () => {
+ const js=await readFile(new URL('../src/main.js',import.meta.url),'utf8');
+ const api=await readFile(new URL('../functions/api/chat.js',import.meta.url),'utf8');
+ const providers=await readFile(new URL('../functions/api/_lib/model-providers.js',import.meta.url),'utf8');
+ assert.match(js,/id="google-web-search"/);
+ assert.match(js,/state\.provider === "google"/);
+ assert.match(js,/webSearch:state\.webSearch/);
+ assert.match(js,/renderSources\(m\.sources,locale\)/);
+ assert.match(js,/rel="noopener noreferrer"/);
+ assert.match(api,/body\.webSearch === true && providerChoice\.provider === "google"/);
+ assert.match(providers,/google_search: \{\}/);
+ assert.match(providers,/groundingMetadata/);
+ assert.match(providers,/startsWith\("https:\/\/"\)/);
+});
