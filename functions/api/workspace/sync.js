@@ -30,7 +30,7 @@ async function authenticatedUser(request, env) {
   if (env.AUTH_ENABLED !== "true" || !env.DB) return { response: authJson({ error: "AUTH_NOT_CONFIGURED" }, 503) };
   const user = await getSessionUser(env.DB, request);
   if (!user) return { response: authJson({ error: "AUTH_REQUIRED" }, 401) };
-  const limited = await enforceAuthRateLimit({ env, request, action: "workspace_sync", email: user.email, limit: 30 });
+  const limited = await enforceAuthRateLimit({ env, request, action: "workspace-sync", email: user.email, limit: 30 });
   if (limited) return { response: limited };
   return { user };
 }
