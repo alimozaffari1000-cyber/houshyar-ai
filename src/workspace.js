@@ -23,9 +23,9 @@ export function mergeWorkspaceBackup(currentHistory,currentProjects,backup){
  const incomingHistory=normalizeWorkspaceHistory(backup.history),incomingProjects=normalizeWorkspaceProjects(backup.projects);
  const history=normalizeWorkspaceHistory(currentHistory),projects=normalizeWorkspaceProjects(currentProjects);
  const historyIds=new Set(history.map(item=>item.id)),projectIds=new Set(projects.map(item=>item.id));
- const addedHistory=incomingHistory.filter(item=>!historyIds.has(item.id)&&!isDuplicateWorkspaceConversation(history,item.messages));
- const addedProjects=incomingProjects.filter(item=>!projectIds.has(item.id)&&!isDuplicateWorkspaceProject(projects,item.title,item.prompt));
- return {history:[...addedHistory,...history].slice(0,MAX_ITEMS),projects:[...addedProjects,...projects].slice(0,MAX_ITEMS),addedHistory:Math.min(addedHistory.length,Math.max(0,MAX_ITEMS-history.length)),addedProjects:Math.min(addedProjects.length,Math.max(0,MAX_ITEMS-projects.length))};
+ const addedHistory=incomingHistory.filter(item=>!historyIds.has(item.id)&&!isDuplicateWorkspaceConversation(history,item.messages)).slice(0,Math.max(0,MAX_ITEMS-history.length));
+ const addedProjects=incomingProjects.filter(item=>!projectIds.has(item.id)&&!isDuplicateWorkspaceProject(projects,item.title,item.prompt)).slice(0,Math.max(0,MAX_ITEMS-projects.length));
+ return {history:[...history,...addedHistory],projects:[...projects,...addedProjects],addedHistory:addedHistory.length,addedProjects:addedProjects.length};
 }
 export function removeWorkspaceConversations(history,ids){
  const selected=new Set(Array.isArray(ids)?ids.filter(id=>typeof id==="string"):[]);
