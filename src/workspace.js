@@ -27,6 +27,29 @@ export function mergeWorkspaceBackup(currentHistory,currentProjects,backup){
  const addedProjects=incomingProjects.filter(item=>!projectIds.has(item.id)&&!isDuplicateWorkspaceProject(projects,item.title,item.prompt)).slice(0,Math.max(0,MAX_ITEMS-projects.length));
  return {history:[...history,...addedHistory],projects:[...projects,...addedProjects],addedHistory:addedHistory.length,addedProjects:addedProjects.length};
 }
+export function mergeWorkspaceSync(localHistory,localProjects,remote){
+ if(!remote||!Array.isArray(remote.history)||!Array.isArray(remote.projects))return {ok:false,reason:"invalid"};
+ const merge=(local,incoming,equivalent)=>{
+  const result=[...local],byId=new Map(result.map(item=>[item.id,item]));
+  for(const item of incoming){
+   const existing=byId.get(item.id);
+   if(existing){if(!equivalent(existing,item))return {ok:false,reason:"id-conflict"};continue}
+   if(result.some(current=>equivalent(current,item)))continue;
+   if(result.length>=MAX_ITEMS)return {ok:false,reason:"capacity"};
+   result.push(item);byId.set(item.id,item);
+  }
+  return {ok:true,value:result};
+ };
+ const history=normalizeWorkspaceHistory(localHistory),projects=normalizeWorkspaceProjects(localProjects);
+ const remoteHistory=normalizeWorkspaceHistory(remote.history),remoteProjects=normalizeWorkspaceProjects(remote.projects);
+ const sameHistory=(a,b)=>a.title===b.title&&a.createdAt===b.createdAt&&JSON.stringify(a.messages)===JSON.stringify(b.messages);
+ const sameProject=(a,b)=>a.title===b.title&&a.prompt===b.prompt&&a.createdAt===b.createdAt;
+ const mergedHistory=merge(history,remoteHistory,sameHistory);
+ if(!mergedHistory.ok)return mergedHistory;
+ const mergedProjects=merge(projects,remoteProjects,sameProject);
+ if(!mergedProjects.ok)return mergedProjects;
+ return {ok:true,history:mergedHistory.value,projects:mergedProjects.value};
+}
 export function removeWorkspaceConversations(history,ids){
  const selected=new Set(Array.isArray(ids)?ids.filter(id=>typeof id==="string"):[]);
  if(!selected.size)return normalizeWorkspaceHistory(history);
