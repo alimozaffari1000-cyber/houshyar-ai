@@ -427,3 +427,16 @@ button:focus-visible,textarea:focus-visible,select:focus-visible{
 /* Specialist agent selector */
 #agent-select{background:#15263d;border:1px solid #344d69;border-radius:9px;color:#e8f3ff;padding:7px 28px 7px 10px;font:11px Vazirmatn;max-width:205px}
 #agent-select:focus-visible{outline:2px solid #58d9bd;outline-offset:2px}
+
+
+/* Local marketplace discovery controls and fulfillment metadata */
+.marketplace-search{flex-wrap:wrap}
+.marketplace-search input,.marketplace-search select{min-width:0;flex:1 1 145px;border:1px solid rgba(145,180,218,.2);border-radius:11px;background:#0b1728;color:#f2f7ff;padding:11px 12px;font:12px Vazirmatn}
+.marketplace-search button[data-nearby]{border:1px solid rgba(110,231,196,.28);background:rgba(110,231,196,.08);color:#a7f0db}
+.marketplace-product-info>div{display:flex;flex-wrap:wrap;gap:12px;margin-top:8px}
+.marketplace-product-info>div a{color:#83c8ff;font-size:11px;text-decoration:underline;text-underline-offset:3px}
+.marketplace-form-card form[data-store-profile]{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.marketplace-form-card form[data-store-profile] label{display:flex;align-items:center;gap:7px;min-width:0}
+.marketplace-form-card form[data-store-profile] label input:not([type=checkbox]){min-width:0;flex:1}
+.marketplace-form-card form[data-store-profile] button{grid-column:1/-1}
+@media(max-width:560px){.marketplace-form-card form[data-store-profile]{grid-template-columns:1fr}.marketplace-form-card form[data-store-profile] button{grid-column:auto}}
