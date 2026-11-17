@@ -31,8 +31,8 @@ jobs:
           cache: npm
           cache-dependency-path: package.json
 
-      - name: Install dependencies
-        run: npm install --no-audit --no-fund
+      - name: Install dependencies without creating a lockfile
+        run: npm install --package-lock=false --no-audit --no-fund
 
       - name: Apply allowlisted local repairs
         run: npm run agent:repair
@@ -66,5 +66,4 @@ jobs:
             Scope is deliberately restricted to changes made by scripts/agent-repair.mjs.
             Automated checks must pass before merge. No production deployment is performed
             by this workflow. Review the diff before merging.
-          labels: maintenance, automated
           draft: true
