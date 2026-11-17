@@ -3,6 +3,43 @@ import assert from "node:assert/strict";
 import { listAvailableProviders, resolveProvider, requestModel } from "../functions/api/_lib/model-providers.js";
 import { onRequestPost, onRequestGet } from "../functions/api/chat.js";
 
+test("provider adapters reject malformed or excessive inputs before making upstream requests", async () => {
+  const originalFetch = globalThis.fetch;
+  let called = false;
+  globalThis.fetch = async () => {
+    called = true;
+    return new Response("{}", { status: 200 });
+  };
+  try {
+    const base = {
+      provider: "groq",
+      env: { GROQ_API_KEY: "test" },
+      messages: [{ role: "user", content: "سلام" }]
+    };
+    for (const invalid of [
+      { messages: "not-an-array" },
+      { messages: [] },
+      { messages: Array.from({ length: 33 }, () => ({ role: "user", content: "x" })) },
+      { messages: [{ role: "system", content: "x".repeat(12001) }] },
+      { messages: [{ role: "user", content: "x".repeat(12000) }, { role: "assistant", content: "y".repeat(12000) }, { role: "user", content: "z".repeat(12000) }] },
+      { messages: [{ role: "tool", content: "unexpected role" }] },
+      { messages: [{ role: "user", content: 42 }] },
+      { maxTokens: 0 },
+      { maxTokens: 8193 },
+      { temperature: Number.NaN },
+      { temperature: 2.1 }
+    ]) {
+      await assert.rejects(
+        requestModel({ ...base, ...invalid }),
+        { message: "provider_invalid_request" }
+      );
+    }
+    assert.equal(called, false);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test("provider availability reflects server-side secrets only", () => {
   assert.deepEqual(listAvailableProviders({ GROQ_API_KEY: "g" }).map(item => [item.id, item.available]), [
     ["groq", true], ["anthropic", false], ["google", false]
