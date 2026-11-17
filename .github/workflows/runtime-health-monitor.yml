@@ -1,0 +1,36 @@
+name: Houshyar Runtime Health Monitor
+
+on:
+  workflow_dispatch:
+    inputs:
+      public_url:
+        description: "Public HTTPS base URL of the deployed Houshyar Pages site"
+        required: false
+        type: string
+  schedule:
+    - cron: "*/15 * * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: houshyar-runtime-health
+  cancel-in-progress: true
+
+jobs:
+  synthetic-health:
+    name: Check deployed Pages health endpoint
+    if: ${{ github.event_name == 'workflow_dispatch' || vars.HOUSHYAR_PUBLIC_URL != '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Run bounded synthetic health check
+        env:
+          HOUSHYAR_PUBLIC_URL: ${{ inputs.public_url || vars.HOUSHYAR_PUBLIC_URL }}
+        run: node scripts/synthetic-health-check.mjs
