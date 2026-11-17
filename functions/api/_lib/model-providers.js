@@ -21,7 +21,7 @@ export function resolveProvider(env = {}, requested = "auto", mode = "balanced")
   return { provider: selected, model: provider.defaultModel };
 }
 
-export async function requestModel({ provider, env, messages, model, signal, maxTokens = 1200, temperature = 0.5 }) {
+export async function requestModel({ provider, env, messages, model, signal, maxTokens = 1200, temperature = 0.5, webSearch = false }) {
   if (provider === "google") {
     if (!env.GEMINI_API_KEY) throw new Error("provider_not_configured");
     const selectedModel = model || env.GEMINI_MODEL || GEMINI_DEFAULT_MODEL;
@@ -38,7 +38,8 @@ export async function requestModel({ provider, env, messages, model, signal, max
       body: JSON.stringify({
         ...(system ? { systemInstruction: { parts: [{ text: system }] } } : {}),
         contents,
-        generationConfig: { maxOutputTokens: maxTokens }
+        generationConfig: { maxOutputTokens: maxTokens },
+        ...(webSearch ? { tools: [{ google_search: {} }] } : {})
       }),
       signal
     });
@@ -49,8 +50,17 @@ export async function requestModel({ provider, env, messages, model, signal, max
       : "";
     if (!reply) throw new Error("provider_empty_reply");
     const usage = data.usageMetadata;
+    const sourceMap = new Map();
+    for (const chunk of data?.candidates?.[0]?.groundingMetadata?.groundingChunks || []) {
+      const uri = chunk?.web?.uri;
+      const title = chunk?.web?.title;
+      if (typeof uri !== "string" || !/^https:\/\//i.test(uri) || sourceMap.has(uri)) continue;
+      sourceMap.set(uri, { title: typeof title === "string" && title.trim() ? title.trim().slice(0, 200) : uri, url: uri });
+      if (sourceMap.size >= 8) break;
+    }
     return {
       reply,
+      sources: [...sourceMap.values()],
       model: data.modelVersion || selectedModel,
       usage: usage ? {
         promptTokens: usage.promptTokenCount || 0,
