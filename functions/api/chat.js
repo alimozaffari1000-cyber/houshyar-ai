@@ -296,6 +296,12 @@ export async function onRequestPost({ request, env }) {
       webSearch: body.webSearch === true && providerChoice.provider === "google"
     });
   } catch {
+    if (spendReservation?.id) {
+      try {
+        await saveUsage(providerChoice.provider, model, null, spendReservation.requestId, false, spendReservation.id);
+        spendReservation = null;
+      } catch { /* retain reservation for the remainder of the day */ }
+    }
     await releaseSpendReservation();
     await releaseQuota();
     if (controller.signal.aborted) {
@@ -309,7 +315,7 @@ export async function onRequestPost({ request, env }) {
   if (usageMeteringEnabled) {
     try { usageRecord = await saveUsage(providerChoice.provider, result.model, result.usage, spendReservation?.requestId || crypto.randomUUID(), body.webSearch === true && providerChoice.provider === "google", spendReservation?.id || null); }
     catch {
-      await releaseSpendReservation();
+      if (!spendReservation?.id) await releaseSpendReservation();
       await releaseQuota();
       return json({ error: "USAGE_RECORD_FAILED", message: "ثبت مصرف درخواست کامل نشد." }, 503);
     }
