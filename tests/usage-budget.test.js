@@ -1,4 +1,6 @@
 import test from "node:test";
+import { readFile } from "node:fs/promises";
+import { recordAiUsage } from "../functions/api/_lib/usage-meter.js";
 import assert from "node:assert/strict";
 import { estimateMaximumRequestCost, parseDailySpendCap, reserveAiBudget, releaseAiBudget } from "../functions/api/_lib/usage-budget.js";
 
@@ -34,4 +36,49 @@ test("reservation release deletes only the supplied reservation id", async () =>
   await releaseAiBudget({ db, reservationId: "res-1" });
   assert.match(captured.sql, /DELETE FROM ai_usage_budget_reservations WHERE id = \?/);
   assert.equal(captured.id, "res-1");
+});
+
+test("chat spend guard is opt-in and blocks unsupported compare and web-search cost paths", async () => {
+  const chat = await readFile(new URL("../functions/api/chat.js", import.meta.url), "utf8");
+  assert.match(chat, /AI_SPEND_GUARD_ENABLED/);
+  assert.match(chat, /AI_DAILY_SPEND_CAP_MICRO_USD/);
+  assert.match(chat, /COMPARE_NOT_AVAILABLE_WITH_SPEND_GUARD/);
+  assert.match(chat, /SEARCH_COST_NOT_COVERED/);
+  assert.match(chat, /reserveAiBudget/);
+});
+
+test("settling a spend reservation writes usage and deletes reservation atomically", async () => {
+  let batch;
+  const db = {
+    prepare(sql) {
+      return { sql, bind(...args) { return { sql, args, run: async () => ({ success: true }) }; } };
+    },
+    async batch(statements) { batch = statements; return [{ success: true }, { success: true }]; }
+  };
+  const result = await recordAiUsage({
+    db, userId: "u1", provider: "groq", model: "test-model",
+    usage: { promptTokens: 10, completionTokens: 5, totalTokens: 15 },
+    requestId: "r-budget", reservationId: "res-1",
+    rates: { inputRate: 1000000, outputRate: 2000000 }, now: 1700000000
+  });
+  assert.equal(result.estimatedCostMicroUsd, 20);
+  assert.equal(batch.length, 2);
+  assert.match(batch[0].sql, /INSERT INTO ai_usage_events/);
+  assert.match(batch[1].sql, /DELETE FROM ai_usage_budget_reservations/);
+  assert.deepEqual(batch[1].args, ["res-1"]);
+});
+
+test("unknown provider usage is recorded as unpriced and still clears the reservation atomically", async () => {
+  let batch;
+  const db = {
+    prepare(sql) { return { sql, bind(...args) { return { sql, args, run: async () => ({ success: true }) }; } }; },
+    async batch(statements) { batch = statements; return [{ success: true }, { success: true }]; }
+  };
+  const result = await recordAiUsage({
+    db, userId: "u1", provider: "google", model: "test-model",
+    usage: null, requestId: "r-unknown", reservationId: "res-2",
+    rates: { inputRate: 1000000, outputRate: 2000000 }, now: 1700000000
+  });
+  assert.equal(result.estimatedCostMicroUsd, null);
+  assert.equal(batch.length, 2);
 });
