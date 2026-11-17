@@ -463,3 +463,52 @@ button:focus-visible,textarea:focus-visible,select:focus-visible{
 .marketplace-notification p{margin:0;color:#c4d4e6;overflow-wrap:anywhere}
 .marketplace-notification small{color:#91a6bf}
 .marketplace-notification button,.marketplace-notification-head button{justify-self:start;border:1px solid rgba(110,231,196,.25);border-radius:9px;background:rgba(110,231,196,.08);color:#a7f0db;padding:7px 10px;font:11px Vazirmatn}
+
+
+/* Mobile chat controls: predictable two-column layout and no horizontal overflow. */
+@media(max-width:560px){
+  .mode-control{
+    display:grid;
+    grid-template-columns:minmax(0,1fr) minmax(0,1.35fr);
+    align-items:center;
+    gap:9px 10px;
+    margin:14px 0 9px;
+    padding:13px;
+    border:1px solid var(--line);
+    border-radius:15px;
+    background:rgba(16,28,48,.72);
+  }
+  .mode-control>label:not(.compare-toggle){
+    min-width:0;
+    color:#a9bdd4;
+    line-height:1.6;
+  }
+  .mode-control>select,
+  .mode-control>#agent-select{
+    width:100%;
+    min-width:0;
+    max-width:none;
+    padding:9px 10px;
+    font-size:11px;
+  }
+  .mode-control .compare-toggle{
+    grid-column:1/-1;
+    min-width:0;
+    line-height:1.7;
+    align-items:flex-start;
+  }
+  .mode-control .compare-toggle input{
+    flex:0 0 16px;
+    margin-top:3px;
+  }
+}
+@media(max-width:380px){
+  .top{padding-inline:10px}
+  .top-actions{gap:5px}
+  .locale-select{max-width:72px;font-size:9px}
+  .account-open{padding:6px 7px;font-size:9px}
+  .brand{gap:6px}
+  .brand strong{font-size:15px}
+  .brand small{font-size:9px}
+  .status{padding:5px 7px;font-size:8px}
+}
