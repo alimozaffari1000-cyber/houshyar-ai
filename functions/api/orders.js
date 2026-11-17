@@ -102,6 +102,11 @@ export async function onRequestPost({ request, env }) {
         "SELECT ?, ?, ?, ?, ?, ?, ?, ? WHERE EXISTS (SELECT 1 FROM orders WHERE id = ?)"
       ).bind(crypto.randomUUID(), orderId, item.id, item.title, item.quantity, item.priceMinor, item.lineTotal, now, orderId));
     }
+    statements.push(env.DB.prepare(
+      "INSERT INTO user_notifications (id, recipient_user_id, kind, title, body, entity_type, entity_id, created_at) " +
+      "SELECT ?, s.user_id, 'marketplace_order_received', 'سفارش جدید', ?, 'order', ?, ? " +
+      "FROM merchant_stores s JOIN orders o ON o.store_id = s.id WHERE o.id = ?"
+    ).bind(crypto.randomUUID(), "سفارش " + orderNumber + " ثبت شد.", orderId, now, orderId));
     const batch = await env.DB.batch(statements);
     const changed = batch?.[0]?.meta?.changes ?? batch?.[0]?.changes ?? 0;
     if (changed !== items.length) return authJson({ error: "STOCK_OR_PRICE_CHANGED", message: "موجودی یا قیمت تغییر کرده است؛ سبد خرید را تازه‌سازی کنید." }, 409);
