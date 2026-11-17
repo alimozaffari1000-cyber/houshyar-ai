@@ -25,7 +25,7 @@ test("readiness reports ready only when AI and the complete database schema are 
   const response = await onRequestGet({
     env: {
       DB: databaseWith(tables),
-      GROQ_API_KEY: "configured",
+      GROQ_API_KEY: "test-secret-groq-value",
       CLAUDE_API_KEY: "",
       GEMINI_API_KEY: ""
     }
@@ -38,7 +38,7 @@ test("readiness reports ready only when AI and the complete database schema are 
   assert.equal(body.checks.ai.providers.groq, true);
   assert.equal(body.checks.ai.providers.anthropic, false);
   assert.equal(body.checks.database.status, "ready");
-  assert.equal(JSON.stringify(body).includes("configured"), false);
+  assert.equal(JSON.stringify(body).includes("test-secret-groq-value"), false);
 });
 
 test("readiness reports degraded when AI providers are not configured", async () => {
