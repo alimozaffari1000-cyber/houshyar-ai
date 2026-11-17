@@ -75,11 +75,22 @@ export function initMarketplace(app, { locale = "fa" } = {}) {
     const store = data.store;
     if (!store) { renderApplication(); return; }
     const stateText = store.status === "active" ? c.active : store.status === "suspended" ? c.suspended : c.pending;
+    const profileForm = store.status === "active" ? '<div class="marketplace-form-card"><h3>' + (locale === "fa" ? "موقعیت و روش تحویل فروشگاه" : "Store location & fulfillment") + '</h3><form data-store-profile>' +
+      '<label>' + (locale === "fa" ? "شهر" : "City") + '<input name="city" minlength="2" maxlength="80" required value="' + escape(store.city || "") + '"></label>' +
+      '<label>' + (locale === "fa" ? "استان / منطقه" : "Region") + '<input name="region" maxlength="80" value="' + escape(store.region || "") + '"></label>' +
+      '<label>' + (locale === "fa" ? "نشانی عمومی فروشگاه" : "Public address") + '<input name="publicAddress" maxlength="240" value="' + escape(store.publicAddress || "") + '"></label>' +
+      '<label>Latitude<input name="latitude" type="number" min="-90" max="90" step="any" value="' + (store.latitude ?? "") + '"></label>' +
+      '<label>Longitude<input name="longitude" type="number" min="-180" max="180" step="any" value="' + (store.longitude ?? "") + '"></label>' +
+      '<label>' + (locale === "fa" ? "تلفن تماس" : "Contact phone") + '<input name="contactPhone" maxlength="30" value="' + escape(store.contactPhone || "") + '"></label>' +
+      '<label>' + (locale === "fa" ? "لینک سفارش آنلاین (HTTPS)" : "Order URL (HTTPS)") + '<input name="orderUrl" type="url" maxlength="500" value="' + escape(store.orderUrl || "") + '" dir="ltr"></label>' +
+      '<label><input name="offersDelivery" type="checkbox" ' + (store.offersDelivery ? "checked" : "") + '> ' + (locale === "fa" ? "ارسال به منزل" : "Home delivery") + '</label>' +
+      '<label><input name="offersPickup" type="checkbox" ' + (store.offersPickup ? "checked" : "") + '> ' + (locale === "fa" ? "تحویل حضوری" : "Store pickup") + '</label>' +
+      '<button type="submit">' + (locale === "fa" ? "ذخیره اطلاعات" : "Save details") + '</button></form></div>' : ""; 
     const rows = (data.products || []).map(product => '<article class="marketplace-seller-product"><div><b>' + escape(product.title) + '</b><small>' +
       escape(product.category) + ' · ' + money(product.priceMinor, locale) + ' ' + escape(product.currency) + '</small></div><span class="marketplace-state">' +
       (product.status === "published" ? c.published : c.draft) + '</span>' +
       (product.status === "draft" && store.status === "active" ? '<button type="button" data-publish="' + escape(product.id) + '">' + c.publish + '</button>' : '') + '</article>').join("");
-    sellerNode.innerHTML = '<div class="marketplace-store-state"><b>' + escape(store.name) + '</b><span>' + escape(stateText) + '</span></div>' +
+    sellerNode.innerHTML = '<div class="marketplace-store-state"><b>' + escape(store.name) + '</b><span>' + escape(stateText) + '</span></div>' + profileForm +
       (store.status === "active" ? '<div class="marketplace-form-card"><h3>' + c.createProduct + '</h3><form data-product-create>' +
       '<label>' + c.productTitle + '<input name="title" minlength="2" maxlength="160" required></label>' +
       '<label>' + c.category + '<input name="category" pattern="[a-z0-9]+(-[a-z0-9]+)*" maxlength="60" required dir="ltr"></label>' +
@@ -124,6 +135,19 @@ export function initMarketplace(app, { locale = "fa" } = {}) {
   more.addEventListener("click", () => loadCatalog(false));
   overlay.addEventListener("submit", async event => {
     const form = event.target;
+    if (form.matches("[data-store-profile]")) {
+      event.preventDefault(); const button = form.querySelector("button[type=submit]"); button.disabled = true; say(c.loading);
+      const coordinate = value => value.trim() === "" ? null : Number(value);
+      try {
+        await request("/api/store/profile", { method:"PUT", headers:{"Content-Type":"application/json"}, body:JSON.stringify({
+          city:form.elements.city.value, region:form.elements.region.value, publicAddress:form.elements.publicAddress.value,
+          latitude:coordinate(form.elements.latitude.value), longitude:coordinate(form.elements.longitude.value),
+          contactPhone:form.elements.contactPhone.value, orderUrl:form.elements.orderUrl.value,
+          offersDelivery:form.elements.offersDelivery.checked, offersPickup:form.elements.offersPickup.checked
+        }) });
+        say(locale === "fa" ? "اطلاعات فروشگاه ذخیره شد." : "Store details saved."); await loadSeller();
+      } catch { say(c.requestFailed); button.disabled = false; }
+    }
     if (form.matches("[data-store-apply]")) {
       event.preventDefault(); const button = form.querySelector("button[type=submit]"); button.disabled = true; say(c.loading);
       try { await request("/api/store/apply", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ name:form.elements.name.value, slug:form.elements.slug.value, description:form.elements.description.value }) }); say(c.submitted); await loadSeller(); }
