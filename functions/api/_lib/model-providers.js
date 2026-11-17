@@ -1,5 +1,5 @@
 const CLAUDE_DEFAULT_MODEL = "claude-sonnet-5-5";
-const GEMINI_DEFAULT_MODEL = "gemini-2.5-flash";
+const GEMINI_DEFAULT_MODEL = "gemini-3.1-flash-lite";
 
 export function listAvailableProviders(env = {}) {
   return [
@@ -31,13 +31,14 @@ export async function requestModel({ provider, env, messages, model, signal, max
       parts: [{ text: item.content }]
     }));
     if (!contents.length) throw new Error("provider_empty_prompt");
+    // Gemini 3.x models use their recommended default sampling settings; do not override temperature.
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(selectedModel)}:generateContent`, {
       method: "POST",
       headers: { "x-goog-api-key": env.GEMINI_API_KEY, "Content-Type": "application/json" },
       body: JSON.stringify({
         ...(system ? { systemInstruction: { parts: [{ text: system }] } } : {}),
         contents,
-        generationConfig: { maxOutputTokens: maxTokens, temperature }
+        generationConfig: { maxOutputTokens: maxTokens }
       }),
       signal
     });
