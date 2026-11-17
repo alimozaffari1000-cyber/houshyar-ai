@@ -15,7 +15,8 @@
     "android:add": "cap add android",
     "android:sync": "npm run build && cap sync android",
     "developer:scout": "node scripts/developer-scout.mjs",
-    "monitor:health": "node scripts/synthetic-health-check.mjs"
+    "monitor:health": "node scripts/synthetic-health-check.mjs",
+    "agent:repair-plan": "node scripts/repair-advisor.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.6.0",
