@@ -41,3 +41,15 @@ test("marketplace UI supports cart checkout and seller order management", async 
   assert.ok(ui.includes("data-order-status"));
   assert.ok(ui.includes("cart.clear()"));
 });
+
+test("customer order history tab loads and renders authenticated order status and payment details", async () => {
+  const ui = await readFile(new URL("../src/marketplace.js", import.meta.url), "utf8");
+  assert.ok(ui.includes('data-market-tab="orders"'));
+  assert.ok(ui.includes('data-market-view="orders"'));
+  assert.ok(ui.includes('request("/api/orders")'));
+  assert.ok(ui.includes("renderCustomerOrders"));
+  assert.ok(ui.includes("paymentStatus"));
+  assert.ok(ui.includes("order.subtotalMinor"));
+  assert.ok(ui.includes("order.deliveryFeeMinor"));
+  assert.ok(ui.includes("statusNames"));
+});
