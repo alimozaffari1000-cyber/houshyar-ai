@@ -12,11 +12,24 @@ export function listAvailableProviders(env = {}) {
 export function resolveProvider(env = {}, requested = "auto", mode = "balanced") {
   const available = listAvailableProviders(env);
   const requestedId = ["groq", "anthropic", "google"].includes(requested) ? requested : "auto";
-  const selected = requestedId === "auto"
-    ? (mode === "deep" && env.CLAUDE_API_KEY ? "anthropic" : (["groq", "anthropic", "google"].includes(env.AI_DEFAULT_PROVIDER) ? env.AI_DEFAULT_PROVIDER : (env.GROQ_API_KEY ? "groq" : (env.CLAUDE_API_KEY ? "anthropic" : "google")) ))
-    : requestedId;
+
+  // Explicit user choices must never silently switch providers.
+  if (requestedId !== "auto") {
+    const provider = available.find(item => item.id === requestedId);
+    if (!provider?.available) return { error: "PROVIDER_NOT_CONFIGURED", provider: requestedId };
+    return { provider: requestedId, model: provider.defaultModel };
+  }
+
+  const configured = new Set(available.filter(item => item.available).map(item => item.id));
+  const preferred = mode === "deep" && configured.has("anthropic")
+    ? "anthropic"
+    : (["groq", "anthropic", "google"].includes(env.AI_DEFAULT_PROVIDER) && configured.has(env.AI_DEFAULT_PROVIDER)
+      ? env.AI_DEFAULT_PROVIDER
+      : null);
+  const selected = preferred || ["groq", "anthropic", "google"].find(id => configured.has(id));
+  if (!selected) return { error: "PROVIDER_NOT_CONFIGURED", provider: "auto" };
+
   const provider = available.find(item => item.id === selected);
-  if (!provider?.available) return { error: "PROVIDER_NOT_CONFIGURED", provider: selected };
   return { provider: selected, model: provider.defaultModel };
 }
 
