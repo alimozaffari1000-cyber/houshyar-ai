@@ -48,3 +48,10 @@ Deploy approved commits to preview/staging, run smoke and end-to-end tests, then
 ## Operational prerequisites
 
 Before enabling unattended runs, confirm GitHub Actions is enabled and that the repository's Actions token is allowed to create pull requests. If the repository restricts workflow-created pull requests, enable that repository setting or use a narrowly scoped GitHub App. Never put long-lived credentials in workflow YAML.
+
+ 
+### Innovation discovery — read-only radar
+
+The workflow `.github/workflows/innovation-radar.yml` runs weekly and on demand. It checks the latest public releases for the OpenAI, Google Gen AI, Anthropic, Groq, and LangChain SDK repositories and publishes a 30-day report artifact.
+
+This is a discovery mechanism, not an automatic upgrade system. Release metadata is only a candidate signal: each proposed SDK/provider change must be checked for compatibility, security, licensing, privacy, availability, cost, and measurable benefit, then tested in an isolated pull request. The radar does not change dependencies, switch providers, access vendor-private roadmaps, or deploy code.
