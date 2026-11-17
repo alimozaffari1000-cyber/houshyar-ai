@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { onRequestGet, onRequestPost } from "../functions/api/orders.js";
+import { onRequestGet as getNotifications, onRequestPatch as markNotificationsRead } from "../functions/api/notifications.js";
 
 function authenticatedValidationDb() {
   return {
@@ -119,4 +120,33 @@ test("notification migration scopes inbox rows to users and indexes unread order
   assert.match(sql, /recipient_user_id, read_at, created_at DESC/);
   assert.match(sql, /marketplace_order_received/);
   assert.match(sql, /marketplace_order_status/);
+});
+
+test("notification endpoints reject anonymous access and cross-origin read updates", async () => {
+  const anonymous = await getNotifications({
+    request: new Request("https://example.test/api/notifications"),
+    env: { DB: { prepare() { throw new Error("must not query"); } } }
+  });
+  assert.equal(anonymous.status, 401);
+  const crossOrigin = await markNotificationsRead({
+    request: new Request("https://example.test/api/notifications", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Origin: "https://attacker.example", Cookie: "houshyar_session=valid-session" },
+      body: JSON.stringify({ ids: ["123e4567-e89b-12d3-a456-426614174000"] })
+    }),
+    env: { DB: authenticatedValidationDb() }
+  });
+  assert.equal(crossOrigin.status, 403);
+});
+
+test("notification read endpoint rejects malformed IDs before issuing writes", async () => {
+  const response = await markNotificationsRead({
+    request: new Request("https://example.test/api/notifications", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Origin: "https://example.test", Cookie: "houshyar_session=valid-session" },
+      body: JSON.stringify({ ids: ["not-a-uuid"] })
+    }),
+    env: { DB: authenticatedValidationDb() }
+  });
+  assert.equal(response.status, 400);
 });
