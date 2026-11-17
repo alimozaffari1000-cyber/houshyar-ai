@@ -120,3 +120,20 @@ test('mobile chat controls use a bounded responsive layout without fixed-width o
  assert.match(css,/\.mode-control>select,[\s\S]*?min-width:0/);
  assert.match(css,/@media\(max-width:380px\)/);
 });
+
+test('chat draft survives reload and storage failures without exceeding the input limit', async () => {
+ const draft=await import('../src/draft-storage.js');
+ const values=new Map();
+ const storage={getItem:key=>values.get(key)||null,setItem:(key,value)=>values.set(key,value),removeItem:key=>values.delete(key)};
+ assert.equal(draft.loadDraft(storage),'');
+ assert.equal(draft.saveDraft('پیام نیمه‌کاره',storage),true);
+ assert.equal(draft.loadDraft(storage),'پیام نیمه‌کاره');
+ assert.equal(draft.saveDraft('x'.repeat(7000),storage),true);
+ assert.equal(draft.loadDraft(storage).length,6000);
+ assert.equal(draft.clearDraft(storage),true);
+ assert.equal(draft.loadDraft(storage),'');
+ const broken={getItem(){throw new Error('blocked')},setItem(){throw new Error('blocked')},removeItem(){throw new Error('blocked')}};
+ assert.equal(draft.loadDraft(broken),'');
+ assert.equal(draft.saveDraft('safe',broken),false);
+ assert.equal(draft.clearDraft(broken),false);
+});
