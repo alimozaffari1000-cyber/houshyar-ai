@@ -14,7 +14,8 @@
     "quality:check": "node scripts/quality-agent.mjs",
     "android:add": "cap add android",
     "android:sync": "npm run build && cap sync android",
-    "developer:scout": "node scripts/developer-scout.mjs"
+    "developer:scout": "node scripts/developer-scout.mjs",
+    "monitor:health": "node scripts/synthetic-health-check.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.6.0",
