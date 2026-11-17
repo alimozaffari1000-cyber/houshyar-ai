@@ -124,10 +124,6 @@ export async function requestModel({ provider, env, messages, model, signal, max
   return {
     reply: reply.trim(),
     model: data.model || selectedModel,
-    usage: data.usage ? {
-      promptTokens: data.usage.prompt_tokens || 0,
-      completionTokens: data.usage.completion_tokens || 0,
-      totalTokens: data.usage.total_tokens || 0
-    } : null
+    usage: data.usage ? normalizeUsage(data.usage.prompt_tokens, data.usage.completion_tokens, data.usage.total_tokens) : null
   };
 }
