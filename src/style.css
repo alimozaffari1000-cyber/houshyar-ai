@@ -428,3 +428,18 @@ button:focus-visible,textarea:focus-visible,select:focus-visible{
 .marketplace-order>div{display:grid;gap:5px;min-width:0}
 .marketplace-order small{overflow-wrap:anywhere}
 .marketplace-order button{cursor:pointer}
+
+/* Admin-only health dashboard */
+.admin-health-overlay{position:fixed;inset:0;z-index:80;display:grid;place-items:center;padding:16px;background:rgba(2,8,18,.84);backdrop-filter:blur(10px)}
+.admin-health-dialog{width:min(100%,560px);max-height:85vh;overflow:auto;padding:20px;border:1px solid var(--line);border-radius:18px;background:#102139;color:#edf5ff;box-shadow:0 24px 80px #000a}
+.admin-health-header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.admin-health-header h2{margin:0;font-size:17px}
+.admin-health-close{width:34px;height:34px;border:1px solid var(--line);border-radius:9px;background:#1b304a;color:#fff;font-size:20px;cursor:pointer}
+.admin-health-content{display:grid;gap:10px;min-height:64px;margin:18px 0;color:#a9bdd4;font-size:12px}
+.admin-health-content h3{margin:0;color:#83efd1;font-size:14px}
+.admin-health-check{display:flex;justify-content:space-between;gap:14px;padding:10px;border:1px solid var(--line);border-radius:10px}
+.admin-health-check strong{font-size:11px}
+.admin-health-check .is-ok{color:#83efd1}
+.admin-health-check .is-warning{color:#ffd18a}
+.admin-health-time{color:#8298b2;font-size:10px}
+.admin-health-retry{padding:9px 14px;border:0;border-radius:9px;background:#83efd1;color:#09201e;font:600 12px Vazirmatn;cursor:pointer}
