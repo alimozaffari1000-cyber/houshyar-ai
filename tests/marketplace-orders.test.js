@@ -77,6 +77,16 @@ test("customer order history requires an authenticated session", async () => {
   assert.equal(response.status, 401);
 });
 
+test("order idempotency lookup precedes product reads and recovers unique-key races", async () => {
+  const source = await readFile(new URL("../functions/api/orders.js", import.meta.url), "utf8");
+  const keyLookup = source.indexOf("WHERE buyer_user_id = ? AND idempotency_key = ?");
+  const productLookup = source.indexOf("SELECT p.id, p.title, p.price_minor");
+  assert.ok(keyLookup >= 0 && productLookup > keyLookup);
+  assert.match(source, /UNIQUE|constraint/i);
+  assert.match(source, /existing: true/);
+  assert.match(source, /idempotencyKey && \/UNIQUE\|constraint\/i);
+});
+
 test("order API derives prices from database and guards stock and price in its write", async () => {
   const source = await readFile(new URL("../functions/api/orders.js", import.meta.url), "utf8");
   assert.match(source, /SELECT p\.id, p\.title, p\.price_minor AS priceMinor/);
