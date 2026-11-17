@@ -23,7 +23,8 @@ export function initMarketplace(app, { locale = "fa" } = {}) {
   app.append(overlay);
   const status = overlay.querySelector(".marketplace-status");
   const productsNode = overlay.querySelector(".marketplace-products");
-  const sellerNode = overlay.querySelector(".marketplace-seller-content");\n  const ordersNode = overlay.querySelector(".marketplace-orders-content");
+  const sellerNode = overlay.querySelector(".marketplace-seller-content");
+  const ordersNode = overlay.querySelector(".marketplace-orders-content");
   const more = overlay.querySelector(".marketplace-more");
   let offset = 0, query = "", city = "", mode = "", coordinates = null;
   const say = message => { status.textContent = message || ""; };
@@ -159,7 +160,7 @@ export function initMarketplace(app, { locale = "fa" } = {}) {
       const button = form.querySelector("button[type=submit]"); button.disabled = true; say(c.loading);
       try {
         await request("/api/store/orders", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ productId:form.elements.productId.value, quantity, fulfillmentMode:form.elements.fulfillmentMode.value }) });
-        say(c.orderCreated); form.reset(); form.elements.quantity.value = "1";
+        say(c.orderCreated); form.reset(); form.elements.quantity.value = "1"; button.disabled = false;
       } catch (error) { say(error.status === 401 ? c.login : c.orderFailed); button.disabled = false; }
     }
     if (form.matches("[data-store-apply]")) {
