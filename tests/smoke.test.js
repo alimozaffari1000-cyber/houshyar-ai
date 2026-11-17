@@ -273,3 +273,28 @@ test('workspace conversation search UI is wired and localized in all supported w
   assert.equal((i18n.match(new RegExp(key+':','g'))||[]).length,12,key+' must exist in all 12 locales');
  }
 });
+
+
+test('saved conversations can be sorted by newest, oldest, or title without mutating history', async () => {
+ const { sortWorkspaceHistory } = await import('../src/workspace.js');
+ const history = [
+  { id: 'b', title: 'Beta', createdAt: '2026-01-02T00:00:00.000Z', messages: [{ role: 'user', text: 'b' }] },
+  { id: 'a', title: 'Alpha', createdAt: '2026-01-01T00:00:00.000Z', messages: [{ role: 'user', text: 'a' }] },
+  { id: 'c', title: 'Gamma', createdAt: '2026-01-03T00:00:00.000Z', messages: [{ role: 'user', text: 'c' }] }
+ ];
+ assert.deepEqual(sortWorkspaceHistory(history, 'newest').map(item => item.id), ['c', 'b', 'a']);
+ assert.deepEqual(sortWorkspaceHistory(history, 'oldest').map(item => item.id), ['a', 'b', 'c']);
+ assert.deepEqual(sortWorkspaceHistory(history, 'title').map(item => item.id), ['a', 'b', 'c']);
+ assert.deepEqual(sortWorkspaceHistory(history, 'unexpected').map(item => item.id), ['c', 'b', 'a']);
+ assert.deepEqual(history.map(item => item.id), ['b', 'a', 'c']);
+});
+
+test('workspace conversation sorting controls are wired and localized in all supported locales', async () => {
+ const js=await readFile(new URL('../src/workspace.js',import.meta.url),'utf8');
+ const css=await readFile(new URL('../src/style.css',import.meta.url),'utf8');
+ const i18n=await readFile(new URL('../src/i18n.js',import.meta.url),'utf8');
+ assert.match(js,/workspace-history-sort/);
+ assert.match(js,/sortWorkspaceHistory/);
+ assert.match(css,/\.workspace-history-sort/);
+ for(const key of ['workspaceSortLabel','workspaceSortNewest','workspaceSortOldest','workspaceSortTitle']) assert.equal((i18n.match(new RegExp(key+':','g'))||[]).length,12,key+' must exist in all 12 locales');
+});
