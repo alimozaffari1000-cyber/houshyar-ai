@@ -1,6 +1,9 @@
 name: Houshyar Innovation Radar
 
 on:
+  pull_request:
+    paths:
+      - ".github/workflows/innovation-radar.yml"
   workflow_dispatch:
   schedule:
     - cron: "41 4 * * 3"
