@@ -83,3 +83,62 @@ test("chat API can serve Claude without requiring a Groq key", async () => {
     globalThis.fetch = originalFetch;
   }
 });
+
+
+test("Google Gemini adapter maps system instructions, chat roles, and token usage", async () => {
+  const originalFetch = globalThis.fetch;
+  let captured;
+  globalThis.fetch = async (url, init) => {
+    captured = { url, headers: init.headers, body: JSON.parse(init.body) };
+    return new Response(JSON.stringify({
+      candidates: [{ content: { parts: [{ text: "سلام از جمینای" }] } }],
+      usageMetadata: { promptTokenCount: 10, candidatesTokenCount: 5, totalTokenCount: 15 }
+    }), { status: 200, headers: { "content-type": "application/json" } });
+  };
+  try {
+    const result = await requestModel({
+      provider: "google",
+      env: { GEMINI_API_KEY: "gemini-secret", GEMINI_MODEL: "gemini-2.5-flash" },
+      messages: [
+        { role: "system", content: "system rules" },
+        { role: "user", content: "سلام" },
+        { role: "assistant", content: "درود" }
+      ]
+    });
+    assert.match(captured.url, /models\\/gemini-2\\.5-flash:generateContent$/);
+    assert.equal(captured.headers["x-goog-api-key"], "gemini-secret");
+    assert.equal(captured.body.systemInstruction.parts[0].text, "system rules");
+    assert.deepEqual(captured.body.contents.map(item => item.role), ["user", "model"]);
+    assert.equal(result.reply, "سلام از جمینای");
+    assert.deepEqual(result.usage, { promptTokens: 10, completionTokens: 5, totalTokens: 15 });
+    assert.equal(JSON.stringify(result).includes("gemini-secret"), false);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("Google Gemini can serve chat requests and appears in health status", async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response(JSON.stringify({
+    candidates: [{ content: { parts: [{ text: "پاسخ آزمایشی Gemini" }] } }],
+    usageMetadata: { promptTokenCount: 2, candidatesTokenCount: 3, totalTokenCount: 5 }
+  }), { status: 200, headers: { "content-type": "application/json" } });
+  try {
+    const request = new Request("https://houshyar.example/api/chat", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ message: "سلام", provider: "google", mode: "balanced" })
+    });
+    const response = await onRequestPost({ request, env: { GEMINI_API_KEY: "test-gemini-secret" } });
+    const data = await response.json();
+    assert.equal(response.status, 200);
+    assert.equal(data.provider, "google");
+    assert.equal(data.reply, "پاسخ آزمایشی Gemini");
+    assert.equal(JSON.stringify(data).includes("test-gemini-secret"), false);
+    const health = await onRequestGet({ env: { GEMINI_API_KEY: "test-gemini-secret" } });
+    assert.equal(health.status, 200);
+    assert.equal((await health.json()).providers.find(item => item.id === "google").available, true);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
