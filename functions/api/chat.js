@@ -1,7 +1,7 @@
 import { checkChatRateLimit } from "./_lib/chat-rate-limit.js";
 import { getSessionUser } from "./_lib/auth.js";
 import { reserveDailyChat, releaseDailyChat } from "./_lib/daily-quota.js";
-import { routeAgentRequest } from "./_lib/agent-router.js";
+import { selectAgentRequest } from "./_lib/agent-router.js";
 import { resolveProvider, requestModel, listAvailableProviders } from "./_lib/model-providers.js";
 
 const MAX_BODY_BYTES = 32 * 1024;
@@ -158,7 +158,7 @@ export async function onRequestPost({ request, env }) {
     : providerChoice.provider === "google"
       ? (env.GEMINI_MODEL || providerChoice.model)
       : (groqModelByMode[requestedMode] || providerChoice.model);
-  const selectedAgent = routeAgentRequest(latest);
+  const selectedAgent = selectAgentRequest(latest, body.agentId);
   const messages = [
     { role: "system", content: "تو هوش‌یار، یک دستیار چندمنظوره و چندزبانه دقیق و کاربردی هستی. پاسخ را به زبان کاربر، روشن و مرحله‌ای ارائه کن. اطلاعات نامطمئن را قطعی جلوه نده. برای موضوعات پزشکی، مالی و حقوقی محدودیت‌ها و ریسک‌ها را روشن کن. هرگز ادعا نکن جستجوی زنده، اقدام بیرونی، اجرای کد یا دسترسی به ابزار انجام داده‌ای مگر واقعاً انجام شده باشد.\n\nنقش تخصصی این درخواست: " + selectedAgent.instruction },
     ...safeHistory,
