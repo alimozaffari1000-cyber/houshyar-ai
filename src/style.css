@@ -443,3 +443,9 @@ button:focus-visible,textarea:focus-visible,select:focus-visible{
 .admin-health-check .is-warning{color:#ffd18a}
 .admin-health-time{color:#8298b2;font-size:10px}
 .admin-health-retry{padding:9px 14px;border:0;border-radius:9px;background:#83efd1;color:#09201e;font:600 12px Vazirmatn;cursor:pointer}
+
+.admin-metrics-title{margin:16px 0 0;color:#83efd1;font-size:14px}
+.admin-metrics-summary{display:flex;flex-wrap:wrap;gap:8px}
+.admin-metrics-summary span{padding:8px 10px;border:1px solid var(--line);border-radius:9px;color:#e5f0fc;font-size:11px}
+.admin-metrics-note{margin:0;color:#9eb1c9;font-size:11px}
+.admin-health-check strong{max-width:65%;text-align:end;overflow-wrap:anywhere}
