@@ -38,7 +38,8 @@ export function initMarketplace(app, { locale = "fa" } = {}) {
     overlay.querySelectorAll("[data-market-tab]").forEach(button => button.classList.toggle("active", button.dataset.marketTab === tab));
     overlay.querySelectorAll("[data-market-view]").forEach(view => { view.hidden = view.dataset.marketView !== tab; });
     say("");
-    if (tab === "seller") loadSeller();\n    if (tab === "orders") loadOrders();
+    if (tab === "seller") loadSeller();
+    if (tab === "orders") loadOrders();
   };
   const productCard = product => {
     const place = [product.city, product.region].filter(Boolean).join(" · ");
