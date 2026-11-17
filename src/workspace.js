@@ -14,11 +14,11 @@ export function isDuplicateWorkspaceConversation(history,messages){
  if(!snapshot.length)return false;
  return normalizeWorkspaceHistory(history).some(item=>item.messages.length===snapshot.length&&item.messages.every((m,index)=>m.role===snapshot[index].role&&m.text===snapshot[index].text));
 }
-export function isDuplicateWorkspaceProject(projects,title,prompt){
+export function isDuplicateWorkspaceProject(projects,title,prompt,excludeId=""){
  const normalizedTitle=String(title??"").trim().toLocaleLowerCase();
  const normalizedPrompt=String(prompt??"").trim();
  if(!Array.isArray(projects)||!normalizedTitle)return false;
- return normalizeWorkspaceProjects(projects).some(item=>item.title.trim().toLocaleLowerCase()===normalizedTitle&&item.prompt.trim()===normalizedPrompt);
+ return normalizeWorkspaceProjects(projects).some(item=>item.id!==excludeId&&item.title.trim().toLocaleLowerCase()===normalizedTitle&&item.prompt.trim()===normalizedPrompt);
 }
 export function normalizeWorkspaceProjects(value){
  if(!Array.isArray(value))return[];
@@ -31,7 +31,7 @@ const write=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));return true}ca
 const formatDate=(value,options)=>{const date=new Date(value);return Number.isFinite(date.getTime())?new Intl.DateTimeFormat(getLocale(),options).format(date):""};
 export function initWorkspace(app,{getMessages,onLoadConversation,onUsePrompt}){
  const opener=app.querySelector("#workspace-open");if(!opener)return;
- let tab="history";
+ let tab="history",editingProjectId="";
  const panel=document.createElement("section");panel.className="workspace-overlay";panel.hidden=true;panel.setAttribute("aria-label",t("workspaceTitle"));
  panel.innerHTML='<div class="workspace-card" role="dialog" aria-modal="true" aria-labelledby="workspace-heading"><header class="workspace-head"><div><h2 id="workspace-heading">'+t("workspaceTitle")+'</h2><p>'+t("workspaceSubtitle")+'</p></div><button type="button" data-action="close" aria-label="'+t("workspaceClose")+'">✕</button></header><div class="workspace-tabs"><button type="button" data-tab="history">'+t("workspaceHistory")+'</button><button type="button" data-tab="projects">'+t("workspaceProjects")+'</button></div><div class="workspace-credit"><strong>'+t("workspaceQuotaTitle")+'</strong><p>'+t("workspaceQuotaPending")+'</p></div><div class="workspace-notice">'+t("workspaceLocalNotice")+'</div><p class="workspace-feedback" role="status"></p><div class="workspace-content"></div></div>';
  app.append(panel);
@@ -45,11 +45,12 @@ export function initWorkspace(app,{getMessages,onLoadConversation,onUsePrompt}){
    history.forEach(item=>{const date=formatDate(item.createdAt,{dateStyle:"medium",timeStyle:"short"});const first=(item.messages||[]).find(m=>m.role==="user");html+='<article class="workspace-item"><div><strong>'+esc(item.title)+'</strong><small>'+date+' · '+(item.messages||[]).length+'</small><p>'+esc(first?.text||"")+'</p></div><div class="workspace-item-actions"><button type="button" data-action="open-chat" data-id="'+esc(item.id)+'">'+t("workspaceOpenChat")+'</button><button type="button" data-action="delete-history" data-id="'+esc(item.id)+'">'+t("workspaceDelete")+'</button></div></article>'});
    content.innerHTML=html;
   }else{
-   let html='<form class="workspace-project-form"><input name="title" maxlength="80" placeholder="'+t("workspaceProjectName")+'" required><textarea name="prompt" maxlength="5000" rows="3" placeholder="'+t("workspaceProjectPrompt")+'"></textarea><button class="workspace-primary" type="submit">'+t("workspaceAddProject")+'</button></form>';
+   const editing=projects.find(item=>item.id===editingProjectId);
+   let html='<form class="workspace-project-form"><input name="title" maxlength="80" placeholder="'+t("workspaceProjectName")+'" value="'+esc(editing?.title||"")+'" required><textarea name="prompt" maxlength="5000" rows="3" placeholder="'+t("workspaceProjectPrompt")+'">'+esc(editing?.prompt||"")+'</textarea><div class="workspace-form-actions"><button class="workspace-primary" type="submit">'+t(editing?"workspaceUpdateProject":"workspaceAddProject")+'</button>'+(editing?'<button type="button" data-action="cancel-edit">'+t("workspaceCancelEdit")+'</button>':'')+'</div></form>';
    if(!projects.length)html+='<p class="workspace-empty">'+t("workspaceNoProjects")+'</p>';
-   projects.forEach(item=>{const date=formatDate(item.createdAt,{dateStyle:"medium"});html+='<article class="workspace-item"><div><strong>'+esc(item.title)+'</strong><small>'+date+'</small><p>'+esc(item.prompt||"")+'</p></div><div class="workspace-item-actions"><button type="button" data-action="use-project" data-id="'+esc(item.id)+'">'+t("workspaceUsePrompt")+'</button><button type="button" data-action="delete-project" data-id="'+esc(item.id)+'">'+t("workspaceDelete")+'</button></div></article>'});
+   projects.forEach(item=>{const date=formatDate(item.createdAt,{dateStyle:"medium"});html+='<article class="workspace-item"><div><strong>'+esc(item.title)+'</strong><small>'+date+'</small><p>'+esc(item.prompt||"")+'</p></div><div class="workspace-item-actions"><button type="button" data-action="use-project" data-id="'+esc(item.id)+'">'+t("workspaceUsePrompt")+'</button><button type="button" data-action="edit-project" data-id="'+esc(item.id)+'">'+t("workspaceEdit")+'</button><button type="button" data-action="delete-project" data-id="'+esc(item.id)+'">'+t("workspaceDelete")+'</button></div></article>'});
    content.innerHTML=html;
-   content.querySelector(".workspace-project-form").addEventListener("submit",event=>{event.preventDefault();const form=event.currentTarget,title=form.elements.title.value.trim(),prompt=form.elements.prompt.value.trim();if(!title){feedback.textContent=t("workspaceNameRequired");return}const savedProjects=read(PROJECTS_KEY);if(isDuplicateWorkspaceProject(savedProjects,title,prompt)){feedback.textContent=t("workspaceProjectAlreadyExists");return}const item={id:globalThis.crypto?.randomUUID?.()||String(Date.now()),title,prompt,createdAt:new Date().toISOString()};if(!write(PROJECTS_KEY,[item,...savedProjects].slice(0,MAX_ITEMS))){feedback.textContent=t("errorGeneric");return}feedback.textContent=t("workspaceProjectAdded");render()});
+   content.querySelector(".workspace-project-form").addEventListener("submit",event=>{event.preventDefault();const form=event.currentTarget,title=form.elements.title.value.trim(),prompt=form.elements.prompt.value.trim();if(!title){feedback.textContent=t("workspaceNameRequired");return}const savedProjects=read(PROJECTS_KEY),editing=savedProjects.find(item=>item.id===editingProjectId);if(isDuplicateWorkspaceProject(savedProjects,title,prompt,editingProjectId)){feedback.textContent=t("workspaceProjectAlreadyExists");return}if(editing){const next=savedProjects.map(item=>item.id===editingProjectId?{...item,title,prompt}:item);if(!write(PROJECTS_KEY,next)){feedback.textContent=t("errorGeneric");return}editingProjectId="";feedback.textContent=t("workspaceProjectUpdated")}else{const item={id:globalThis.crypto?.randomUUID?.()||String(Date.now()),title,prompt,createdAt:new Date().toISOString()};if(!write(PROJECTS_KEY,[item,...savedProjects].slice(0,MAX_ITEMS))){feedback.textContent=t("errorGeneric");return}feedback.textContent=t("workspaceProjectAdded")}render()});
   }
  }
  opener.addEventListener("click",()=>{panel.hidden=false;feedback.textContent="";render();panel.querySelector("[data-action=close]")?.focus()});
@@ -69,8 +70,10 @@ export function initWorkspace(app,{getMessages,onLoadConversation,onUsePrompt}){
    feedback.textContent=t("workspaceSaved");render();return
   }
   if(action==="open-chat"){const item=read(HISTORY_KEY).find(x=>x.id===id);if(item&&Array.isArray(item.messages)){panel.hidden=true;onLoadConversation(item.messages)}return}
+  if(action==="edit-project"){editingProjectId=id;feedback.textContent="";render();content.querySelector('[name="title"]')?.focus();return}
+  if(action==="cancel-edit"){editingProjectId="";feedback.textContent="";render();return}
   if(action==="use-project"){const item=read(PROJECTS_KEY).find(x=>x.id===id);if(item){panel.hidden=true;onUsePrompt(item.prompt||item.title)}return}
-  if(action==="delete-history"||action==="delete-project"){const key=action==="delete-history"?HISTORY_KEY:PROJECTS_KEY;if(write(key,read(key).filter(x=>x.id!==id))){feedback.textContent=t("workspaceDeleted");render()}else feedback.textContent=t("errorGeneric")}
+  if(action==="delete-history"||action==="delete-project"){const key=action==="delete-history"?HISTORY_KEY:PROJECTS_KEY;if(action==="delete-project"&&editingProjectId===id)editingProjectId="";if(write(key,read(key).filter(x=>x.id!==id))){feedback.textContent=t("workspaceDeleted");render()}else feedback.textContent=t("errorGeneric")}
  });
  panel.addEventListener("keydown",event=>{
   if(event.key==="Escape"){panel.hidden=true;opener.focus();return}
