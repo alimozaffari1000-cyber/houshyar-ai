@@ -418,3 +418,13 @@ button:focus-visible,textarea:focus-visible,select:focus-visible{
 @media(max-width:620px){.marketplace-overlay{padding:8px}.marketplace-dialog{max-height:94vh;padding:15px;border-radius:19px}.marketplace-products{grid-template-columns:1fr}.marketplace-product-art{flex-basis:68px;height:80px}.marketplace-form-card form{grid-template-columns:1fr}.marketplace-form-card label:has(textarea){grid-column:auto}.marketplace-seller-product{align-items:flex-start;flex-wrap:wrap}.marketplace-seller-product>div{flex:1 1 55%}.marketplace-head h2{font-size:19px}}
 
 .web-search-toggle{display:inline-flex;align-items:center;gap:6px;cursor:pointer}.web-search-toggle input{accent-color:#58d9bd;width:14px;height:14px}.web-search-toggle input:disabled{cursor:not-allowed;opacity:.45}.source-list{margin:9px 0 2px;padding:10px 12px;border:1px solid rgba(110,231,196,.18);border-radius:10px;background:rgba(85,213,181,.04);color:#9fb2ca;font-size:10px;line-height:1.8}.source-list strong{display:block;color:#83efd1;margin-bottom:4px}.source-list ul{margin:0;padding-inline-start:18px}.source-list a{color:#a9d9ff;text-decoration:underline;text-underline-offset:2px;overflow-wrap:anywhere}
+
+.marketplace-order-form{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;align-items:center}
+.marketplace-order-form select,.marketplace-order-form input{min-width:0;max-width:100%;padding:9px;border:1px solid var(--border);border-radius:10px;background:var(--surface);color:var(--text)}
+.marketplace-order-form input{width:76px}
+.marketplace-order-form button,.marketplace-order button{padding:9px 12px;border:0;border-radius:10px;background:var(--accent);color:white}
+.marketplace-orders-content{display:grid;gap:10px}
+.marketplace-order{display:flex;flex-wrap:wrap;align-items:center;gap:10px;justify-content:space-between;padding:12px;border:1px solid var(--border);border-radius:12px}
+.marketplace-order>div{display:grid;gap:5px;min-width:0}
+.marketplace-order small{overflow-wrap:anywhere}
+.marketplace-order button{cursor:pointer}
