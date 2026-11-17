@@ -105,7 +105,7 @@ test("Google Gemini adapter maps system instructions, chat roles, and token usag
         { role: "assistant", content: "درود" }
       ]
     });
-    assert.match(captured.url, /models\\/gemini-2\\.5-flash:generateContent$/);
+    assert.ok(captured.url.endsWith("/models/gemini-2.5-flash:generateContent"));
     assert.equal(captured.headers["x-goog-api-key"], "gemini-secret");
     assert.equal(captured.body.systemInstruction.parts[0].text, "system rules");
     assert.deepEqual(captured.body.contents.map(item => item.role), ["user", "model"]);
