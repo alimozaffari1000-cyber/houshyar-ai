@@ -321,3 +321,44 @@ test('workspace bulk deletion requires an explicit confirmation UI and localized
  assert.match(js,/removeWorkspaceConversations/);
  for(const key of ['workspaceSelectConversation','workspaceSelectAll','workspaceClearSelection','workspaceDeleteSelected','workspaceBulkDeletePrompt','workspaceConfirmDelete','workspaceCancelBulkDelete','workspaceBulkDeleted']) assert.equal((i18n.match(new RegExp(key+':','g'))||[]).length,12,key+' must exist in all 12 locales');
 });
+
+
+test('workspace backup validates format and merges without overwriting existing records', async () => {
+ const { createWorkspaceBackup, mergeWorkspaceBackup } = await import('../src/workspace.js');
+ const existingHistory=[{id:'same',title:'Keep me',createdAt:'2026-01-01T00:00:00.000Z',messages:[{role:'user',text:'existing'}]}];
+ const existingProjects=[{id:'p-same',title:'Keep project',prompt:'existing',createdAt:'2026-01-01T00:00:00.000Z'}];
+ const backup=createWorkspaceBackup([
+  {id:'same',title:'Do not overwrite',createdAt:'2026-01-02T00:00:00.000Z',messages:[{role:'user',text:'changed'}]},
+  {id:'new',title:'New chat',createdAt:'2026-01-03T00:00:00.000Z',messages:[{role:'user',text:'new'}]}
+ ],[
+  {id:'p-same',title:'Overwrite attempt',prompt:'changed',createdAt:'2026-01-02T00:00:00.000Z'},
+  {id:'p-new',title:'New project',prompt:'new',createdAt:'2026-01-03T00:00:00.000Z'}
+ ]);
+ const merged=mergeWorkspaceBackup(existingHistory,existingProjects,backup);
+ assert.deepEqual(merged.history.map(x=>x.id),['same','new']);
+ assert.equal(merged.history[0].title,'Keep me');
+ assert.equal(merged.projects[0].title,'Keep project');
+ assert.equal(merged.addedHistory,1);
+ assert.equal(merged.addedProjects,1);
+ assert.equal(mergeWorkspaceBackup(existingHistory,existingProjects,{format:'other',version:1,history:[],projects:[]}),null);
+ assert.equal(mergeWorkspaceBackup(existingHistory,existingProjects,{format:'houshyar-workspace-backup',version:2,history:[],projects:[]}),null);
+ assert.equal(mergeWorkspaceBackup(existingHistory,existingProjects,{format:'houshyar-workspace-backup',version:1,history:{},projects:[]}),null);
+});
+
+test('workspace backup never evicts existing records when the local quota is full', async () => {
+ const { mergeWorkspaceBackup } = await import('../src/workspace.js');
+ const history=Array.from({length:30},(_,i)=>({id:'h'+i,title:'Chat '+i,createdAt:'2026-01-01T00:00:00.000Z',messages:[{role:'user',text:'m'+i}]}));
+ const projects=Array.from({length:30},(_,i)=>({id:'p'+i,title:'Project '+i,prompt:'p'+i,createdAt:'2026-01-01T00:00:00.000Z}));
+ const result=mergeWorkspaceBackup(history,projects,{format:'houshyar-workspace-backup',version:1,history:[{id:'incoming',title:'Incoming',createdAt:'2026-01-02T00:00:00.000Z',messages:[{role:'user',text:'incoming'}]}],projects:[{id:'incoming-p',title:'Incoming project',prompt:'x',createdAt:'2026-01-02T00:00:00.000Z}]});
+ assert.equal(result.history.length,30);assert.equal(result.projects.length,30);
+ assert.equal(result.history[0].id,'h0');assert.equal(result.projects[0].id,'p0');
+ assert.equal(result.addedHistory,0);assert.equal(result.addedProjects,0);
+});
+
+test('workspace backup controls are localized and restore is merge-only', async () => {
+ const js=await readFile(new URL('../src/workspace.js',import.meta.url),'utf8');
+ const i18n=await readFile(new URL('../src/i18n.js',import.meta.url),'utf8');
+ assert.match(js,/data-action="export-backup"/);assert.match(js,/data-action="import-backup"/);
+ assert.match(js,/mergeWorkspaceBackup/);assert.match(js,/file\.size>1024\*1024/);
+ for(const key of ['workspaceExportBackup','workspaceImportBackup','workspaceBackupExported','workspaceBackupInvalid','workspaceBackupTooLarge','workspaceBackupImported'])assert.equal((i18n.match(new RegExp(key+':','g'))||[]).length,12,key+' must exist in all 12 locales');
+});
