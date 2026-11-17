@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { BILLING_PLANS, getBillingPlan, resolveEntitlement } from "../functions/api/_lib/billing-policy.js";
+import { BILLING_PLANS, getBillingPlan, resolveEntitlement, loadUserEntitlement } from "../functions/api/_lib/billing-policy.js";
 
 test("billing catalogue exposes conservative free, plus and pro limits", () => {
   assert.deepEqual(BILLING_PLANS.map(plan => plan.code), ["free", "plus", "pro"]);
@@ -41,4 +41,19 @@ test("chat enforces the active plan quota and blocks compare outside eligible pl
   assert.match(chat, /quotaLimit = entitlement\.plan\.dailyChatLimit/);
   assert.match(chat, /quotaFeatures\?\.modelCompare !== true/);
   assert.match(chat, /PLAN_ENTITLEMENTS_NOT_CONFIGURED/);
+});
+
+test("loadUserEntitlement reads the current active subscription and safely defaults to free", async () => {
+  const calls = [];
+  const db = { prepare(sql) {
+    calls.push(sql);
+    return { bind(...args) { calls.push(args); return { async first() { return { plan_code: "plus", status: "active", starts_at: 100, ends_at: 300 }; } }; } };
+  } };
+  const result = await loadUserEntitlement({ db, userId: "user-1", now: 200 });
+  assert.equal(result.plan.code, "plus");
+  assert.equal(result.plan.dailyChatLimit, 100);
+  assert.match(calls[0], /user_subscriptions/);
+  assert.deepEqual(calls[1], ["user-1", 200, 200]);
+  const noSubscriptionDb = { prepare() { return { bind() { return { async first() { return null; } }; } }; } };
+  assert.equal((await loadUserEntitlement({ db: noSubscriptionDb, userId: "user-2", now: 200 })).plan.code, "free");
 });

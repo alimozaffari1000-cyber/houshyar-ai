@@ -4,6 +4,7 @@ import { reserveDailyChat, releaseDailyChat } from "./_lib/daily-quota.js";
 import { selectAgentRequest } from "./_lib/agent-router.js";
 import { resolveProvider, requestModel, listAvailableProviders } from "./_lib/model-providers.js";
 import { getProviderRates, recordAiUsage } from "./_lib/usage-meter.js";
+import { loadUserEntitlement } from "./_lib/billing-policy.js";
 
 const MAX_BODY_BYTES = 32 * 1024;
 const UPSTREAM_TIMEOUT_MS = 20_000;
@@ -108,6 +109,7 @@ export async function onRequestPost({ request, env }) {
   let quotaUserId = null;
   let quotaUsageDate = null;
   let usageUserId = null;
+  let entitlement = null;
   const usageMeteringEnabled = env.AI_USAGE_METERING_ENABLED === "true";
   if (env.CHAT_PLAN_ENTITLEMENTS_ENABLED === "true" && env.CHAT_QUOTA_ENABLED !== "true") return json({ error: "PLAN_ENTITLEMENTS_NOT_CONFIGURED" }, 503);
   if (usageMeteringEnabled && (env.AUTH_ENABLED !== "true" || !env.DB)) return json({ error: "USAGE_METERING_NOT_CONFIGURED" }, 503);
@@ -120,11 +122,18 @@ export async function onRequestPost({ request, env }) {
       if (!user) return json({ error: "AUTH_REQUIRED", message: "برای استفاده از این سرویس وارد حساب کاربری شوید." }, 401);
       quotaUserId = user.id;
       usageUserId = user.id;
-      quotaReservation = await reserveDailyChat({ db: env.DB, userId: quotaUserId, limit: env.FREE_DAILY_CHAT_LIMIT });
+      if (env.CHAT_PLAN_ENTITLEMENTS_ENABLED === "true") {
+        entitlement = await loadUserEntitlement({ db: env.DB, userId: quotaUserId });
+        if (body.compare === true && entitlement.plan.features.modelCompare !== true) {
+          return json({ error: "FEATURE_NOT_AVAILABLE", feature: "modelCompare", plan: entitlement.plan.code, message: "این قابلیت در پلن فعلی فعال نیست." }, 403);
+        }
+      }
+      const quotaLimit = entitlement?.plan?.dailyChatLimit ?? env.FREE_DAILY_CHAT_LIMIT;
+      quotaReservation = await reserveDailyChat({ db: env.DB, userId: quotaUserId, limit: quotaLimit });
       quotaUsageDate = quotaReservation.usageDate;
       if (!quotaReservation.allowed) {
         return json(
-          { error: "DAILY_QUOTA_EXCEEDED", message: "سهمیه روزانه گفتگو به پایان رسیده است.", limit: quotaReservation.limit, resetAt: quotaReservation.resetAt },
+          { error: "DAILY_QUOTA_EXCEEDED", message: "سهمیه روزانه گفتگو به پایان رسیده است.", limit: quotaReservation.limit, resetAt: quotaReservation.resetAt, plan: entitlement?.plan?.code ?? "free" },
           429,
           { "Retry-After": String(Math.max(1, quotaReservation.resetAt - Math.floor(Date.now() / 1000))) }
         );
@@ -266,6 +275,7 @@ export async function onRequestPost({ request, env }) {
   }
   return json({
     reply: result.reply,
+    plan: entitlement?.plan?.code ?? null,
     usageRecord,
     mode: requestedMode,
     provider: providerChoice.provider,
