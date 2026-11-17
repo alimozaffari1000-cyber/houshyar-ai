@@ -7,12 +7,18 @@ test("local discovery filters unavailable stock and supports location/fulfillmen
   const ui = await readFile(new URL("../src/marketplace.js", import.meta.url), "utf8");
   assert.ok(api.includes("p.stock_count > 0"));
   assert.ok(api.includes("distanceKm"));
+  assert.ok(api.includes("LIMIT ? OFFSET ?"));
+  assert.ok(api.includes("const offset = clamp"));
+  assert.ok(api.includes("longitudeScale"));
   assert.ok(ui.includes("/api/stores?"));
   assert.ok(ui.includes("getCurrentPosition"));
   assert.ok(ui.includes('name="city"'));
   assert.ok(ui.includes('value="delivery"'));
   assert.ok(ui.includes('value="pickup"'));
   assert.ok(ui.includes("orderUrl"));
+  assert.ok(ui.includes("offset:String(offset)"));
+  assert.ok(ui.includes("insertAdjacentHTML(\"beforeend\""));
+  assert.ok(ui.includes("loadingCatalog"));
 });
 
 test("seller dashboard exposes public location and fulfillment settings", async () => {
