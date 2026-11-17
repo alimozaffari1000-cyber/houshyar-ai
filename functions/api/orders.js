@@ -51,7 +51,7 @@ export async function onRequestPost({ request, env }) {
       if (existing) return authJson({ created: true, existing: true, order: existing }, 200);
     }
     const result = await env.DB.prepare(
-      "SELECT p.id, p.title, p.price_minor AS priceMinor, p.currency_code AS currency, p.stock_count AS stockCount, p.store_id AS storeId, s.status AS storeStatus " +
+      "SELECT p.id, p.title, p.price_minor AS priceMinor, p.currency_code AS currency, p.stock_count AS stockCount, p.store_id AS storeId, s.status AS storeStatus, s.offers_delivery AS offersDelivery, s.offers_pickup AS offersPickup " +
       "FROM products p JOIN merchant_stores s ON s.id = p.store_id WHERE p.id IN (" + placeholders + ") AND p.status = 'published'"
     ).bind(...ids).all();
     const rows = Array.isArray(result.results) ? result.results : [];
@@ -61,6 +61,8 @@ export async function onRequestPost({ request, env }) {
     if (rows.some(row => row.storeId !== storeId || row.storeStatus !== "active" || row.currency !== currency)) {
       return authJson({ error: "ORDER_MUST_USE_ONE_ACTIVE_STORE_AND_CURRENCY" }, 400);
     }
+    if (fulfillment === "delivery" && !rows[0].offersDelivery) return authJson({ error: "DELIVERY_NOT_AVAILABLE" }, 400);
+    if (fulfillment === "pickup" && !rows[0].offersPickup) return authJson({ error: "PICKUP_NOT_AVAILABLE" }, 400);
     let subtotal = 0;
     const items = rows.map(row => {
       const quantity = quantities.get(row.id);
