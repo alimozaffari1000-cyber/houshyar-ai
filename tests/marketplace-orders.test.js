@@ -23,7 +23,7 @@ function dbMock({ user = { id: "buyer-1", email: "buyer@example.test", role: "us
       statements.push(statement);
       return statement;
     },
-    async batch(items) { statements.push(...items); return batchResults; }
+    async batch(items) { return batchResults; }
   };
 }
 
