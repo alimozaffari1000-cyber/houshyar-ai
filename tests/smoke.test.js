@@ -362,3 +362,41 @@ test('workspace backup controls are localized and restore is merge-only', async 
  assert.match(js,/mergeWorkspaceBackup/);assert.match(js,/file\.size>1024\*1024/);
  for(const key of ['workspaceExportBackup','workspaceImportBackup','workspaceBackupExported','workspaceBackupInvalid','workspaceBackupTooLarge','workspaceBackupImported'])assert.equal((i18n.match(new RegExp(key+':','g'))||[]).length,12,key+' must exist in all 12 locales');
 });
+
+
+test('cloud workspace merge keeps local and remote records without overwriting conflicts', async () => {
+ const { mergeWorkspaceSync } = await import('../src/workspace.js');
+ const localHistory = [{ id:'local-chat', title:'Local', createdAt:'2026-01-01T00:00:00.000Z', messages:[{role:'user',text:'local'}] }];
+ const remoteHistory = [{ id:'remote-chat', title:'Remote', createdAt:'2026-01-02T00:00:00.000Z', messages:[{role:'user',text:'remote'}] }];
+ const localProjects = [{ id:'local-project', title:'Local project', prompt:'local', createdAt:'2026-01-01T00:00:00.000Z' }];
+ const remoteProjects = [{ id:'remote-project', title:'Remote project', prompt:'remote', createdAt:'2026-01-02T00:00:00.000Z' }];
+ const merged = mergeWorkspaceSync(localHistory, localProjects, {history:remoteHistory,projects:remoteProjects});
+ assert.equal(merged.ok,true);
+ assert.deepEqual(merged.history.map(item=>item.id),['local-chat','remote-chat']);
+ assert.deepEqual(merged.projects.map(item=>item.id),['local-project','remote-project']);
+ const conflict = mergeWorkspaceSync(localHistory, localProjects, {history:[{...localHistory[0],title:'Changed remotely'}],projects:[]});
+ assert.deepEqual(conflict,{ok:false,reason:'id-conflict'});
+});
+
+test('cloud workspace merge refuses capacity overflow instead of silently dropping records', async () => {
+ const { mergeWorkspaceSync } = await import('../src/workspace.js');
+ const local = Array.from({length:30},(_,i)=>({id:'local-'+i,title:'Local '+i,createdAt:'2026-01-01T00:00:00.000Z',messages:[{role:'user',text:'local '+i}]}));
+ const remote = [{id:'remote-extra',title:'Remote',createdAt:'2026-01-02T00:00:00.000Z',messages:[{role:'user',text:'remote'}]}];
+ assert.deepEqual(mergeWorkspaceSync(local,[],{history:remote,projects:[]}),{ok:false,reason:'capacity'});
+});
+
+test('workspace cloud sync is explicit, manual, and preserves local data until server save', async () => {
+ const js=await readFile(new URL('../src/workspace.js',import.meta.url),'utf8');
+ assert.match(js,/data-action="cloud-sync"/);
+ assert.match(js,/fetch\("\/api\/workspace\/sync"/);
+ assert.match(js,/credentials:"same-origin"/);
+ assert.match(js,/WORKSPACE_REVISION_CONFLICT|status===409/);
+ assert.match(js,/mergeWorkspaceSync/);
+});
+
+test('cloud workspace sync messages are translated in all 12 supported locales', async () => {
+ const i18n=await readFile(new URL('../src/i18n.js',import.meta.url),'utf8');
+ for(const key of ['workspaceCloudSync','workspaceCloudSyncing','workspaceCloudSyncDone','workspaceCloudSyncUnavailable','workspaceCloudSyncConflict','workspaceCloudSyncCapacity','workspaceCloudSyncTooLarge']){
+  assert.equal((i18n.match(new RegExp(key+':','g'))||[]).length,12,key+' must exist in all 12 locales');
+ }
+});
