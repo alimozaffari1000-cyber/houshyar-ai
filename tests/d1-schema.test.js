@@ -37,6 +37,7 @@ test('operational metrics schema excludes personal and conversation data', async
   assert.match(sql, /CREATE TABLE IF NOT EXISTS operational_metrics/);
   assert.match(sql, /request_id TEXT NOT NULL/);
   assert.match(sql, /elapsed_ms INTEGER NOT NULL/);
-  assert.doesNotMatch(sql, /prompt|message|user_id|email|ip_address|api_key/i);
+  const schemaOnly = sql.replace(/^--.*$/gm, "");
+  assert.doesNotMatch(schemaOnly, /prompt|message|user_id|email|ip_address|api_key/i);
   assert.match(sql, /created_at INTEGER NOT NULL/);
 });
