@@ -18,3 +18,8 @@ test("API security and quota errors have localized messages for every supported 
 test("unknown API error keys retain the existing fallback behavior", () => {
   assert.equal(translate("notARealErrorKey", "fa"), "notARealErrorKey");
 });
+
+
+test("Chinese API error copy stays concise and localized", () => {
+  assert.equal(translate("errorAuthRequired", "zh"), "请先登录账户，然后继续。");
+});
