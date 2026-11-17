@@ -50,7 +50,7 @@ export async function requestModel({ provider, env, messages, model, signal, max
     const groundingChunks = data?.candidates?.[0]?.groundingMetadata?.groundingChunks;
     const sources = Array.isArray(groundingChunks) ? groundingChunks
       .map(chunk => ({ title: typeof chunk?.web?.title === "string" ? chunk.web.title.trim().slice(0, 160) : "", url: typeof chunk?.web?.uri === "string" ? chunk.web.uri.trim().slice(0, 2048) : "" }))
-      .filter(source => source.title && /^https?:\\/\\//i.test(source.url))
+      .filter(source => source.title && (source.url.startsWith("https://") || source.url.startsWith("http://")))
       .filter((source, index, all) => all.findIndex(item => item.url === source.url) === index)
       .slice(0, 5) : [];
     return {
