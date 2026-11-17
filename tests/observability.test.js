@@ -45,3 +45,21 @@ test("telemetry rejects unsafe event/provider/status/error labels", () => {
   assert.equal(event.error_code, "unknown");
   assert.equal(lines[0].includes("private"), false);
 });
+
+test("D1 metrics persistence is opt-in and only stores aggregate-safe fields", async () => {
+  const writes = [];
+  const db = { prepare(sql) { return { bind(...values) { return { run: async () => { writes.push({ sql, values }); } }; } }; } };
+  const scheduled = [];
+  const telemetry = createRequestTelemetry({
+    request: new Request("https://example.invalid"),
+    env: { OBSERVABILITY_ENABLED: "true", DB: db },
+    ctx: { waitUntil(promise) { scheduled.push(promise); } },
+    logger: { log() {} }
+  });
+  telemetry.log("provider_success", { provider: "groq", status: 200, durationMs: 120 });
+  await Promise.all(scheduled);
+  assert.equal(writes.length, 2);
+  assert.match(writes[0].sql, /INSERT INTO operational_metrics/);
+  assert.deepEqual(writes[0].values.slice(1, 5), ["provider_success", "groq", 200, 120]);
+  assert.doesNotMatch(writes[0].sql, /prompt|message|user_id|ip_address|token/i);
+});
