@@ -1,7 +1,7 @@
 const PROVIDERS = new Set(["groq", "anthropic", "google"]);
 const MODES = Object.freeze({
   speed: { latency: 0.55, quality: 0.15, reliability: 0.25, cost: 0.05 },
-  quality: { latency: 0.10, quality: 0.55, reliability: 0.30, cost: 0.05 },
+  quality: { latency: 0.03, quality: 0.85, reliability: 0.10, cost: 0.02 },
   economy: { latency: 0.10, quality: 0.20, reliability: 0.25, cost: 0.45 },
   balanced: { latency: 0.25, quality: 0.30, reliability: 0.30, cost: 0.15 }
 });
