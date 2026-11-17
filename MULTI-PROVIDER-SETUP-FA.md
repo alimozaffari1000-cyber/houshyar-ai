@@ -5,6 +5,7 @@
 ## ارائه‌دهنده‌ها
 - Groq: با Secret به نام `GROQ_API_KEY` (اتصال فعلی و پیش‌فرض)
 - Anthropic Claude: با Secret به نام `CLAUDE_API_KEY`
+- Google Gemini: با Secret به نام `GEMINI_API_KEY` (مدل پیش‌فرض `gemini-2.5-flash`)
 
 مدل Claude پیش‌فرض در این نسخه `claude-sonnet-5-5` است. در صورت نیاز می‌توان آن را با متغیر معمولی `CLAUDE_MODEL` تغییر داد.
 
@@ -17,11 +18,21 @@
 
 برای دریافت API key به حساب Claude Console نیاز است: https://platform.claude.com/
 
+## تنظیم Google Gemini در Cloudflare Pages
+1. در Cloudflare Dashboard پروژه Pages هوش‌یار را باز کنید.
+2. به Settings → Variables and Secrets → Production بروید.
+3. یک Secret با نام دقیق `GEMINI_API_KEY` ایجاد کنید و کلید را از Google AI Studio وارد کنید.
+4. در صورت نیاز متغیر معمولی `GEMINI_MODEL` را روی `gemini-2.5-flash` تنظیم کنید.
+5. Deploy جدید اجرا کنید تا Secret در محیط Production فعال شود.
+
+کلید Gemini را فقط در Cloudflare به‌صورت Secret ذخیره کنید؛ هرگز آن را در متغیرهای `VITE_*` قرار ندهید.
+
 ## رفتار انتخاب مدل
-- `auto`: در حالت deep، اگر Claude پیکربندی شده باشد Claude انتخاب می‌شود؛ در غیر این صورت Groq انتخاب می‌شود. اگر فقط یکی از دو کلید وجود داشته باشد، همان ارائه‌دهنده انتخاب می‌شود.
+- `auto`: در حالت deep، Claude در صورت پیکربندی اولویت دارد؛ در حالت‌های دیگر اولویت پیش‌فرض با Groq، سپس Claude و سپس Gemini است. می‌توان با متغیر `AI_DEFAULT_PROVIDER` انتخاب خودکار را به `groq`، `anthropic` یا `google` تغییر داد.
 - `groq`: انتخاب صریح Groq.
 - `anthropic`: انتخاب صریح Claude؛ اگر Secret تنظیم نشده باشد API با خطای پیکربندی پاسخ می‌دهد.
-- مقایسه: با وجود هر دو Secret، پاسخ Groq و Claude هم‌زمان گرفته و کنار هم نمایش داده می‌شود. اگر Claude تنظیم نشده باشد، مقایسه قدیمی دو مدل Groq همچنان قابل استفاده است.
+- `google`: انتخاب صریح Gemini؛ اگر Secret تنظیم نشده باشد API با خطای پیکربندی پاسخ می‌دهد.
+- مقایسه: مقایسه فعلی دو مدل Groq یا ترکیب Groq و Claude را پشتیبانی می‌کند؛ Gemini در انتخاب مستقیم و پاسخ‌گویی عادی فعال است و مقایسه چندارائه‌دهنده‌ای آن مرحله بعدی توسعه است.
 
 ## امنیت و هزینه
 - هر درخواست به API ارائه‌دهنده می‌تواند هزینه داشته باشد؛ مقایسه دو ارائه‌دهنده تقریباً دو درخواست ایجاد می‌کند.
