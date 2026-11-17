@@ -176,3 +176,34 @@ test("Gemini web search enables grounding and returns only safe web sources", as
     globalThis.fetch = originalFetch;
   }
 });
+
+
+test("chat API enables Google grounding only for an explicitly selected Gemini provider", async () => {
+  const originalFetch = globalThis.fetch;
+  let capturedBody;
+  globalThis.fetch = async (_url, init) => {
+    capturedBody = JSON.parse(init.body);
+    return new Response(JSON.stringify({
+      candidates: [{
+        content: { parts: [{ text: "پاسخ همراه منبع" }] },
+        groundingMetadata: { groundingChunks: [{ web: { title: "راهنمای رسمی", uri: "https://example.com/guide" } }] }
+      }],
+      usageMetadata: { promptTokenCount: 2, candidatesTokenCount: 3, totalTokenCount: 5 }
+    }), { status: 200, headers: { "content-type": "application/json" } });
+  };
+  try {
+    const request = new Request("https://houshyar.example/api/chat", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ message: "اطلاعات جدید را بررسی کن", provider: "google", webSearch: true })
+    });
+    const response = await onRequestPost({ request, env: { GEMINI_API_KEY: "test-grounding-secret" } });
+    const data = await response.json();
+    assert.equal(response.status, 200);
+    assert.deepEqual(capturedBody.tools, [{ google_search: {} }]);
+    assert.deepEqual(data.sources, [{ title: "راهنمای رسمی", url: "https://example.com/guide" }]);
+    assert.equal(JSON.stringify(data).includes("test-grounding-secret"), false);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
