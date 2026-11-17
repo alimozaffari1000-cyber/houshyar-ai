@@ -78,10 +78,7 @@ test("marketplace UI is connected to home screen and uses authenticated store en
   assert.match(ui, /credentials:"same-origin"/);
   assert.match(ui, /navigator\.geolocation/);
   assert.match(ui, /data-market-near/);
-  assert.match(ui, /navigator\\.geolocation/);
-  assert.match(ui, /data-market-near/);
-  assert.match(ui, /navigator\\.geolocation/);
-  assert.match(ui, /mode=|params\\.set\\("mode"/);
+  assert.match(ui, /params\.set\("mode"/);
 });
 
 test("marketplace UI explains disabled payment and virtual try-on features", async () => {
