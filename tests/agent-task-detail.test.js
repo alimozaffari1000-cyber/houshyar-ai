@@ -4,17 +4,20 @@ import { onRequestGet } from "../functions/api/agent-tasks/[id].js";
 
 const id = "123e4567-e89b-12d3-a456-426614174000";
 
-function mockDb({ row = null } = {}) {
+function mockDb({ row = null, user = { id: "user-1", email: "user@example.test", role: "user" } } = {}) {
   let query = "";
-  let args = [];
+  let taskArgs = [];
   return {
     get query() { return query; },
-    get args() { return args; },
+    get args() { return taskArgs; },
     prepare(sql) {
       query = sql;
       return {
         bind(...values) {
-          args = values;
+          if (sql.includes("SELECT users.id")) {
+            return { async first() { return user; } };
+          }
+          taskArgs = values;
           return { async first() { return row; } };
         }
       };
