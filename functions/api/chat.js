@@ -1,7 +1,7 @@
 import { checkChatRateLimit } from "./_lib/chat-rate-limit.js";
 import { getSessionUser } from "./_lib/auth.js";
 import { reserveDailyChat, releaseDailyChat } from "./_lib/daily-quota.js";
-import { routeAgentRequest } from "./_lib/agent-router.js";
+import { routeAgentRequest, buildAgentPlan } from "./_lib/agent-router.js";
 import { resolveProvider, requestModel, listAvailableProviders } from "./_lib/model-providers.js";
 import { createRequestTelemetry } from "./_lib/observability.js";
 import { rankProvidersFromObservations } from "./_lib/provider-evaluator.js";
@@ -187,6 +187,7 @@ export async function onRequestPost({ request, env, ctx }) {
       ? (env.GEMINI_MODEL || providerChoice.model)
       : (groqModelByMode[requestedMode] || providerChoice.model);
   const selectedAgent = routeAgentRequest(latest);
+  const agentWorkflow = buildAgentPlan(latest);
   const messages = [
     { role: "system", content: "تو هوش‌یار، یک دستیار چندمنظوره و چندزبانه دقیق و کاربردی هستی. پاسخ را به زبان کاربر، روشن و مرحله‌ای ارائه کن. اطلاعات نامطمئن را قطعی جلوه نده. برای موضوعات پزشکی، مالی و حقوقی محدودیت‌ها و ریسک‌ها را روشن کن. هرگز ادعا نکن جستجوی زنده، اقدام بیرونی، اجرای کد یا دسترسی به ابزار انجام داده‌ای مگر واقعاً انجام شده باشد.\n\nنقش تخصصی این درخواست: " + selectedAgent.instruction },
     ...safeHistory,
@@ -321,7 +322,8 @@ export async function onRequestPost({ request, env, ctx }) {
     model: result.model,
     usage: result.usage,
     sources: Array.isArray(result.sources) ? result.sources : [],
-    agent: { id: selectedAgent.id, label: selectedAgent.label, labelEn: selectedAgent.labelEn }
+    agent: { id: selectedAgent.id, label: selectedAgent.label, labelEn: selectedAgent.labelEn },
+    agentWorkflow
   }, 200, telemetry.responseHeaders());
 }
 
