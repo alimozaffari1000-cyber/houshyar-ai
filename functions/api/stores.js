@@ -57,7 +57,7 @@ export async function onRequestGet({ request, env }) {
     ).bind(...bindings).all();
     const rows = Array.isArray(result.results) ? result.results : [];
     const truncated = rows.length > 500;
-    const products = rows.slice(0, 500).map((row) => {
+    const products = rows.map((row) => {
       const distanceKmValue = lat === null || row.latitude === null || row.longitude === null
         ? null : Math.round(distanceKm(lat, lon, row.latitude, row.longitude) * 10) / 10;
       return { ...row, distanceKm: distanceKmValue };
