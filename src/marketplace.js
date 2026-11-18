@@ -4,9 +4,11 @@ const COPY = {
 };
 const copyFor = locale => COPY[locale] || COPY.en;
 const shoppingTerms = value => {
-  const normalized = String(value || "").normalize("NFKC").replace(/[يى]/g, "ی").replace(/ك/g, "ک").replace(/[\u064B-\u065F\u0670]/g, "").toLowerCase();
-  const stop = new Set(["برای", "میخواهم", "میخوام", "می‌خواهم", "می‌خوام", "لطفا", "لطفاً", "بخر", "خرید", "لازم", "نیاز", "دارم", "میخریم", "می‌خرم", "میخرم"]);
-  return [...new Set(normalized.split(/[,،;؛+]|\s+و\s+/).map(part => part.replace(/^(میخواهم|میخوام|می‌خواهم|می‌خوام|برای|لطفا|لطفاً)\s+/, "").replace(/\s+(میخواهم|میخوام|می‌خواهم|می‌خوام|میخرم|می‌خرم)$/, "").trim()).filter(term => term.length >= 2 && !stop.has(term)))].slice(0, 10);
+  const normalized = String(value || "").normalize("NFKC").replace(/[يى]/g, "ی").replace(/ك/g, "ک").replace(/[\\u064B-\\u065F\\u0670]/g, "").toLowerCase();
+  const filler = new Set(["برای", "میخواهم", "میخوام", "می‌خواهم", "می‌خوام", "لطفا", "لطفاً", "بخر", "خرید", "لازم", "نیاز", "دارم", "میخریم", "می‌خرم", "میخرم", "شام", "ناهار", "صبحانه"]);
+  return [...new Set(normalized.split(/[,،;؛+]|\\s+و\\s+/).map(part =>
+    part.split(/\\s+/).filter(word => word && !filler.has(word)).join(" ").trim()
+  ).filter(term => term.length >= 2))].slice(0, 10);
 };
 const escape = value => String(value ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
 const money = (value, locale) => new Intl.NumberFormat(locale === "fa" ? "fa-IR" : locale || "en", { maximumFractionDigits:0 }).format(Number(value) || 0);
