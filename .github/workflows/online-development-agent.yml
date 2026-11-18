@@ -40,7 +40,9 @@ jobs:
         uses: actions/upload-artifact@v6
         with:
           name: houshyar-online-agent-report
-          path: .houshyar-agent-reports/*.md
+          path: |
+            .houshyar-agent-reports/*.md
+            .houshyar-agent-reports/*.json
           if-no-files-found: warn
           retention-days: 14
       - name: Open diagnostic issue on failure
