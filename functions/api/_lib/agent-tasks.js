@@ -11,7 +11,7 @@ export function validateAgentTask(input) {
   if (title && (title.length < 2 || title.length > 120)) return { ok:false, error:"INVALID_TITLE" };
   const routed = routeAgentRequest(text);
   const agentId = ALLOWED_AGENTS.has(input.agentId) ? input.agentId : routed.id;
-  return { ok:true, task:{ title:title || text.slice(0, 100), input:text, agentId, priority:Number.isInteger(input.priority) ? Math.min(5,Math.max(1,input.priority)) : 3 } };
+  return { ok:true, task:{ title:title || (text.slice(0, 100).length >= 2 ? text.slice(0, 100) : "Task: " + text), input:text, agentId, priority:Number.isInteger(input.priority) ? Math.min(5,Math.max(1,input.priority)) : 3 } };
 }
 
 export function taskPublicView(row) {
