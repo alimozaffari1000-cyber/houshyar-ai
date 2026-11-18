@@ -107,7 +107,7 @@ test("multi-item result summary groups matches, reports missing items, and ranks
   const { summarizeShoppingResults } = await import("../src/marketplace.js");
   const terms = ["سیب", "شیر", "نان"];
   const products = [
-    { storeId:"a", storeName:"فروشگاه الف", title:"سیب", matchedTerms:["سیب", "شیر"] },
+    { storeId:"a", storeName:"فروشگاه الف", title:"سیب", matchedTerms:["سیب"] },
     { storeId:"a", storeName:"فروشگاه الف", title:"شیر", matchedTerms:["شیر"] },
     { storeId:"b", storeName:"فروشگاه ب", title:"سیب", matchedTerms:["سیب"] }
   ];
