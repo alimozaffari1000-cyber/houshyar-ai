@@ -91,9 +91,15 @@ export async function onRequestPost({ request, env = {} }) {
     const status = approvalRequired ? "needs_approval" : "queued";
     const expiresAt = now + 7 * 86400;
     const title = taskTitle(goal);
-    await env.DB.prepare(
-      "INSERT INTO agent_tasks (id, user_id, title, goal, agent_id, workflow_json, status, approval_required, created_at, updated_at, expires_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
-    ).bind(id, auth.user.id, title, goal, specialist.id, JSON.stringify(workflow), status, approvalRequired ? 1 : 0, now, now, expiresAt).run();
+    const eventId = crypto.randomUUID();
+    await env.DB.batch([
+      env.DB.prepare(
+        "INSERT INTO agent_tasks (id, user_id, title, goal, agent_id, workflow_json, status, approval_required, created_at, updated_at, expires_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+      ).bind(id, auth.user.id, title, goal, specialist.id, JSON.stringify(workflow), status, approvalRequired ? 1 : 0, now, now, expiresAt),
+      env.DB.prepare(
+        "INSERT INTO agent_task_events (id, task_id, user_id, event_type, actor_type, created_at, metadata_json) VALUES (?, ?, ?, 'task.created', 'user', ?, '{}')"
+      ).bind(eventId, id, auth.user.id, now)
+    ]);
     return json({
       task: { id, title, agentId: specialist.id, workflow, status, approvalRequired, createdAt: now, updatedAt: now, expiresAt },
       execution: "not_started",
