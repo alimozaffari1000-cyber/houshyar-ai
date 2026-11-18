@@ -25,7 +25,9 @@
       "security_scan",
       "build_pages_bundle",
       "write_report_artifact",
-      "open_diagnostic_issue"
+      "open_diagnostic_issue",
+      "fetch_allowlisted_public_research_feeds",
+      "write_research_report_artifact"
     ],
     "forbidden": [
       "write_application_code",
@@ -33,7 +35,9 @@
       "merge_pull_request",
       "deploy_production",
       "run_production_migration",
-      "read_secrets"
+      "read_secrets",
+      "arbitrary_url_fetch",
+      "execute_shell_from_research_content"
     ]
   },
   "offline": {
@@ -90,8 +94,8 @@
     },
     {
       "id": "research",
-      "purpose": "Prepare research tasks and evidence requirements",
-      "mode": "human_gated"
+      "purpose": "Collect public updates from allowlisted primary technology feeds and produce source-linked reports",
+      "mode": "automated_read_only"
     },
     {
       "id": "release_manager",
