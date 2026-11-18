@@ -15,7 +15,7 @@ test("read and draft operations are allowed only with both role and explicit gra
 test("financial, destructive, publishing and legal actions require human approval", () => {
   for (const tool of ["payment.create","data.delete","security.change","publish.release","contract.accept","message.send"]) {
     const scope = listToolPolicies().find(item => item.id === tool).scope;
-    const agentId = tool === "payment.create" ? "analyst" : tool === "data.delete" || tool === "security.change" || tool === "publish.release" ? "developer" : tool === "contract.accept" ? "general" : "content";
+    const agentId = tool === "payment.create" ? "analyst" : tool === "data.delete" || tool === "security.change" || tool === "publish.release" ? "developer" : tool === "contract.accept" ? "content" : "content";
     const scopes = [...(listAgentPolicies().find(item => item.id === agentId)?.scopes || []), scope];
     const pending = evaluateAgentAction({ agentId, tool, grantedScopes:scopes });
     assert.equal(pending.allowed, false, tool); assert.equal(pending.reason, "HUMAN_APPROVAL_REQUIRED", tool);
