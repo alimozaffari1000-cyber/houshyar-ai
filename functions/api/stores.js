@@ -37,10 +37,10 @@ export async function onRequestGet({ request, env }) {
   const conditions = ["s.status = 'active'", "p.status = 'published'"];
   const bindings = [];
   if (searchTerms.length) {
-    conditions.push("(" + searchTerms.map(() => "(p.title LIKE ? ESCAPE '\\' OR p.description LIKE ? ESCAPE '\\' OR s.name LIKE ? ESCAPE '\\')").join(" OR ") + ")");
+    conditions.push("(" + searchTerms.map(() => "(replace(replace(lower(p.title), 'ي', 'ی'), 'ك', 'ک') LIKE ? ESCAPE '\\' OR replace(replace(lower(p.description), 'ي', 'ی'), 'ك', 'ک') LIKE ? ESCAPE '\\' OR replace(replace(lower(s.name), 'ي', 'ی'), 'ك', 'ک') LIKE ? ESCAPE '\\' OR replace(replace(lower(p.category), 'ي', 'ی'), 'ك', 'ک') LIKE ? ESCAPE '\\')").join(" OR ") + ")");
     for (const item of searchTerms) {
       const term = "%" + escapeLike(item) + "%";
-      bindings.push(term, term, term);
+      bindings.push(term, term, term, term);
     }
   }
   if (city) { conditions.push("lower(s.city) = lower(?)"); bindings.push(city); }
