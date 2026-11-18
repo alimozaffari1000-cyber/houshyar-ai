@@ -1,0 +1,68 @@
+name: Houshyar Online Development Agent
+
+on:
+  schedule:
+    - cron: "30 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: houshyar-online-development-agent
+  cancel-in-progress: false
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          package-manager-cache: false
+      - name: Install dependencies
+        run: npm install
+      - name: Run offline-safe development checks
+        run: npm run agent:offline
+      - name: Upload agent report
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: houshyar-online-agent-report
+          path: .houshyar-agent-reports/*.md
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Open diagnostic issue on failure
+        if: failure()
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const title = "Online development agent detected a failed check";
+            const open = await github.rest.issues.listForRepo({
+              owner, repo, state: "open", per_page: 100
+            });
+            if (open.data.some(item => item.title === title && !item.pull_request)) {
+              core.info("An open diagnostic issue already exists.");
+              return;
+            }
+            const runUrl = `${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}`;
+            await github.rest.issues.create({
+              owner, repo, title,
+              body: [
+                "The scheduled online development agent found a failed deterministic check.",
+                "",
+                `Workflow run: ${runUrl}`,
+                `Commit: ${context.sha}`,
+                "",
+                "The agent has read-only repository access. It did not edit source files, merge, deploy, access secrets, or run production migrations.",
+                "Download the workflow artifact for the full report."
+              ].join("\n")
+            });
