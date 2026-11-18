@@ -55,6 +55,8 @@ test("RFQ seller matches are country/category scoped and omit buyer identity", a
   assert.match(matchQuery, /r\.supplier_visible = 1/);
   assert.match(matchQuery, /r\.buyer_user_id != \?/);
   assert.match(matchQuery, /r\.country_code IS \?/);
+  assert.match(matchQuery, /country_market_configs cm/);
+  assert.match(matchQuery, /cm\.status = 'live'/);
   assert.match(matchQuery, /p\.category = r\.category/);
 });
 
