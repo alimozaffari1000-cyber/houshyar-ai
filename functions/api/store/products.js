@@ -10,9 +10,11 @@ export async function onRequestGet({ request, env }) {
   const url = new URL(request.url);
   const query = (url.searchParams.get("q") || "").trim().slice(0, 80);
   const category = (url.searchParams.get("category") || "").trim().toLowerCase();
+  const countryCode = (url.searchParams.get("country") || "").trim().toUpperCase();
   const limit = clamp(Number.parseInt(url.searchParams.get("limit") || "20", 10) || 20, 1, 50);
   const offset = clamp(Number.parseInt(url.searchParams.get("offset") || "0", 10) || 0, 0, 10000);
   if (category && !slugPattern.test(category)) return authJson({ error: "INVALID_CATEGORY" }, 400);
+  if (countryCode && !/^[A-Z]{2}$/.test(countryCode)) return authJson({ error: "INVALID_COUNTRY_CODE" }, 400);
   const conditions = ["p.status = 'published'", "s.status = 'active'"];
   const bindings = [];
   if (query) {
@@ -21,6 +23,11 @@ export async function onRequestGet({ request, env }) {
     bindings.push("%" + safeQuery + "%", "%" + safeQuery + "%");
   }
   if (category) { conditions.push("p.category = ?"); bindings.push(category); }
+  if (countryCode) {
+    conditions.push("s.country_code = ?");
+    conditions.push("EXISTS (SELECT 1 FROM country_market_configs cm WHERE cm.country_code = s.country_code AND cm.status = 'live')");
+    bindings.push(countryCode);
+  }
   bindings.push(limit + 1, offset);
   try {
     const result = await env.DB.prepare(
