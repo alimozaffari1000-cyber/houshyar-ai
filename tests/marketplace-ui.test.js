@@ -122,10 +122,10 @@ test("multi-item baskets prefer complete nearby stores and calculate totals only
   const { summarizeShoppingResults } = await import("../src/marketplace.js");
   const terms = ["apple", "milk"];
   const products = [
-    { storeId:"far", storeName:"Far Shop", matchedTerms:["apple", "milk"], stockCount:2, priceMinor:100, currency:"IRR", distanceKm:8 },
-    { storeId:"far", storeName:"Far Shop", matchedTerms:["milk"], stockCount:2, priceMinor:200, currency:"IRR", distanceKm:8 },
-    { storeId:"near", storeName:"Near Shop", matchedTerms:["apple"], stockCount:2, priceMinor:80, currency:"IRR", distanceKm:1 },
-    { storeId:"near", storeName:"Near Shop", matchedTerms:["milk"], stockCount:2, priceMinor:120, currency:"IRR", distanceKm:1 }
+    { productId:"far-apple", storeId:"far", storeName:"Far Shop", matchedTerms:["apple", "milk"], stockCount:2, priceMinor:100, currency:"IRR", distanceKm:8 },
+    { productId:"far-milk", storeId:"far", storeName:"Far Shop", matchedTerms:["milk"], stockCount:2, priceMinor:200, currency:"IRR", distanceKm:8 },
+    { productId:"near-apple", storeId:"near", storeName:"Near Shop", matchedTerms:["apple"], stockCount:2, priceMinor:80, currency:"IRR", distanceKm:1 },
+    { productId:"near-milk", storeId:"near", storeName:"Near Shop", matchedTerms:["milk"], stockCount:2, priceMinor:120, currency:"IRR", distanceKm:1 }
   ];
   const result = summarizeShoppingResults(terms, products);
   assert.equal(result.completeStores[0].storeName, "Near Shop");
