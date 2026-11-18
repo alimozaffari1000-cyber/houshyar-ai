@@ -18,7 +18,7 @@ export async function onRequestGet({ request, env }) {
       if (!store || store.status !== "active") return authJson({ error: "ACTIVE_STORE_REQUIRED" }, 403);
       const rows = await env.DB.prepare(
         "SELECT r.id, r.country_code AS countryCode, r.city, r.title, r.description, r.category, r.quantity, r.unit, r.target_price_minor AS targetPriceMinor, r.currency_code AS currency, r.expires_at AS expiresAt, r.created_at AS createdAt " +
-        "FROM trade_purchase_requests r WHERE r.status = 'open' AND r.expires_at > ? AND r.buyer_user_id != ? " +
+        "FROM trade_purchase_requests r WHERE r.status = 'open' AND r.supplier_visible = 1 AND r.expires_at > ? AND r.buyer_user_id != ? " +
         "AND r.country_code IS ? AND EXISTS (SELECT 1 FROM products p WHERE p.store_id = ? AND p.status IN ('draft','published') AND p.category = r.category) " +
         "ORDER BY r.created_at DESC LIMIT 50"
       ).bind(Math.floor(Date.now() / 1000), user.id, store.countryCode ?? null, store.id).all();
@@ -58,6 +58,7 @@ export async function onRequestPost({ request, env }) {
   const currency = body.currency === undefined || body.currency === null || body.currency === ""
     ? null : (typeof body.currency === "string" ? body.currency.trim().toUpperCase() : "");
   const expiresInDays = body.expiresInDays === undefined ? 14 : Number(body.expiresInDays);
+  const shareWithSuppliers = body.shareWithSuppliers === true;
 
   if (title.length < 2 || title.length > 160) return authJson({ error: "INVALID_REQUEST_TITLE" }, 400);
   if (description.length > 3000) return authJson({ error: "DESCRIPTION_TOO_LONG" }, 400);
@@ -82,9 +83,9 @@ export async function onRequestPost({ request, env }) {
     const now = Math.floor(Date.now() / 1000);
     const expiresAt = now + expiresInDays * 86400;
     await env.DB.prepare(
-      "INSERT INTO trade_purchase_requests (id, buyer_user_id, country_code, city, title, description, category, quantity, unit, target_price_minor, currency_code, status, expires_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'open', ?, ?, ?)"
-    ).bind(id, user.id, countryCode, city, title, description, category, quantity, unit, targetPriceMinor, currency, expiresAt, now, now).run();
-    return authJson({ created: true, request: { id, countryCode, city, title, description, category, quantity, unit, targetPriceMinor, currency, status: "open", expiresAt, createdAt: now } }, 201);
+      "INSERT INTO trade_purchase_requests (id, buyer_user_id, country_code, city, title, description, category, quantity, unit, target_price_minor, currency_code, supplier_visible, status, expires_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'open', ?, ?, ?)"
+    ).bind(id, user.id, countryCode, city, title, description, category, quantity, unit, targetPriceMinor, currency, shareWithSuppliers ? 1 : 0, expiresAt, now, now).run();
+    return authJson({ created: true, request: { id, countryCode, city, title, description, category, quantity, unit, targetPriceMinor, currency, shareWithSuppliers, status: "open", expiresAt, createdAt: now } }, 201);
   } catch {
     return authJson({ error: "TRADE_REQUEST_CREATE_UNAVAILABLE" }, 503);
   }
