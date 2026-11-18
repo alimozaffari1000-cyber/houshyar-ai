@@ -40,3 +40,16 @@ The usage table records metering facts, not invoices or settled money. Billing m
 6. Apply to production only after an explicit human approval and backup.
 
 Do not run migrations against production merely because a file exists in the repository.
+
+
+## پنل مدیریت وظایف عامل‌ها
+
+در شاخه توسعه، پنل «وظایف عامل‌ها» به رابط اصلی افزوده شده است. این پنل از API صف وظایف استفاده می‌کند و برای ثبت/مشاهده وظایف به نشست معتبر کاربر و اتصال D1 نیاز دارد.
+
+- کاربر می‌تواند عنوان، شرح، عامل مسئول و اولویت را ثبت کند.
+- فهرست وظایف فقط برای همان کاربر از `GET /api/agent-tasks` دریافت می‌شود.
+- ثبت با `POST /api/agent-tasks`، محدودیت اندازه ورودی و کلید idempotency انجام می‌شود.
+- داده‌های برگشتی به‌صورت متن امن در DOM نمایش داده می‌شوند.
+- در صورت نبود نشست، پنل پیام ورود نشان می‌دهد.
+- وضعیت `queued` فقط به معنی ثبت در صف است؛ این پنل ادعای اجرای خودکار یا تکمیل وظیفه ندارد.
+- لغو، اجرای واقعی، زمان‌بندی و تأیید انسانی متصل به حساب هنوز پیاده‌سازی نشده‌اند.
