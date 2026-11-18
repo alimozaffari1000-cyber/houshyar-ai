@@ -36,3 +36,13 @@ test("D1 task queue enforces per-user ownership, bounded goal, expiry and safe s
   assert.match(sql, /expires_at INTEGER NOT NULL/);
   assert.match(sql, /idx_agent_tasks_user_created/);
 });
+
+
+test("D1 task event audit schema is bounded and excludes private content fields", async () => {
+  const sql = await readFile(new URL("../migrations/0010_agent_task_events.sql", import.meta.url), "utf8");
+  assert.match(sql, /task_id TEXT NOT NULL REFERENCES agent_tasks\(id\) ON DELETE CASCADE/);
+  assert.match(sql, /user_id TEXT NOT NULL REFERENCES users\(id\) ON DELETE CASCADE/);
+  assert.match(sql, /'task.created'.*'task.approval_recorded'.*'task.cancelled'/s);
+  assert.match(sql, /length\(metadata_json\) <= 2048/);
+  assert.doesNotMatch(sql, /prompt|password|secret|token/i);
+});
