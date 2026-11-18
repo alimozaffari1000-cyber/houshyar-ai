@@ -66,4 +66,3 @@ jobs:
                 "Download the workflow artifact for the full report."
               ].join("\n")
             });
-            });
