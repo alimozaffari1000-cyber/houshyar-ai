@@ -32,7 +32,7 @@ test("offer API enforces buyer ownership, seller eligibility and country scope",
   assert.match(source, /supplier_store_id = \?/);
   assert.match(source, /rfq\.supplierVisible/);
   assert.match(source, /rfq\.countryCode !== \(store\.countryCode \?\? null\)/);
-  assert.match(source, /cm\.status = 'live'/);
+  assert.match(source, /country_market_configs WHERE country_code = .*status = 'live'/);
   assert.match(source, /p\.status = 'published'/);
   assert.match(source, /status = 'superseded'/);
   assert.match(source, /BUYER_CANNOT_OFFER_ON_OWN_REQUEST/);
