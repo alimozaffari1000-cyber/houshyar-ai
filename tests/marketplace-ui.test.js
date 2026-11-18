@@ -117,3 +117,20 @@ test("multi-item result summary groups matches, reports missing items, and ranks
   assert.equal(result.storeCoverage[0].storeName, "فروشگاه الف");
   assert.equal(result.storeCoverage[0].itemCount, 2);
 });
+
+test("multi-item baskets prefer complete nearby stores and calculate totals only in one currency", async () => {
+  const { summarizeShoppingResults } = await import("../src/marketplace.js");
+  const terms = ["apple", "milk"];
+  const products = [
+    { storeId:"far", storeName:"Far Shop", matchedTerms:["apple", "milk"], stockCount:2, priceMinor:100, currency:"IRR", distanceKm:8 },
+    { storeId:"far", storeName:"Far Shop", matchedTerms:["milk"], stockCount:2, priceMinor:200, currency:"IRR", distanceKm:8 },
+    { storeId:"near", storeName:"Near Shop", matchedTerms:["apple"], stockCount:2, priceMinor:80, currency:"IRR", distanceKm:1 },
+    { storeId:"near", storeName:"Near Shop", matchedTerms:["milk"], stockCount:2, priceMinor:120, currency:"IRR", distanceKm:1 }
+  ];
+  const result = summarizeShoppingResults(terms, products);
+  assert.equal(result.completeStores[0].storeName, "Near Shop");
+  assert.equal(result.completeStores[0].basketTotal, 200);
+  assert.equal(result.completeStores[0].distanceKm, 1);
+  const mixed = summarizeShoppingResults(terms, [{...products[2]}, {...products[3], currency:"USD"}]);
+  assert.equal(mixed.completeStores[0].basketTotal, null);
+});
