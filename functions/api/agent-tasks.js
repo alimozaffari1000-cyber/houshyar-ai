@@ -72,7 +72,7 @@ export async function onRequestPost({request,env}) {
   const replay=async () => {
     if (!idempotencyKey) return null;
     const row=await env.DB.prepare("SELECT id,title,input_text,agent_id,status,priority,created_at,updated_at FROM agent_tasks WHERE user_id = ? AND idempotency_key = ? LIMIT 1").bind(auth.user.id,idempotencyKey).first();
-    return row ? {task:{id:row.id,title:row.title,input:row.input_text,agentId:row.agent_id,status:row.status,priority:row.priority,createdAt:row.created_at,updatedAt:row.updated_at},execution:"queued_only",autonomousExecution:false,idempotentReplay:true} : null;
+    return row ? {task:{id:row.id,title:row.title,input:row.input_text,agentId:row.agent_id,status:row.status,priority:row.priority,createdAt:row.created_at,updatedAt:row.updated_at},execution:"manual_on_demand",autonomousExecution:false,idempotentReplay:true} : null;
   };
   try {
     const previous=await replay();
