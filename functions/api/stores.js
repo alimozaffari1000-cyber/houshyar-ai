@@ -1,7 +1,8 @@
 import { authJson } from "./_lib/auth-flow.js";
 
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
-const escapeLike = (value) => value.replace(/[\\%_]/g, "\\$&");
+const escapeLike = (value) => value.replace(/[\\%_]/g, "\\const escapeLike = (value) => value.replace(/[\\%_]/g, "\\$&");");
+const normalizeSearch = (value) => String(value || "").normalize("NFKC").replace(/[يى]/g, "ی").replace(/ك/g, "ک").replace(/[\u064B-\u065F\u0670]/g, "").toLowerCase().trim();
 const distanceKm = (aLat, aLon, bLat, bLon) => {
   const radians = (value) => value * Math.PI / 180;
   const dLat = radians(bLat - aLat);
@@ -15,6 +16,7 @@ export async function onRequestGet({ request, env }) {
   if (!env.DB) return authJson({ error: "CATALOG_UNAVAILABLE" }, 503);
   const url = new URL(request.url);
   const query = (url.searchParams.get("q") || "").trim().slice(0, 80);
+  const requestedItems = url.searchParams.getAll("item").map((item) => normalizeSearch(item).slice(0, 40)).filter(Boolean).slice(0, 10);
   const city = (url.searchParams.get("city") || "").trim().slice(0, 80);
   const region = (url.searchParams.get("region") || "").trim().slice(0, 80);
   const mode = (url.searchParams.get("mode") || "").trim().toLowerCase();
@@ -60,7 +62,9 @@ export async function onRequestGet({ request, env }) {
     const products = rows.map((row) => {
       const distanceKmValue = lat === null || row.latitude === null || row.longitude === null
         ? null : Math.round(distanceKm(lat, lon, row.latitude, row.longitude) * 10) / 10;
-      return { ...row, distanceKm: distanceKmValue };
+      const searchable = normalizeSearch([row.title, row.description, row.storeName, row.category].join(" "));
+      const matchedTerms = searchTerms.filter((term) => searchable.includes(term));
+      return { ...row, distanceKm: distanceKmValue, ...(searchTerms.length ? { matchedTerms } : {}) };
     });
     if (lat !== null) products.sort((a, b) => {
       if (a.distanceKm === null && b.distanceKm === null) return 0;
