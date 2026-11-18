@@ -16,10 +16,16 @@ function mockDb({ openCount = 0, changes = 1 } = {}) {
               return { total: openCount };
             },
             async all() { return { results: [] }; },
+            sql,
+            args,
             async run() { writes.push({ sql, args }); return { meta: { changes } }; }
           };
         }
       };
+    },
+    async batch(statements) {
+      for (const statement of statements) writes.push({ sql: statement.sql, args: statement.args });
+      return statements.map(() => ({ meta: { changes } }));
     }
   };
 }
@@ -46,8 +52,10 @@ test("creates an authenticated queued task without claiming execution", async ()
   assert.equal(body.task.status, "queued");
   assert.equal(body.execution, "not_started");
   assert.equal(body.task.workflow.executionMode, "plan_only");
-  assert.equal(DB.writes.length, 1);
+  assert.equal(DB.writes.length, 2);
   assert.equal(DB.writes[0].args[1], "user-1");
+  assert.match(DB.writes[1].sql, /agent_task_events/);
+  assert.match(DB.writes[1].sql, /task\.created/);
 });
 
 test("holds consequential tasks for explicit human approval", async () => {
@@ -61,6 +69,7 @@ test("holds consequential tasks for explicit human approval", async () => {
   assert.equal(body.task.status, "needs_approval");
   assert.equal(body.task.approvalRequired, true);
   assert.equal(body.execution, "not_started");
+  assert.match(DB.writes[1].sql, /agent_task_events/);
 });
 
 test("rejects cross-origin task creation", async () => {
@@ -98,6 +107,7 @@ test("cancels only a queued task owned by the authenticated user", async () => {
   assert.equal(response.status, 200);
   assert.equal((await response.json()).status, "cancelled");
   assert.match(DB.writes[0].sql, /user_id = \?/);
+  assert.match(DB.writes[1].sql, /task\.cancelled/);
 });
 
 test("does not claim cancellation when no owned cancellable task changed", async () => {
