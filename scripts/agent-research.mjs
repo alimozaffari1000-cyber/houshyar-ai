@@ -24,11 +24,11 @@ function decodeXml(value = "") {
 function textOf(block, tag) {
   const escaped = tag.replace(/[.*+?^\x24{}()|[\]\\]/g, "\\$&");
   const match = block.match(new RegExp(`<${escaped}(?:\\s[^>]*)?>([\\s\\S]*?)</${escaped}>`, "i"));
-  return match ? decodeXml(match[1]).replace(/<[^>]*>/g, " ").replace(/\\s+/g, " ").trim() : "";
+  return match ? decodeXml(match[1]).replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim() : "";
 }
 
 function linkOf(block) {
-  const atom = block.match(/<link\\b[^>]*href=["']([^"']+)["'][^>]*\\/?\\s*>/i);
+  const atom = block.match(/<link\b[^>]*href=["']([^"']+)["'][^>]*\/?\s*>/i);
   return atom?.[1] ? decodeXml(atom[1]) : textOf(block, "link");
 }
 
@@ -36,7 +36,7 @@ export function parseResearchFeed(xml, source) {
   if (typeof xml !== "string" || xml.length > MAX_FEED_BYTES) {
     throw new Error("Feed is missing or exceeds the size limit");
   }
-  const blocks = [...xml.matchAll(/<(item|entry)\\b[^>]*>([\\s\\S]*?)<\\/\\1>/gi)].map((m) => m[2]);
+  const blocks = [...xml.matchAll(/<(item|entry)\b[^>]*>([\s\S]*?)<\/\1>/gi)].map((m) => m[2]);
   return blocks.slice(0, MAX_ITEMS_PER_SOURCE).flatMap((block) => {
     const title = textOf(block, "title");
     const rawLink = linkOf(block);
