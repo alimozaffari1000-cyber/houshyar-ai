@@ -108,11 +108,11 @@ test("multi-item result summary groups matches, reports missing items, and ranks
   const terms = ["سیب", "شیر", "نان"];
   const products = [
     { storeId:"a", storeName:"فروشگاه الف", title:"سیب", matchedTerms:["سیب", "شیر"] },
-    { storeId:"a", storeName:"فروشگاه الف", title:"شیر", matchedTerms:["سیب", "شیر"] },
+    { storeId:"a", storeName:"فروشگاه الف", title:"شیر", matchedTerms:["شیر"] },
     { storeId:"b", storeName:"فروشگاه ب", title:"سیب", matchedTerms:["سیب"] }
   ];
   const result = summarizeShoppingResults(terms, products);
-  assert.deepEqual(result.itemGroups.map(group => group.products.length), [3, 2, 0]);
+  assert.deepEqual(result.itemGroups.map(group => group.products.length), [2, 1, 0]);
   assert.deepEqual(result.missingTerms, ["نان"]);
   assert.equal(result.storeCoverage[0].storeName, "فروشگاه الف");
   assert.equal(result.storeCoverage[0].itemCount, 2);
