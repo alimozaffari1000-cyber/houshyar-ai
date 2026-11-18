@@ -31,10 +31,14 @@ export function summarizeShoppingResults(terms, products) {
     stores.set(id, entry);
   }
   const storeCoverage = [...stores.values()].map(store => {
+    const usedProducts = new Set();
     const basket = requested.map(term => {
-      const candidates = store.products.filter(product => Array.isArray(product.matchedTerms) && product.matchedTerms.includes(term) && Number(product.stockCount) > 0);
+      const candidates = store.products.filter(product => !usedProducts.has(String(product.productId)) &&
+        Array.isArray(product.matchedTerms) && product.matchedTerms.includes(term) && Number(product.stockCount) > 0);
       candidates.sort((a,b) => Number(a.priceMinor) - Number(b.priceMinor));
-      return candidates[0] || null;
+      const selected = candidates[0] || null;
+      if (selected) usedProducts.add(String(selected.productId));
+      return selected;
     });
     const basketProducts = basket.filter(Boolean);
     const currencies = [...new Set(basketProducts.map(product => product.currency || ""))];
