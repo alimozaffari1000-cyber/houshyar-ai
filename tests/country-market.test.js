@@ -61,6 +61,7 @@ test("domestic product catalog applies the same live-country gate", async () => 
   assert.match(db.sql, /s\.country_code = \?/);
   assert.match(db.sql, /country_market_configs cm/);
   assert.match(db.sql, /cm\.status = 'live'/);
+  assert.match(db.sql, /s\\.slug AS storeSlug, s\\.country_code AS countryCode FROM products/);
   assert.ok(db.bindings.includes("IR"));
 });
 
