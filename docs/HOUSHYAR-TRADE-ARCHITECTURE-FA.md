@@ -220,3 +220,143 @@ The default intermediary model does not automatically make Houshyar a broker, ag
 - A referral fee cannot be triggered without a recorded, informed acceptance of its terms.
 - The platform never represents itself as seller/owner of goods unless a separately approved business model explicitly says so.
 - Users can report misleading listings, fake suppliers, spam, coercion, and unauthorized data sharing.
+
+
+## 17. Country-native domestic commerce system
+
+Houshyar Trade must not be a single generic marketplace translated into multiple languages. Each country needs a **country commerce layer** that adapts discovery, merchant operations, pricing, delivery, trust, consumer information, and permitted transaction flows to that country's actual market. The global platform remains shared; country behavior is supplied by versioned, reviewed country packs and local provider adapters.
+
+### 17.1 Two connected commerce networks
+
+- **Domestic network:** buyer, seller, supplier, wholesaler, retailer, service provider, local marketplace and delivery options operating within one country. Default matching prefers eligible suppliers inside the buyer's selected country and delivery area.
+- **Cross-border network:** a separate route that matches buyer and seller across countries and adds origin/destination checks, trade terms, export/import restrictions, international logistics and currency conversion context.
+- A user can switch between "داخل کشور" and "بین‌المللی"; the system must never silently treat a domestic listing as export-ready.
+- Each listing and RFQ carries explicit country/region scope, service area, fulfillment method and permitted destination countries.
+
+### 17.2 Country Commerce Pack
+
+Each supported country has a versioned configuration record maintained through a controlled review process. A pack may contain:
+
+| Domain | Country-specific configuration |
+|---|---|
+| Identity and geography | ISO 3166-1 country code, subdivisions, city/locality and postal-code formats |
+| Language and presentation | BCP 47 locales, RTL/LTR, names, address layout, number/date formatting |
+| Money and pricing | ISO 4217 currencies, minor-unit rules, display formats, price basis and FX display policy |
+| Measurement | Supported units, local defaults and conversion rules that preserve original seller values |
+| Merchant onboarding | Business/individual seller types, evidence checklist, verification tiers and expiry |
+| Domestic commerce | Retail/wholesale categories, minimum order quantity, local catalog attributes and market terminology |
+| Fulfillment | Pickup, local delivery, collection points, service areas, delivery windows and provider adapters |
+| Payments | Locally available qualified payment-provider adapters; capabilities, limits and status; disabled by default |
+| Consumer and business rules | Reviewed disclosures, cancellation/return concepts, complaint routes and category restrictions |
+| Tax and invoicing | Reviewed country-specific fields and provider integrations; never AI-inferred legal obligations |
+| Trust and safety | Restricted categories, fraud signals, moderation escalation and country-specific support contacts |
+| Operations | Local support hours, escalation owner, incident and service-level settings |
+
+A pack must include version, status (draft/reviewed/active/suspended), effective date, last review date, source references, reviewer role and change history. Unreviewed or expired legal/compliance settings must fail closed for the affected high-risk action. Country configuration is not itself legal advice or proof of compliance.
+
+### 17.3 Country market workspace
+
+Each country gets a logical market workspace, not a separate fork of the application. It contains:
+- Local merchant and service-provider directory with public business profile and declared operating area.
+- Local product/service catalog with localized categories, attributes, units and searchable synonyms.
+- Domestic buyer requests and RFQs, supplier responses, versioned offers and introductions.
+- Retail, wholesale and service-provider modes with explicit pricing basis and minimum quantities.
+- Local pickup/delivery choices and current availability indicators with source and freshness timestamp.
+- Country-specific trust labels, seller evidence review, complaints, moderation and support routing.
+- Local market intelligence: aggregated demand, supply gaps and price ranges, with minimum cohort thresholds and privacy controls.
+- Local merchant tools: catalog import/export, bulk price/stock updates, lead inbox, response-time indicators and simple performance analytics.
+
+A country workspace is logically isolated by country scope and authorization, but shared identity and platform infrastructure remain available. Business tenant isolation is still mandatory; country membership must never replace per-business access checks.
+
+### 17.4 Domestic intelligent matching
+
+The matching engine should first apply hard eligibility filters, then rank eligible candidates. It must not compensate for an illegal, suspended, unavailable or out-of-area seller with a high relevance score.
+
+Hard filters:
+1. Same domestic country for a domestic-only request.
+2. Listing and merchant are active and not suspended.
+3. Category/product is allowed under the currently reviewed country pack.
+4. Seller's declared service/delivery area covers the requested destination.
+5. Requested quantity fits stated availability/MOQ, where reliable data exists.
+6. Required verification tier is met for the category and action.
+
+Ranking signals (with explainable reasons):
+- Product/service and attribute fit.
+- Availability freshness and confidence.
+- Distance or service-area fit.
+- Total estimated cost, including declared delivery fees and minimum order.
+- Delivery/pickup method and estimated time.
+- Seller response history and eligible completed-transaction feedback.
+- Price competitiveness, with unit and tax/shipping inclusions shown clearly.
+- User preferences and accessibility requirements.
+
+Results must show why a merchant matched, which facts are seller-declared versus independently checked, and when price/stock was last updated. Sponsored listings remain separately labeled and cannot bypass eligibility, verification or relevance gates.
+
+### 17.5 Domestic commerce journey
+
+1. User selects or confirms the country/market; location permission is requested only when nearby discovery materially needs it.
+2. User describes a need naturally (for example, "one kilo of apples", "find a plumber", or "I need 200 cartons wholesale").
+3. AI extracts intent, category, quantity, quality/specification, budget, area, timing and desired fulfillment; it asks only for missing critical details.
+4. Search combines eligible Houshyar merchants and approved partner inventory, clearly labeling data source and freshness.
+5. Buyer compares providers and chooses pickup, delivery, RFQ or direct contact where available.
+6. Houshyar facilitates the introduction or request only within the buyer's selected disclosure scope.
+7. Seller responds with a time-limited offer; buyer reviews full terms and makes the decision.
+8. If a supported order flow is enabled, the buyer explicitly confirms the order and the platform records authorized milestones. Otherwise the user is sent to the seller's verified external ordering route.
+9. Both sides can report issues; evidence and event history are accessible only to authorized parties and reviewers.
+
+### 17.6 Country launch gates
+
+A country is not marked "live" merely because its language and currency are configured. Each country launch requires:
+- Named country owner and support/escalation path.
+- Reviewed country pack with authoritative source references and effective dates.
+- Category allowlist and prohibited/restricted goods policy.
+- Seller onboarding, verification and suspension process.
+- Privacy notice, consent flows, retention and deletion behavior reviewed for that market.
+- Consumer/business disclosures and complaint/appeal process.
+- Delivery and payment providers verified for actual country coverage, if those features are enabled.
+- Currency, rounding, price display, tax display and refund scenarios tested.
+- Abuse, fraud, account takeover, tenant isolation and cross-country access tests.
+- Local-language QA, accessibility and RTL/LTR checks.
+- Staging end-to-end tests and operational monitoring before production approval.
+
+Country readiness states: `research` -> `configuration_draft` -> `legal_and_partner_review` -> `staging` -> `limited_pilot` -> `live`; any state can move to `suspended` when a critical control fails. Activation and suspension require an authorized human decision and audit record.
+
+### 17.7 Country-aware data and API boundaries
+
+Proposed domain entities (not a migration in this change):
+- `country_market_configs`: country code, version, state, effective dates, reviewed metadata and non-secret configuration.
+- `country_market_sources`: source reference, source type, checked date, reviewer and affected policy section.
+- `market_memberships`: user/business membership in a country workspace and role.
+- `merchant_service_areas`: merchant, country, region/geospatial coverage and fulfillment capability.
+- `listing_market_scopes`: listing, origin country, domestic visibility and explicitly allowed destination countries.
+- `local_provider_capabilities`: provider adapter, country coverage, capability flags, limits and operational state.
+- `country_market_events`: append-only activation, suspension and reviewed configuration-change events.
+
+Every query must be tenant-scoped and country-scoped where relevant, with explicit authorization in database predicates. Country codes, currency codes and locale tags must be validated against their standards. Never store provider secrets in country configuration rows. Never use a country code supplied by the browser as proof of user location or legal eligibility.
+
+### 17.8 Domestic monetization
+
+Permitted product options for review include free basic merchant discovery, paid merchant tools/subscriptions, transparent fees for qualified leads or completed platform-mediated milestones, clearly labeled sponsored placement, and enterprise services. A merchant must see the fee, payer, trigger, applicable taxes and cancellation/refund treatment before accepting the relevant terms. Buyer requests and private contact data are not sold as raw lead lists. No recruitment-based compensation.
+
+### 17.9 Initial implementation sequence
+
+1. Reuse the existing store, product, local-discovery and order foundations; do not create a parallel marketplace.
+2. Add country/market selection and validated country metadata without claiming that all legal rules are automated.
+3. Add country scope to discovery and listing eligibility; test cross-country and cross-tenant access.
+4. Add merchant service areas, pickup/delivery capabilities and freshness indicators.
+5. Add domestic RFQ matching and explainable supplier shortlist; do not automatically message suppliers.
+6. Add a country-pack review console and launch-readiness checklist before enabling a second market.
+7. Only then add country-qualified payment, invoicing, tax or logistics adapters after legal and provider review.
+
+### 17.10 Acceptance criteria
+
+- Domestic search never silently returns an out-of-country seller as a domestic provider.
+- Cross-border availability is separately declared and checked.
+- Every active country pack has a version, effective date, sources and named reviewer role.
+- Expired/unreviewed high-risk rules disable the affected action rather than guessing.
+- Price comparisons normalize currency and units without hiding the original quote, conversion source or timestamp.
+- Merchant distance, stock, price and verification claims show their source and freshness.
+- Buyer identity and contact details are disclosed only with explicit scope and consent.
+- Country scoping never weakens business-tenant authorization.
+- AI assists with extraction, translation and comparison but cannot certify legal compliance, stock, delivery, payment or seller identity.
+- No country is labeled live before all applicable launch gates are approved.
