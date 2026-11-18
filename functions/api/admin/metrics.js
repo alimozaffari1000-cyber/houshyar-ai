@@ -19,14 +19,15 @@ export async function onRequestGet({ request, env = {} } = {}) {
   try {
     const since = Math.floor(Date.now() / 1000) - 24 * 3600;
     const result = await env.DB.prepare(
-      "SELECT provider, event, COUNT(*) AS requests, AVG(elapsed_ms) AS avg_latency_ms, MAX(elapsed_ms) AS max_latency_ms, SUM(CASE WHEN event IN ('provider_failure','comparison_failure') THEN 1 ELSE 0 END) AS failures FROM operational_metrics WHERE created_at >= ? GROUP BY provider, event ORDER BY provider, event"
+      "SELECT provider, COUNT(*) AS requests, SUM(CASE WHEN event IN ('provider_success','comparison_success') THEN 1 ELSE 0 END) AS successes, SUM(CASE WHEN event IN ('provider_failure','comparison_failure') THEN 1 ELSE 0 END) AS failures, AVG(elapsed_ms) AS avg_latency_ms, MAX(elapsed_ms) AS max_latency_ms FROM operational_metrics WHERE created_at >= ? GROUP BY provider ORDER BY provider"
     ).bind(since).all();
     const rows = Array.isArray(result?.results) ? result.results : [];
     const providers = rows.map(row => ({
       provider: row.provider,
-      event: row.event,
       requests: Number(row.requests) || 0,
+      successes: Number(row.successes) || 0,
       failures: Number(row.failures) || 0,
+      failureRatePercent: Number(row.requests) > 0 ? Math.round((Number(row.failures) || 0) / Number(row.requests) * 1000) / 10 : 0,
       avgLatencyMs: Math.round(Number(row.avg_latency_ms) || 0),
       maxLatencyMs: Number(row.max_latency_ms) || 0
     }));
