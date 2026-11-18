@@ -475,3 +475,8 @@ button:focus-visible,textarea:focus-visible,select:focus-visible{
 .agent-task-run{margin-top:10px;border:1px solid rgba(110,231,196,.35);border-radius:9px;padding:7px 12px;background:rgba(110,231,196,.1);color:#a8f2dc;font:12px Vazirmatn}
 .agent-task-run:disabled{opacity:.5}
 .agent-task-result{margin-top:12px;padding:12px;border-right:2px solid #83efd1;border-radius:8px;background:rgba(4,12,22,.45);color:#e5f2ff!important;white-space:pre-wrap}
+
+.agent-tasks-health{margin:8px 0 12px;padding:9px 11px;border:1px solid rgba(131,239,209,.2);border-radius:10px;background:rgba(5,17,29,.4);color:#a9c9d2;font-size:10px;line-height:1.8}
+.agent-task-actions{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}
+.agent-task-action{border:1px solid rgba(145,180,218,.25);border-radius:8px;padding:6px 10px;background:#13243a;color:#eaf3ff;font:11px Vazirmatn}
+.agent-task-action:disabled{opacity:.5}
