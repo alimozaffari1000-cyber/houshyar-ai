@@ -12,13 +12,10 @@ export async function onRequestGet({ request, env }) {
   const requestId = text(url.searchParams.get("requestId"), 80);
   try {
     if (requestId) {
-      const ownRequest = await env.DB.prepare(
-        "SELECT id FROM trade_purchase_requests WHERE id = ? AND buyer_user_id = ? LIMIT 1"
-      ).bind(requestId, user.id).first();
-      if (!ownRequest) return authJson({ error: "REQUEST_NOT_FOUND" }, 404);
       const request = await env.DB.prepare(
-        "SELECT quantity FROM trade_purchase_requests WHERE id = ? AND buyer_user_id = ? LIMIT 1"
+        "SELECT id, quantity FROM trade_purchase_requests WHERE id = ? AND buyer_user_id = ? LIMIT 1"
       ).bind(requestId, user.id).first();
+      if (!request) return authJson({ error: "REQUEST_NOT_FOUND" }, 404);
       const result = await env.DB.prepare(
         "SELECT o.id, o.revision, o.unit_price_minor AS unitPriceMinor, o.currency_code AS currency, " +
         "o.minimum_quantity AS minimumQuantity, o.lead_time_days AS leadTimeDays, " +
@@ -30,11 +27,12 @@ export async function onRequestGet({ request, env }) {
       ).bind(requestId).all();
       const offers = (Array.isArray(result.results) ? result.results : []).map((offer) => {
         const estimatedTotal = offer.unitPriceMinor * request.quantity;
+        const quantityIsValid = Number.isSafeInteger(request.quantity) && request.quantity > 0;
         return {
           ...offer,
           requestedQuantity: request.quantity,
-          estimatedTotalPriceMinor: Number.isSafeInteger(estimatedTotal) ? estimatedTotal : null,
-          meetsMinimumQuantity: request.quantity >= offer.minimumQuantity
+          estimatedTotalPriceMinor: quantityIsValid && Number.isSafeInteger(estimatedTotal) ? estimatedTotal : null,
+          meetsMinimumQuantity: quantityIsValid ? request.quantity >= offer.minimumQuantity : null
         };
       });
       const groups = new Map();
