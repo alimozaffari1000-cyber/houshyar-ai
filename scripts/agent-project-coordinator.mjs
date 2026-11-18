@@ -28,13 +28,18 @@ function stableId(area, task) {
 
 export function buildTaskRegistry(plan, previous = { version: 1, tasks: [] }, now = new Date()) {
   if (!plan || !Array.isArray(plan.priorities)) throw new TypeError("A development plan with priorities is required");
-  const existing = new Map((Array.isArray(previous.tasks) ? previous.tasks : []).map((task) => [task.id, task]));
+  if (plan.priorities.length > 50) throw new RangeError("Development plan exceeds the 50-task limit");
+  const existing = new Map((Array.isArray(previous.tasks) ? previous.tasks : []).filter((task) => task && typeof task.id === "string").map((task) => [task.id, task]));
   const tasks = [];
+  const seen = new Set();
   for (const item of plan.priorities) {
-    const area = String(item.area || "").slice(0, 80);
-    const title = String(item.task || "").slice(0, 500);
+    if (!item || typeof item !== "object" || Array.isArray(item)) continue;
+    const area = typeof item.area === "string" ? item.area.trim().slice(0, 80) : "";
+    const title = typeof item.task === "string" ? item.task.trim().slice(0, 500) : "";
     if (!area || !title) continue;
     const id = stableId(area, title);
+    if (seen.has(id)) continue;
+    seen.add(id);
     const prior = existing.get(id);
     const role = ROLE_BY_AREA[area] || "architect";
     tasks.push({
@@ -44,7 +49,7 @@ export function buildTaskRegistry(plan, previous = { version: 1, tasks: [] }, no
       priority: ["P0", "P1", "P2", "P3"].includes(item.priority) ? item.priority : "P2",
       ownerRole: role,
       acceptanceCriteria: String(item.acceptance || "Human review and automated checks are required.").slice(0, 1000),
-      status: prior && STATUSES.includes(prior.status) ? prior.status : "proposed",
+      status: prior && STATUSES.includes(prior.status) && (!HUMAN_GATED_AREAS.has(area) || prior.status !== "approved" || prior.approvalRecorded === true) ? prior.status : "proposed",
       requiresHumanApproval: HUMAN_GATED_AREAS.has(area),
       approvalRecorded: prior?.approvalRecorded === true,
       createdAt: prior?.createdAt || now.toISOString(),
