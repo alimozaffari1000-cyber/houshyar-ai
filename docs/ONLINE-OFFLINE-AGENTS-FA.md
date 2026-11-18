@@ -51,17 +51,18 @@ npm run agent:patch
 
 1. اعتبارسنجی مجدد مسیرها و اندازه Patch با همان allowlist سخت‌گیرانه
 2. ساخت worktree موقت از همان commit فعلی
-3. اجرای `git apply --check` و سپس اعمال Patch فقط داخل worktree موقت
-4. اجرای فرمان‌های ثابت و غیرقابل‌تغییر: `npm run qa`، `npm run security:scan`، `npm run build` و `npm run quality:check`
-5. حذف worktree و ذخیره گزارش JSON
+3. نصب وابستگی‌ها فقط در worktree با `npm install --ignore-scripts`؛ اسکریپت نصب بسته‌ها اجرا نمی‌شود
+4. اجرای `git apply --check` و سپس اعمال Patch فقط داخل worktree موقت
+5. اجرای فرمان‌های ثابت و غیرقابل‌تغییر: `npm run qa`، `npm run security:scan`، `npm run build` و `npm run quality:check`
+6. حذف worktree و ذخیره گزارش JSON
 
 فرمان دستی:
 
 ```bash
-npm run agent:patch-sandbox
+npm run agent:patch-sandbox -- --allow-local-execution
 ```
 
-این مرحله هیچ‌گاه روی checkout اصلی Patch را اعمال نمی‌کند؛ commit، push، branch انتشار، PR، merge یا deploy نمی‌سازد. اگر Patch وجود نداشته باشد (مثلاً چون مدل خاموش است)، مرحله با وضعیت skipped تمام می‌شود. اگر هر بررسی شکست بخورد، نتیجه ناموفق ثبت می‌شود و workflow به‌عنوان موفق گزارش نمی‌شود.
+این مرحله هیچ‌گاه روی checkout اصلی Patch را اعمال نمی‌کند؛ commit، push، branch انتشار، PR، merge یا deploy نمی‌سازد. اجرای محلی به‌صورت پیش‌فرض مسدود است، چون کد تست‌شونده ممکن است با سطح دسترسی همان دستگاه اجرا شود؛ فقط با گزینه صریح بالا فعال می‌شود. در GitHub Actions، اجرا روی runner موقت انجام می‌شود. Git worktree جداسازی فایل‌های کاری است، نه sandbox امنیتی سطح سیستم‌عامل؛ بنابراین این مکانیزم مجوز اجرای Patch ناشناس روی دستگاه شخصی نیست. اگر Patch وجود نداشته باشد (مثلاً چون مدل خاموش است)، مرحله با وضعیت skipped تمام می‌شود. اگر هر بررسی شکست بخورد، نتیجه ناموفق ثبت می‌شود و workflow به‌عنوان موفق گزارش نمی‌شود.
 
 ## عامل آفلاین
 
