@@ -5,3 +5,4 @@ android/
 .env.*
 !.env.example
 .wrangler/
+.houshyar-agent-reports/
