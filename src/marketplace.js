@@ -3,6 +3,11 @@ const COPY = {
   en: { open:"Marketplace", title:"Houshyar Marketplace", subtitle:"Browse approved shops or apply to open your own store.", close:"Close", browse:"Browse products", seller:"Seller dashboard", search:"Search products or shops…", find:"Search", city:"City (optional)", allModes:"Any fulfillment", delivery:"Home delivery", pickup:"Pickup", near:"Near me", locating:"Getting your location…", locationDenied:"Location access was not granted; you can enter a city instead.", distance:"Distance", stockAvailable:"In stock", outOfStock:"Out of stock", order:"Order", deliveryAvailable:"Delivery available", pickupAvailable:"Pickup available", limited:"Results are capped; narrow the search by city or keyword.", loading:"Loading…", empty:"No products are available yet.", more:"Load more", login:"Sign in to access the seller dashboard.", account:"Open account", applyTitle:"Apply for a store", storeName:"Store name", slug:"Short URL slug (e.g. aria-shop)", description:"Store description", apply:"Submit application", pending:"Your store application is awaiting administrator review.", suspended:"This store is temporarily suspended.", active:"Your store is approved.", productTitle:"Product name", category:"Category slug (e.g. fashion)", price:"Price in IRR", stock:"Stock quantity", productDescription:"Product description", createProduct:"Save product", products:"My products", draft:"Draft", published:"Published", publish:"Publish product", noProducts:"You have not added products yet.", submitted:"Application submitted.", created:"Product saved as a draft.", publishedDone:"Product published.", requestFailed:"Request failed. Please try again.", catalogUnavailable:"The catalog is temporarily unavailable.", currency:"IRR", store:"Store", noStore:"You do not have a store yet.", priceInvalid:"Price must be a positive whole number.", stockInvalid:"Stock must be a non-negative whole number.", notReady:"The marketplace database is not configured in this deployment yet.", note:"Orders are requests to sellers in this version; online checkout and image uploads are not enabled.", orders:"Orders", orderRequest:"Request order", quantity:"Quantity", pendingOrder:"Awaiting seller", acceptedOrder:"Accepted", rejectedOrder:"Rejected", completedOrder:"Completed", cancelledOrder:"Cancelled", acceptOrder:"Accept", rejectOrder:"Reject", completeOrder:"Complete", cancelOrder:"Cancel", orderCreated:"Order request sent to the seller.", orderUpdated:"Order status updated.", noOrders:"No orders yet.", buyer:"Buyer", seller:"Seller", orderFailed:"Could not create or update the order." }
 };
 const copyFor = locale => COPY[locale] || COPY.en;
+const shoppingTerms = value => {
+  const normalized = String(value || "").normalize("NFKC").replace(/[يى]/g, "ی").replace(/ك/g, "ک").replace(/[\u064B-\u065F\u0670]/g, "").toLowerCase();
+  const stop = new Set(["برای", "میخواهم", "میخوام", "می‌خواهم", "می‌خوام", "لطفا", "لطفاً", "بخر", "خرید", "لازم", "نیاز", "دارم", "میخریم", "می‌خرم", "میخرم"]);
+  return [...new Set(normalized.split(/[,،;؛+]|\s+و\s+/).map(part => part.replace(/^(میخواهم|میخوام|می‌خواهم|می‌خوام|برای|لطفا|لطفاً)\s+/, "").replace(/\s+(میخواهم|میخوام|می‌خواهم|می‌خوام|میخرم|می‌خرم)$/, "").trim()).filter(term => term.length >= 2 && !stop.has(term)))].slice(0, 10);
+};
 const escape = value => String(value ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
 const money = (value, locale) => new Intl.NumberFormat(locale === "fa" ? "fa-IR" : locale || "en", { maximumFractionDigits:0 }).format(Number(value) || 0);
 
@@ -46,6 +51,7 @@ export function initMarketplace(app, { locale = "fa" } = {}) {
     const distance = Number.isFinite(product.distanceKm) ? '<small>' + c.distance + ': ' + escape(product.distanceKm) + ' km</small>' : '';
     const stockAvailable = Number.isSafeInteger(Number(product.stockCount)) && Number(product.stockCount) > 0;
     const stockInfo = '<small class="marketplace-stock ' + (stockAvailable ? 'is-available' : 'is-unavailable') + '">' + (stockAvailable ? c.stockAvailable : c.outOfStock) + '</small>';
+    const matched = Array.isArray(product.matchedTerms) && product.matchedTerms.length ? '<small class="marketplace-match">' + escape(product.matchedTerms.join("، ")) + '</small>' : "";
     const fulfillment = (product.offersDelivery ? '<small>' + c.deliveryAvailable + '</small>' : '') + (product.offersPickup ? '<small>' + c.pickupAvailable + '</small>' : '');
     let orderLink = '';
     try { const orderUrl = new URL(product.orderUrl); if (orderUrl.protocol === 'https:') orderLink = '<a href="' + escape(orderUrl.href) + '" target="_blank" rel="noopener noreferrer">' + c.order + '</a>'; } catch {}
@@ -54,14 +60,16 @@ export function initMarketplace(app, { locale = "fa" } = {}) {
     return '<article class="marketplace-product"><div class="marketplace-product-art" aria-hidden="true">✧</div><div class="marketplace-product-info">' +
       '<span class="marketplace-category">' + escape(product.category) + '</span><h3>' + escape(product.title) + '</h3><p>' + escape(product.description || '') + '</p><strong>' +
       money(product.priceMinor, locale) + ' ' + escape(product.currency || c.currency) + '</strong><small>' + c.store + ': ' + escape(product.storeName || '') + '</small>' +
-      (place ? '<small>' + escape(place) + '</small>' : '') + distance + stockInfo + fulfillment + orderLink + orderForm + '</div></article>';
+      (place ? '<small>' + escape(place) + '</small>' : '') + distance + matched + stockInfo + fulfillment + orderLink + orderForm + '</div></article>';
   };
   async function loadCatalog(reset = false) {
     if (reset) { offset = 0; productsNode.innerHTML = ""; }
     say(c.loading); more.hidden = true;
     try {
       const params = new URLSearchParams({ limit:"12", offset:String(offset) });
-      if (query) params.set("q", query);
+      const terms = shoppingTerms(query);
+      if (terms.length > 1) terms.forEach(term => params.append("item", term));
+      else if (query) params.set("q", query);
       if (city) params.set("city", city);
       if (mode) params.set("mode", mode);
       if (coordinates) { params.set("lat", String(coordinates.latitude)); params.set("lon", String(coordinates.longitude)); }
