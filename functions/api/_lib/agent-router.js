@@ -26,6 +26,6 @@ export function routeAgentRequest(message) {
 
 export function listAgents() {
   return Object.values(AGENTS).map(({ id, label, labelEn }) => ({
-    id, label, labelEn, status: "available"
+    id, label, labelEn, status: "prompt_routed", executionMode: "single_model_specialist", autonomousTools: false
   }));
 }
