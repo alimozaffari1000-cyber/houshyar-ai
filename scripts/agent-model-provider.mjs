@@ -27,13 +27,14 @@ function resolveEndpoint(raw, mode) {
 export function createModelProvider(env = process.env, fetchImpl = globalThis.fetch) {
   const mode = env.HOUSHYAR_AGENT_MODEL_MODE || "disabled";
   const rawUrl = env.HOUSHYAR_AGENT_MODEL_URL;
-  if (mode === "disabled" || !rawUrl) {
+  if (mode === "disabled") {
     return Object.freeze({
       available: false,
       mode: "disabled",
       async complete() { throw new Error("No model provider configured; model calls are disabled"); }
     });
   }
+  if (!rawUrl) throw new Error("HOUSHYAR_AGENT_MODEL_URL is required when model mode is enabled");
   const endpoint = resolveEndpoint(rawUrl, mode);
   const model = env.HOUSHYAR_AGENT_MODEL_NAME || "default";
   const apiKey = env.HOUSHYAR_AGENT_MODEL_API_KEY;
