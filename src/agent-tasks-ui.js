@@ -39,7 +39,22 @@ export function initAgentTasks(app, { locale = "fa" } = {}) {
       heading.append(title,status);
       const detail=document.createElement("p"); detail.textContent=task.input || "";
       const meta=document.createElement("small"); meta.textContent=(words[task.agentId] || task.agentId) + " · " + words.priority + " " + String(task.priority ?? 3);
-      item.append(heading,detail,meta); list.append(item);
+      item.append(heading,detail,meta);
+      if(task.result){const result=document.createElement("p");result.className="agent-task-result";result.textContent=task.result;item.append(result);}
+      if(task.status==="queued"){
+        const run=document.createElement("button");run.type="button";run.className="agent-task-run";run.textContent=words.run;
+        run.addEventListener("click",async()=>{
+          run.disabled=true;state.textContent=words.loading;
+          try{
+            const response=await fetch("/api/agent-tasks/"+encodeURIComponent(task.id)+"/run",{method:"POST",credentials:"same-origin",headers:{Accept:"application/json"}});
+            const data=await response.json().catch(()=>({}));
+            if(!response.ok)throw new Error(data.error||"AGENT_RUN_FAILED");
+            await loadTasks();state.textContent="";
+          }catch(error){state.textContent=error.message==="AGENT_MODEL_NOT_CONFIGURED"?words.unavailable:words.failedSave;run.disabled=false;}
+        });
+        item.append(run);
+      }
+      list.append(item);
     }
   }
   async function loadTasks() {
