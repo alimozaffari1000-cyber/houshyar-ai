@@ -11,6 +11,10 @@ This foundation adds a private message thread between the owner of an RFQ and th
   - Either participant continues an existing thread with `threadId` and `message`.
   - Message body is plain text, trimmed, and limited to 2,000 characters.
 
+## User interface
+
+The home screen exposes a Trade Center with three views: buyer purchase requests and offer review, supplier-matched requests and offer submission, and a participant-scoped private message inbox. Monetary inputs are parsed into integer minor units using the configured currency exponent. Currency conversion is not performed. Supplier visibility is opt-in through an explicit checkbox.
+
 ## Privacy and scope
 
 - Thread reads and writes are restricted to the RFQ buyer or the user who owns the supplier store.
