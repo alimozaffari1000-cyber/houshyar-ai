@@ -39,6 +39,8 @@ jobs:
         run: npm run agent:patch-sandbox
       - name: Run offline-safe development checks
         run: npm run agent:offline
+      - name: Produce human-gated release preflight report
+        run: npm run agent:release-check
       - name: Upload agent report
         if: always()
         uses: actions/upload-artifact@v6
@@ -48,6 +50,7 @@ jobs:
             .houshyar-agent-reports/*.md
             .houshyar-agent-reports/*.json
             .houshyar-agent-reports/*.patch
+            .houshyar-agent-reports/release-preflight-*.json
           if-no-files-found: warn
           retention-days: 14
       - name: Open diagnostic issue on failure
