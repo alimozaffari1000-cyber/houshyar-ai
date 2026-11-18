@@ -29,6 +29,8 @@ jobs:
           package-manager-cache: false
       - name: Install dependencies
         run: npm install
+      - name: Run allowlisted online research
+        run: npm run agent:research
       - name: Run offline-safe development checks
         run: npm run agent:offline
       - name: Upload agent report
