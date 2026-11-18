@@ -6,7 +6,7 @@ import { onRequestGet } from "../functions/api/admin/health.js";
 const tables = [
   "users", "sessions", "usage_events", "api_rate_limits", "audit_events",
   "daily_usage", "email_verification_tokens", "password_reset_tokens",
-  "merchant_stores", "products"
+  "merchant_stores", "products", "operational_metrics", "agent_tasks"
 ];
 
 async function fixture(role = "admin") {
