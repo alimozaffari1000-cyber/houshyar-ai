@@ -69,7 +69,7 @@ export function initAgentTasks(app, { locale = "fa" } = {}) {
       if(response.status===401){state.textContent=words.auth;return;}
       if(!response.ok)throw new Error(data.error || "TASK_CREATE_FAILED");
       form.reset();form.elements.priority.value="3";
-      state.textContent=words.saved;await loadTasks();
+      await loadTasks();state.textContent=words.saved;
     } catch {state.textContent=words.failedSave;}
     finally {submit.disabled=false;}
   });
