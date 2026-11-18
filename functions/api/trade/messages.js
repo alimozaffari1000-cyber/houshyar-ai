@@ -18,8 +18,26 @@ export async function onRequestGet({ request, env }) {
   const user = await getSessionUser(env.DB, request);
   if (!user) return authJson({ error: "AUTH_REQUIRED" }, 401);
   const threadId = text(new URL(request.url).searchParams.get("threadId"), 80);
-  if (!threadId) return authJson({ error: "THREAD_ID_REQUIRED" }, 400);
   try {
+    if (!threadId) {
+      const inbox = await env.DB.prepare(
+        "SELECT t.id, t.request_id AS requestId, t.status, t.updated_at AS updatedAt, " +
+        "r.title AS requestTitle, r.category, r.city, s.name AS supplierName, " +
+        "CASE WHEN t.buyer_user_id = ? THEN 'buyer' ELSE 'supplier' END AS participantRole, " +
+        "(SELECT substr(m.body, 1, 160) FROM trade_negotiation_messages m " +
+        "WHERE m.thread_id = t.id ORDER BY m.created_at DESC LIMIT 1) AS lastMessage " +
+        "FROM trade_negotiation_threads t " +
+        "JOIN trade_purchase_requests r ON r.id = t.request_id " +
+        "JOIN merchant_stores s ON s.id = t.supplier_store_id " +
+        "WHERE t.buyer_user_id = ? OR s.user_id = ? " +
+        "ORDER BY t.updated_at DESC LIMIT 100"
+      ).bind(user.id, user.id, user.id).all();
+      return authJson({
+        threads: Array.isArray(inbox.results) ? inbox.results : [],
+        view: "participant-inbox",
+        note: "Only threads in which the authenticated user is a buyer or supplier participant are listed."
+      });
+    }
     const thread = await participantThread(env.DB, threadId, user.id);
     if (!thread) return authJson({ error: "THREAD_NOT_FOUND" }, 404);
     const result = await env.DB.prepare(

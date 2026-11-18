@@ -53,3 +53,12 @@ test("messages are bounded, rate limited and explicitly not orders or payments",
   assert.match(source, /enforceAuthRateLimit/);
   assert.match(source, /do not create an order, contract, reservation, or payment/);
 });
+
+test("message inbox lists only participant threads with bounded previews", async () => {
+  const source = await readFile(new URL("../functions/api/trade/messages.js", import.meta.url), "utf8");
+  assert.match(source, /participant-inbox/);
+  assert.match(source, /WHERE t\.buyer_user_id = \? OR s\.user_id = \?/);
+  assert.match(source, /ORDER BY t\.updated_at DESC LIMIT 100/);
+  assert.match(source, /substr\(m\.body, 1, 160\)/);
+  assert.match(source, /CASE WHEN t\.buyer_user_id = \? THEN 'buyer' ELSE 'supplier' END/);
+});

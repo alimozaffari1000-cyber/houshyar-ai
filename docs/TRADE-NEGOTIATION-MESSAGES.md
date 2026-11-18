@@ -4,6 +4,7 @@ This foundation adds a private message thread between the owner of an RFQ and th
 
 ## API
 
+- `GET /api/trade/messages`: lists up to 100 threads for the authenticated buyer/supplier participant, newest activity first, with a bounded last-message preview.
 - `GET /api/trade/messages?threadId=<id>`: authenticated buyer or supplier participant only; returns up to 200 messages in chronological order.
 - `POST /api/trade/messages`: same-origin authenticated write with rate limiting.
   - Buyer starts a thread by sending `requestId`, `offerId`, and `message`.
