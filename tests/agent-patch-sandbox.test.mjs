@@ -48,6 +48,7 @@ test("applies patch only in detached worktree and runs fixed checks", async () =
     const result = await runPatchSandbox({
       cwd,
       now: new Date("2026-11-18T00:00:00.000Z"),
+      install: async () => ({ status: 0, stderr: "" }),
       check: async (name, worktree) => {
         observed.push(name);
         const content = readFileSync(join(worktree, "src/visual-image-validation.js"), "utf8");
@@ -68,6 +69,7 @@ test("stops when a fixed validation command fails", async () => {
   try {
     const result = await runPatchSandbox({
       cwd,
+      install: async () => ({ status: 0, stderr: "" }),
       check: async (name) => ({ status: name === "qa" ? 1 : 0, stderr: "test failure" })
     });
     assert.equal(result.status, "failed");
