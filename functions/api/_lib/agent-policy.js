@@ -1,8 +1,8 @@
 export const AGENT_SCOPES = Object.freeze({
   general: ["knowledge:read"], research: ["knowledge:read", "sources:read"],
-  analyst: ["knowledge:read", "data:read"], content: ["knowledge:read", "content:draft"],
+  analyst: ["knowledge:read", "data:read", "payment:create"], content: ["knowledge:read", "content:draft", "communication:send", "legal:commit"],
   translator: ["knowledge:read", "content:draft"], planner: ["knowledge:read", "workflow:draft"],
-  developer: ["knowledge:read", "code:draft", "tests:run:sandbox"]
+  developer: ["knowledge:read", "code:draft", "tests:run:sandbox", "data:delete", "security:change", "publish:release"]
 });
 
 const TOOL_POLICIES = Object.freeze({
