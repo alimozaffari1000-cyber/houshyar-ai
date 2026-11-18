@@ -20,5 +20,5 @@ test("agent routing never grants autonomous tool permissions", () => {
 
 test("agent catalog exposes the available specialist roles", () => {
   assert.ok(listAgents().length >= 7);
-  assert.ok(listAgents().every(agent => agent.status === "available"));
+  assert.ok(listAgents().every(agent => agent.status === "prompt_routed" && agent.autonomousTools === false));
 });
