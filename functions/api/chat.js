@@ -315,7 +315,7 @@ export async function onRequestPost({ request, env, ctx }) {
     reply: result.reply,
     mode: requestedMode,
     provider: responseProvider,
-    requestedProvider: providerChoice.provider,
+    requestedProvider,
     fallbackUsed,
     selectionStrategy: fallbackUsed ? "automatic_fallback" : selectionStrategy,
     model: result.model,
