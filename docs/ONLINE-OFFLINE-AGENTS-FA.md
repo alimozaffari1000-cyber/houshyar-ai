@@ -45,6 +45,24 @@ Workflow در مسیر `.github/workflows/online-development-agent.yml` هفتگ
 npm run agent:patch
 ```
 
+## اجرای آزمایشی Patch در محیط ایزوله
+
+پس از تولید Patch پیشنهادی، `scripts/agent-patch-sandbox.mjs` آن را در یک Git worktree موقت و detached آزمایش می‌کند:
+
+1. اعتبارسنجی مجدد مسیرها و اندازه Patch با همان allowlist سخت‌گیرانه
+2. ساخت worktree موقت از همان commit فعلی
+3. اجرای `git apply --check` و سپس اعمال Patch فقط داخل worktree موقت
+4. اجرای فرمان‌های ثابت و غیرقابل‌تغییر: `npm run qa`، `npm run security:scan`، `npm run build` و `npm run quality:check`
+5. حذف worktree و ذخیره گزارش JSON
+
+فرمان دستی:
+
+```bash
+npm run agent:patch-sandbox
+```
+
+این مرحله هیچ‌گاه روی checkout اصلی Patch را اعمال نمی‌کند؛ commit، push، branch انتشار، PR، merge یا deploy نمی‌سازد. اگر Patch وجود نداشته باشد (مثلاً چون مدل خاموش است)، مرحله با وضعیت skipped تمام می‌شود. اگر هر بررسی شکست بخورد، نتیجه ناموفق ثبت می‌شود و workflow به‌عنوان موفق گزارش نمی‌شود.
+
 ## عامل آفلاین
 
 فرمان بررسی:
