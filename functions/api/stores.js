@@ -69,7 +69,19 @@ export async function onRequestGet({ request, env }) {
       return a.distanceKm - b.distanceKm;
     });
     const page = products.slice(offset, offset + limit);
-    return authJson({ products: page, count: page.length, limit, offset, hasMore: offset + page.length < products.length, truncated, locationUsedForThisSearch: lat !== null });
+    const hasMore = offset + page.length < products.length;
+    const nextOffset = hasMore ? offset + page.length : null;
+    return authJson({
+      products: page,
+      count: page.length,
+      limit,
+      offset,
+      hasMore,
+      nextOffset,
+      truncated,
+      candidateWindowLimit: 500,
+      locationUsedForThisSearch: lat !== null
+    });
   } catch {
     return authJson({ error: "CATALOG_UNAVAILABLE" }, 503);
   }
