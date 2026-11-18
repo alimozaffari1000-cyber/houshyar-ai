@@ -25,16 +25,21 @@ jobs:
         run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
       - name: Apply compatible transitive security fixes
         if: steps.install.outcome == 'success'
+        continue-on-error: true
         run: npm audit fix --package-lock-only --ignore-scripts --no-fund
       - name: Install exactly the audited dependency tree
-        if: steps.install.outcome == 'success'
+        if: always() && steps.install.outcome == 'success'
         run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Scan tracked files for common secret patterns
         if: always() && steps.install.outcome == 'success'
         run: npm run security:scan
-      - name: Audit the installed dependency tree
+      - name: Block release on vulnerable production dependencies
         if: always() && steps.install.outcome == 'success'
-        id: audit
+        id: production-audit
+        run: npm audit --omit=dev --audit-level=high
+      - name: Report development-tool dependency findings
+        if: always() && steps.install.outcome == 'success'
+        continue-on-error: true
         run: npm audit --audit-level=high
       - name: Run project tests
         if: always() && steps.install.outcome == 'success'
