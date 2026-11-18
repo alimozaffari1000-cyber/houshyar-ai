@@ -63,5 +63,5 @@ jobs:
                 "Commit: " + context.sha,
                 "",
                 "Do not paste secrets into this issue. If a credential was exposed, revoke and rotate it at the provider."
-              ].join("\\n")
+              ].join("\n")
             });
