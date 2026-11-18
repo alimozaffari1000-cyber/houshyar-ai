@@ -9,6 +9,7 @@ test("RFQ migration stores buyer-scoped requests with bounded lifecycle and inde
   assert.match(sql, /buyer_user_id TEXT NOT NULL REFERENCES users\(id\)/);
   assert.match(sql, /status IN \('open', 'closed', 'cancelled', 'fulfilled', 'expired'\)/);
   assert.match(sql, /idx_trade_purchase_requests_match/);
+  assert.match(sql, /supplier_visible INTEGER NOT NULL DEFAULT 0/);
   assert.match(sql, /CHECK \(\(target_price_minor IS NULL AND currency_code IS NULL\)/);
 });
 
