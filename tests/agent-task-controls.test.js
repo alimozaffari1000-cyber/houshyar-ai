@@ -26,7 +26,7 @@ test("task cancellation is owner-scoped and clears active leases",async()=>{
  const update=DB.statements.find(x=>x.sql.startsWith("UPDATE agent_tasks"));
  assert.match(update.sql,/user_id=\?/);
  assert.match(update.sql,/lease_owner=NULL/);
- assert.deepEqual(update.args.slice(1,3),[id,"user-1"]);
+ assert.deepEqual(update.args.slice(2,4),[id,"user-1"]);
 });
 test("retry only requeues failed tasks below the attempt cap",async()=>{
  const DB=makeDb({taskStatus:"failed",attemptCount:1,maxAttempts:3});
