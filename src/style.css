@@ -444,3 +444,34 @@ button:focus-visible,textarea:focus-visible,select:focus-visible{
 .translator-submit{padding:12px 16px;border:0;border-radius:11px;background:var(--accent);color:white;font:inherit;font-weight:700;cursor:pointer}
 .translator-error{min-height:16px;margin:0;color:#ffb6b6}
 .translator-footnote{margin:12px 0 0}
+
+
+/* Agent task center */
+.agent-tasks-overlay{position:fixed;inset:0;z-index:40;display:grid;place-items:center;padding:14px;background:rgba(2,8,18,.84);backdrop-filter:blur(10px)}
+.agent-tasks-overlay[hidden]{display:none}
+.agent-tasks-card{width:min(100%,680px);max-height:90vh;overflow:auto;padding:21px;border:1px solid rgba(145,180,218,.25);border-radius:21px;background:linear-gradient(145deg,#172a43,#101d31);box-shadow:0 28px 90px rgba(0,0,0,.5)}
+.agent-tasks-card header,.agent-task-item-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.agent-tasks-card h2{margin:0;font-size:19px}
+.agent-tasks-card p,.agent-tasks-subtitle{color:#9aacc5;font-size:12px;line-height:1.8}
+.agent-tasks-card header>button,.agent-tasks-toolbar button{border:1px solid rgba(145,180,218,.25);border-radius:9px;padding:7px 11px;background:#13243a;color:#eaf3ff;font:12px Vazirmatn}
+.agent-tasks-toolbar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:13px 0}
+.agent-tasks-state{font-size:11px;color:#f0c88a}
+.agent-tasks-form{display:grid;gap:11px;padding:14px;border:1px solid rgba(145,180,218,.16);border-radius:15px;background:rgba(7,16,30,.25)}
+.agent-tasks-form label{display:grid;gap:6px;color:#b8c8dc;font-size:11px}
+.agent-tasks-form input,.agent-tasks-form textarea,.agent-tasks-form select{width:100%;min-width:0;border:1px solid rgba(145,180,218,.22);border-radius:9px;padding:10px;background:#0d192a;color:#f2f7ff;font:12px Vazirmatn}
+.agent-tasks-form textarea{resize:vertical}
+.agent-tasks-form-row{display:grid;grid-template-columns:2fr 1fr;gap:10px}
+.agent-tasks-submit{border:0;border-radius:10px;padding:10px;background:linear-gradient(120deg,#83efd1,#61cfc9);color:#09201e;font:700 12px Vazirmatn}
+.agent-tasks-submit:disabled{opacity:.55}
+.agent-tasks-list{display:grid;gap:9px;margin-top:14px}
+.agent-task-item{padding:12px;border:1px solid rgba(145,180,218,.15);border-radius:13px;background:rgba(18,33,53,.7)}
+.agent-task-item strong{font-size:12px;color:#edf6ff}
+.agent-task-item p{margin:7px 0;font-size:12px;white-space:pre-wrap}
+.agent-task-item small{font-size:10px;color:#8ea5bf}
+.agent-task-status{padding:3px 8px;border-radius:999px;background:rgba(110,231,196,.1);color:#9af0d7;font-size:10px;white-space:nowrap}
+.agent-tasks-empty{text-align:center;padding:18px}
+@media(max-width:520px){.agent-tasks-card{padding:15px}.agent-tasks-form-row{grid-template-columns:1fr 1fr}}
+
+.agent-task-run{margin-top:10px;border:1px solid rgba(110,231,196,.35);border-radius:9px;padding:7px 12px;background:rgba(110,231,196,.1);color:#a8f2dc;font:12px Vazirmatn}
+.agent-task-run:disabled{opacity:.5}
+.agent-task-result{margin-top:12px;padding:12px;border-right:2px solid #83efd1;border-radius:8px;background:rgba(4,12,22,.45);color:#e5f2ff!important;white-space:pre-wrap}
