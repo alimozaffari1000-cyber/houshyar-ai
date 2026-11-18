@@ -30,7 +30,8 @@
       "write_research_report_artifact",
       "generate_prioritized_development_plan",
       "generate_allowlisted_patch_proposal",
-      "validate_patch_without_applying"
+      "validate_patch_without_applying",
+      "generate_human_gated_release_preflight_report"
     ],
     "forbidden": [
       "push_branch",
@@ -41,7 +42,9 @@
       "arbitrary_url_fetch",
       "execute_shell_from_research_content",
       "apply_patch_automatically",
-      "modify_files_outside_patch_allowlist"
+      "modify_files_outside_patch_allowlist",
+      "authorize_production_release",
+      "create_production_release"
     ]
   },
   "offline": {
