@@ -23,11 +23,10 @@ export async function onRequestGet({ request, env }) {
     const thread = await participantThread(env.DB, threadId, user.id);
     if (!thread) return authJson({ error: "THREAD_NOT_FOUND" }, 404);
     const result = await env.DB.prepare(
-      "SELECT id, CASE WHEN sender_user_id = ? THEN 'you' " +
-      "WHEN sender_user_id = ? THEN 'other' ELSE 'participant' END AS senderRole, " +
+      "SELECT id, CASE WHEN sender_user_id = ? THEN 'you' ELSE 'other' END AS senderRole, " +
       "body, created_at AS createdAt FROM trade_negotiation_messages " +
       "WHERE thread_id = ? ORDER BY created_at ASC LIMIT 200"
-    ).bind(user.id, user.id, threadId).all();
+    ).bind(user.id, threadId).all();
     return authJson({
       thread: { id: thread.id, requestId: thread.requestId, status: thread.status },
       messages: Array.isArray(result.results) ? result.results : [],
