@@ -40,3 +40,20 @@ The usage table records metering facts, not invoices or settled money. Billing m
 6. Apply to production only after an explicit human approval and backup.
 
 Do not run migrations against production merely because a file exists in the repository.
+
+
+## اجرای دستی و محدود عامل‌ها در Pages
+
+یک مسیر اجرای دستی برای وظیفه‌های صف‌شده اضافه شده است:
+
+- مسیر `POST /api/agent-tasks/:id/run` فقط برای مالک وظیفه و با نشست معتبر قابل استفاده است.
+- درخواست باید از همان origin سایت باشد؛ اجرای هر حساب با محدودیت جداگانه ۵ بار در ۱۵ دقیقه کنترل می‌شود.
+- فقط هفت نقش ثابت و متن ورودی همان وظیفه به مدل فرستاده می‌شود؛ مدل هیچ ابزار، مرورگر، فایل‌سیستم یا دسترسی مستقیم به پایگاه داده ندارد.
+- نشانی ارائه‌دهنده در کد ثابت و HTTPS است: `https://api.openai.com/v1/chat/completions`.
+- کلید فقط باید به‌عنوان Secret سمت سرور با نام `OPENAI_API_KEY` در تنظیمات محیط Cloudflare Pages ثبت شود؛ هرگز آن را در Git، فایل `.env` قابل commit یا متغیر `VITE_*` قرار ندهید.
+- نام مدل اختیاری است و با متغیر `HOUSHYAR_AGENT_MODEL` سمت سرور تنظیم می‌شود؛ پیش‌فرض `gpt-4.1-mini` است.
+- اگر کلید تنظیم نشده باشد، اجرا با پاسخ `AGENT_MODEL_NOT_CONFIGURED` متوقف می‌شود.
+- هر اجرا یک lease کوتاه، سقف زمان ۲۵ ثانیه، سقف خروجی، شمارنده تلاش و رویداد audit دارد. درخواست هم‌زمان برای یک وظیفه دوباره اجرا نمی‌شود.
+- اجرای عامل فقط پس از کلیک صریح کاربر انجام می‌شود. این قابلیت زمان‌بندی خودکار، اجرای پس‌زمینه یا دسترسی به ابزارهای خارجی نیست.
+
+این قابلیت فقط پس از ادغام PR پایه، اعمال migrationهای صف در محیط آزمایشی، تنظیم Secret در Cloudflare Pages و عبور تست‌های یکپارچه قابل استفاده خواهد بود. اجرای migration روی production یا تنظیم Secret تولیدی نیازمند تأیید و فرایند انتشار جداگانه است.
