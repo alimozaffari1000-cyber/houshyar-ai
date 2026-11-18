@@ -57,6 +57,7 @@ CREATE TABLE IF NOT EXISTS developer_apps (
     CHECK (visibility IN ('private', 'unlisted', 'public')),
   review_status TEXT NOT NULL DEFAULT 'draft'
     CHECK (review_status IN ('draft', 'submitted', 'approved', 'rejected', 'suspended')),
+  CHECK (visibility <> 'public' OR review_status = 'approved'),
   permissions_json TEXT NOT NULL DEFAULT '[]',
   created_at INTEGER NOT NULL,
   updated_at INTEGER NOT NULL
