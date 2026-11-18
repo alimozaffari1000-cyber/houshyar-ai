@@ -19,7 +19,8 @@
     "agent:plan": "node scripts/agent-development-planner.mjs",
     "agent:patch": "node scripts/agent-patch-proposal.mjs",
     "agent:patch-sandbox": "node scripts/agent-patch-sandbox.mjs",
-    "agent:release-check": "node scripts/agent-release-preflight.mjs"
+    "agent:release-check": "node scripts/agent-release-preflight.mjs",
+    "agent:coordinate": "node scripts/agent-project-coordinator.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.6.0",
