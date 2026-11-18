@@ -249,3 +249,53 @@ test('returns 504 when the upstream deadline aborts the request', async () => {
     globalThis.clearTimeout = originalClearTimeout;
   }
 });
+
+
+test('automatic provider selection falls back once when the primary provider fails', async () => {
+  const originalFetch = globalThis.fetch;
+  const calls = [];
+  globalThis.fetch = async (url, options) => {
+    calls.push(String(url));
+    if (String(url).includes('api.groq.com')) return new Response('upstream unavailable', { status: 503 });
+    if (String(url).includes('api.anthropic.com')) {
+      return new Response(JSON.stringify({ model: 'claude-test', content: [{ type: 'text', text: 'پاسخ از مدل جایگزین' }] }), { status: 200 });
+    }
+    throw new Error('Unexpected provider URL');
+  };
+  try {
+    const response = await onRequestPost({
+      request: request({ message: 'سلام', provider: 'auto' }),
+      env: { GROQ_API_KEY: 'groq-test', CLAUDE_API_KEY: 'claude-test' }
+    });
+    const body = await response.json();
+    assert.equal(response.status, 200);
+    assert.equal(body.reply, 'پاسخ از مدل جایگزین');
+    assert.equal(body.provider, 'anthropic');
+    assert.equal(body.requestedProvider, 'groq');
+    assert.equal(body.fallbackUsed, true);
+    assert.equal(body.selectionStrategy, 'automatic_fallback');
+    assert.equal(calls.length, 2);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('explicit provider selection does not silently fall back', async () => {
+  const originalFetch = globalThis.fetch;
+  let calls = 0;
+  globalThis.fetch = async () => {
+    calls += 1;
+    return new Response('upstream unavailable', { status: 503 });
+  };
+  try {
+    const response = await onRequestPost({
+      request: request({ message: 'سلام', provider: 'groq' }),
+      env: { GROQ_API_KEY: 'groq-test', CLAUDE_API_KEY: 'claude-test' }
+    });
+    assert.equal(response.status, 502);
+    assert.equal((await response.json()).error, 'UPSTREAM_ERROR');
+    assert.equal(calls, 1);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
