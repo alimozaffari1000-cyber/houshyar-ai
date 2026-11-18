@@ -13,6 +13,8 @@ function mockDb({ changes = 1, user = true } = {}) {
             async first() {
               return user ? { id: "user-1", email: "user@example.test", role: "user" } : null;
             },
+            sql,
+            args,
             async run() {
               writes.push({ sql, args });
               return { meta: { changes } };
@@ -20,6 +22,10 @@ function mockDb({ changes = 1, user = true } = {}) {
           };
         }
       };
+    },
+    async batch(statements) {
+      for (const statement of statements) writes.push({ sql: statement.sql, args: statement.args });
+      return statements.map((statement, index) => ({ meta: { changes: index === 0 ? changes : 1 } }));
     }
   };
 }
@@ -48,6 +54,7 @@ test("records approval for an owned task without executing it", async () => {
   assert.match(DB.writes[0].sql, /user_id = \?/);
   assert.match(DB.writes[0].sql, /approval_required = 1/);
   assert.match(DB.writes[0].sql, /status = 'needs_approval'/);
+  assert.match(DB.writes[1].sql, /task\.approval_recorded/);
 });
 
 test("does not report approval when task is not owned, expired, or already changed", async () => {
