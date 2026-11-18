@@ -3,7 +3,6 @@ import { checkAuthRateLimit } from "../../_lib/auth-rate-limit.js";
 import { buildAgentPrompt, extractAgentOutput, AGENT_EXECUTION_LIMITS } from "../../_lib/agent-executor.js";
 
 const json=(body,status=200)=>new Response(JSON.stringify(body),{status,headers:{"Content-Type":"application/json; charset=utf-8","Cache-Control":"no-store","X-Content-Type-Options":"nosniff"}});
-const AGENT_LABELS={general:"General assistant",research:"Research specialist",analyst:"Analyst",content:"Content writer",translator:"Translator",planner:"Planner",developer:"Developer"};
 
 export async function onRequestPost({request,env,params}) {
  if(!originAllowed(request)) return json({error:"ORIGIN_NOT_ALLOWED"},403);
@@ -35,7 +34,10 @@ export async function onRequestPost({request,env,params}) {
   if(!claim?.meta || claim.meta.changes!==1) return json({error:"TASK_ALREADY_CLAIMED"},409);
   await env.DB.prepare("INSERT INTO agent_task_events (id,task_id,actor_type,actor_id,event_type,from_status,to_status,detail_json,created_at) VALUES (?,?,'user',?,'claimed','queued','in_progress','{}',?)")
    .bind(crypto.randomUUID(),taskId,user.id,now).run();
- } catch { return json({error:"TASK_CLAIM_FAILED"},503); }
+ } catch {
+  try { await env.DB.prepare("UPDATE agent_tasks SET status='queued',attempt_count=CASE WHEN attempt_count>0 THEN attempt_count-1 ELSE 0 END,lease_owner=NULL,lease_expires_at=NULL,started_at=NULL,updated_at=? WHERE id=? AND user_id=? AND lease_owner=? AND status='in_progress'").bind(Math.floor(Date.now()/1000),taskId,user.id,leaseOwner).run(); } catch { /* lease expires as a final recovery boundary */ }
+  return json({error:"TASK_CLAIM_FAILED"},503);
+ }
  const controller=new AbortController(), timer=setTimeout(()=>controller.abort(),AGENT_EXECUTION_LIMITS.timeoutMs);
  try {
   const response=await fetch("https://api.openai.com/v1/chat/completions",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+apiKey},signal:controller.signal,body:JSON.stringify({model:env.HOUSHYAR_AGENT_MODEL||"gpt-4.1-mini",temperature:0.2,max_tokens:AGENT_EXECUTION_LIMITS.maxOutputTokens,messages:[{role:"system",content:prompt.system},{role:"user",content:prompt.user}]})});
@@ -44,8 +46,10 @@ export async function onRequestPost({request,env,params}) {
   const update=await env.DB.prepare("UPDATE agent_tasks SET status='completed',result_text=?,error_code=NULL,completed_at=?,updated_at=?,lease_owner=NULL,lease_expires_at=NULL WHERE id=? AND user_id=? AND lease_owner=? AND status='in_progress'")
    .bind(output,finished,finished,taskId,user.id,leaseOwner).run();
   if(!update?.meta || update.meta.changes!==1) return json({error:"TASK_LEASE_LOST"},409);
-  await env.DB.prepare("INSERT INTO agent_task_events (id,task_id,actor_type,actor_id,event_type,from_status,to_status,detail_json,created_at) VALUES (?,?,'agent',?,'completed','in_progress','completed','{}',?)")
-   .bind(crypto.randomUUID(),taskId,task.agent_id,finished).run();
+  try {
+   await env.DB.prepare("INSERT INTO agent_task_events (id,task_id,actor_type,actor_id,event_type,from_status,to_status,detail_json,created_at) VALUES (?,?,'agent',?,'completed','in_progress','completed','{}',?)")
+    .bind(crypto.randomUUID(),taskId,task.agent_id,finished).run();
+  } catch { /* task result is committed; audit event failure must not mark it failed */ }
   return json({task:{id:taskId,status:"completed",result:output},execution:"user_triggered_model",autonomousExecution:false});
  } catch(error) {
   const failed=Math.floor(Date.now()/1000), code=error?.name==="AbortError"?"MODEL_TIMEOUT":"MODEL_EXECUTION_FAILED";
