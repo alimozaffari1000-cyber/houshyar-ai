@@ -450,3 +450,11 @@ button:focus-visible,textarea:focus-visible,select:focus-visible{
 .admin-metrics-summary span{padding:8px 10px;border:1px solid var(--line);border-radius:9px;color:#e5f0fc;font-size:11px}
 .admin-metrics-note{margin:0;color:#9eb1c9;font-size:11px}
 .admin-health-check strong{max-width:65%;text-align:end;overflow-wrap:anywhere}
+
+
+.marketplace-shopping-summary { margin: 0 0 1rem; }
+.marketplace-summary-card { padding: .85rem 1rem; border: 1px solid var(--border, #d9dce3); border-radius: 1rem; background: var(--surface, #fff); }
+.marketplace-summary-card ul { margin: .4rem 0 .75rem; padding-inline-start: 1.25rem; }
+.marketplace-summary-card p { margin: .5rem 0; }
+.marketplace-summary-card b { display: inline-block; margin-top: .25rem; }
+.marketplace-match { color: var(--accent, #3765a8); }
