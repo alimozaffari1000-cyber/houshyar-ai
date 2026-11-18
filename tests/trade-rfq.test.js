@@ -23,25 +23,37 @@ test("RFQ endpoints require a session and reject cross-origin writes", async () 
   assert.equal(post.status, 403);
 });
 
-test("RFQ country matching and seller matches are scoped and do not expose buyer identity", async () => {
+test("RFQ seller matches are country/category scoped and omit buyer identity", async () => {
   const sql = [];
   const db = {
     prepare(statement) {
       sql.push(statement);
-      return { bind() { return { async first() { return { id: "store-1", countryCode: "AZ", status: "active" }; }, async all() { return { results: [{ id: "rfq-1", title: "Apples" }] }; } }; } };
+      return {
+        bind() {
+          return {
+            async first() {
+              if (statement.includes("FROM sessions JOIN users")) return { id: "seller-1", email: "seller@example.test", role: "user" };
+              if (statement.includes("FROM merchant_stores")) return { id: "store-1", countryCode: "AZ", status: "active" };
+              return null;
+            },
+            async all() { return { results: [{ id: "rfq-1", title: "Apples" }] }; }
+          };
+        }
+      };
     }
   };
   const response = await onRequestGet({
-    request: new Request("https://example.test/api/trade/requests?view=matches"),
-    env: { DB: db },
-    // Session resolution is replaced by the test fixture below through the DB query response.
+    request: new Request("https://example.test/api/trade/requests?view=matches", { headers: { cookie: "houshyar_session=valid-session-token" } }),
+    env: { DB: db }
   });
-  // This handler still uses the real session resolver; the test verifies the SQL privacy boundary statically.
-  assert.ok(response.status === 401 || response.status === 503);
-  const endpoint = await readFile(new URL("../functions/api/trade/requests.js", import.meta.url), "utf8");
-  assert.match(endpoint, /r\.buyer_user_id != \?/);
-  assert.match(endpoint, /r\.country_code IS \?/);
-  assert.doesNotMatch(endpoint, /SELECT[^;]*buyer_user_id AS buyer/i);
+  assert.equal(response.status, 200);
+  const body = await response.json();
+  assert.equal(body.requests[0].id, "rfq-1");
+  assert.equal("buyerUserId" in body.requests[0], false);
+  const matchQuery = sql.find(statement => statement.includes("FROM trade_purchase_requests r"));
+  assert.match(matchQuery, /r\.buyer_user_id != \?/);
+  assert.match(matchQuery, /r\.country_code IS \?/);
+  assert.match(matchQuery, /p\.category = r\.category/);
 });
 
 test("RFQ schema and endpoint enforce price, quantity, expiry, and live-country guardrails", async () => {
