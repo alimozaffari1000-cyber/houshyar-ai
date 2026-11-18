@@ -33,6 +33,8 @@ jobs:
         run: npm run agent:research
       - name: Produce prioritized development plan
         run: npm run agent:plan
+      - name: Register prioritized work in the agent task registry
+        run: npm run agent:coordinate
       - name: Generate and validate an isolated patch proposal (no apply)
         run: npm run agent:patch
       - name: Apply patch in temporary worktree and run fixed checks
