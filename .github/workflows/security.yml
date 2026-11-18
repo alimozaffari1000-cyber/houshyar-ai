@@ -12,6 +12,7 @@ permissions:
 jobs:
   security:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v6
         with:
@@ -19,12 +20,20 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: 24
-      - name: Install dependencies
+      - name: Generate an ephemeral npm lockfile
         id: install
-        run: npm install --ignore-scripts --no-audit
+        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+      - name: Apply compatible transitive security fixes
+        if: steps.install.outcome == 'success'
+        run: npm audit fix --package-lock-only --ignore-scripts --no-fund
+      - name: Install exactly the audited dependency tree
+        if: steps.install.outcome == 'success'
+        run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Scan tracked files for common secret patterns
+        if: always() && steps.install.outcome == 'success'
         run: npm run security:scan
-      - name: Audit dependency vulnerabilities
+      - name: Audit the installed dependency tree
+        if: always() && steps.install.outcome == 'success'
         id: audit
         run: npm audit --audit-level=high
       - name: Run project tests
@@ -54,5 +63,5 @@ jobs:
                 "Commit: " + context.sha,
                 "",
                 "Do not paste secrets into this issue. If a credential was exposed, revoke and rotate it at the provider."
-              ].join("\n")
+              ].join("\\n")
             });
