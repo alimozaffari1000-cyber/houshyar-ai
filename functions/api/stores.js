@@ -1,8 +1,8 @@
 import { authJson } from "./_lib/auth-flow.js";
 
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
-const escapeLike = (value) => value.replace(/[\\%_]/g, "\\const escapeLike = (value) => value.replace(/[\\%_]/g, "\\$&");");
-const normalizeSearch = (value) => String(value || "").normalize("NFKC").replace(/[يى]/g, "ی").replace(/ك/g, "ک").replace(/[\u064B-\u065F\u0670]/g, "").toLowerCase().trim();
+const escapeLike = (value) => value.replace(/[\\\\%_]/g, "\\\\$&");
+const normalizeSearch = (value) => String(value || "").normalize("NFKC").replace(/[يى]/g, "ی").replace(/ك/g, "ک").replace(/[\\u064B-\\u065F\\u0670]/g, "").toLowerCase().trim();
 const distanceKm = (aLat, aLon, bLat, bLon) => {
   const radians = (value) => value * Math.PI / 180;
   const dLat = radians(bLat - aLat);
@@ -17,6 +17,7 @@ export async function onRequestGet({ request, env }) {
   const url = new URL(request.url);
   const query = (url.searchParams.get("q") || "").trim().slice(0, 80);
   const requestedItems = url.searchParams.getAll("item").map((item) => normalizeSearch(item).slice(0, 40)).filter(Boolean).slice(0, 10);
+  const searchTerms = requestedItems.length ? requestedItems : (query ? [normalizeSearch(query)] : []);
   const city = (url.searchParams.get("city") || "").trim().slice(0, 80);
   const region = (url.searchParams.get("region") || "").trim().slice(0, 80);
   const mode = (url.searchParams.get("mode") || "").trim().toLowerCase();
@@ -35,10 +36,12 @@ export async function onRequestGet({ request, env }) {
 
   const conditions = ["s.status = 'active'", "p.status = 'published'"];
   const bindings = [];
-  if (query) {
-    conditions.push("(p.title LIKE ? ESCAPE '\\' OR p.description LIKE ? ESCAPE '\\' OR s.name LIKE ? ESCAPE '\\')");
-    const term = "%" + escapeLike(query) + "%";
-    bindings.push(term, term, term);
+  if (searchTerms.length) {
+    conditions.push("(" + searchTerms.map(() => "(p.title LIKE ? ESCAPE '\\\\' OR p.description LIKE ? ESCAPE '\\\\' OR s.name LIKE ? ESCAPE '\\\\')").join(" OR ") + ")");
+    for (const item of searchTerms) {
+      const term = "%" + escapeLike(item) + "%";
+      bindings.push(term, term, term);
+    }
   }
   if (city) { conditions.push("lower(s.city) = lower(?)"); bindings.push(city); }
   if (region) { conditions.push("lower(s.region) = lower(?)"); bindings.push(region); }
