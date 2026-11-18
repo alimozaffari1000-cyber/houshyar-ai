@@ -52,6 +52,7 @@ test("RFQ seller matches are country/category scoped and omit buyer identity", a
   assert.equal(body.requests[0].id, "rfq-1");
   assert.equal("buyerUserId" in body.requests[0], false);
   const matchQuery = sql.find(statement => statement.includes("FROM trade_purchase_requests r"));
+  assert.match(matchQuery, /r\.supplier_visible = 1/);
   assert.match(matchQuery, /r\.buyer_user_id != \?/);
   assert.match(matchQuery, /r\.country_code IS \?/);
   assert.match(matchQuery, /p\.category = r\.category/);
