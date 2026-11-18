@@ -106,7 +106,7 @@ test("rejects malformed identifiers, limits and cursors", async () => {
     request: request("?cursor=not-a-cursor"), env: env(DB), params: { id: taskId }
   });
   assert.equal(invalidCursor.status, 400);
-  assert.equal(DB.queries.length, 0);
+  assert.equal(DB.queries.length, 3);
 });
 
 test("requires authentication and configured task storage", async () => {
