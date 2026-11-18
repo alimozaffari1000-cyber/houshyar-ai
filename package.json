@@ -17,7 +17,8 @@
     "android:sync": "npm run build && cap sync android",
     "agent:research": "node scripts/agent-research.mjs",
     "agent:plan": "node scripts/agent-development-planner.mjs",
-    "agent:patch": "node scripts/agent-patch-proposal.mjs"
+    "agent:patch": "node scripts/agent-patch-proposal.mjs",
+    "agent:patch-sandbox": "node scripts/agent-patch-sandbox.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.6.0",
