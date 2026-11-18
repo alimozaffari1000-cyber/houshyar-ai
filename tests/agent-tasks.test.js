@@ -27,3 +27,9 @@ test("public view never exposes user id or internal database row",()=>{
  const v=taskPublicView({id:"t1",user_id:"secret",title:"Test",input_text:"do",agent_id:"planner",status:"queued",priority:3,created_at:1,updated_at:2});
  assert.equal(v.id,"t1"); assert.equal("user_id" in v,false); assert.equal("userId" in v,false);
 });
+
+test("one-character task input receives a valid database title",()=>{
+ const r=validateAgentTask({input:"x"});
+ assert.equal(r.ok,true);
+ assert.ok(r.task.title.length>=2);
+});
