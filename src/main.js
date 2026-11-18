@@ -7,6 +7,7 @@ import { classifyLearningTask, recommendLearningMode } from './learning-core.js'
 import { attachLearningFeedback } from './learning-ui.js';
 import { initDesignStudio } from './design-studio.js';
 import { initMarketplace } from './marketplace.js';
+import { initTradeCenter } from './trade-center.js';
 
 const app = document.querySelector('#app');
 const RESPONSE_MODE_LABELS = {"fa":["سریع","متعادل","تحلیلی عمیق","خلاق"],"en":["Fast","Balanced","Deep reasoning","Creative"],"de":["Schnell","Ausgewogen","Tiefgehend","Kreativ"],"ar":["سريع","متوازن","استدلال عميق","إبداعي"],"tr":["Hızlı","Dengeli","Derin düşünme","Yaratıcı"],"es":["Rápido","Equilibrado","Razonamiento profundo","Creativo"],"fr":["Rapide","Équilibré","Raisonnement approfondi","Créatif"],"ru":["Быстрый","Сбалансированный","Глубокий анализ","Творческий"],"zh":["快速","均衡","深度推理","创意"],"hi":["तेज़","संतुलित","गहन तर्क","रचनात्मक"],"ur":["تیز","متوازن","گہری سوچ","تخلیقی"],"pt":["Rápido","Equilibrado","Raciocínio profundo","Criativo"]};
@@ -54,6 +55,7 @@ function render() {
       <button type="button" data-prompt="${escapeHTML(t('toolStudyPrompt',locale))}"><span>◎</span><b>${t('toolStudy',locale)}</b></button>
       <button type="button" data-open-design-studio><span>✦</span><b>${DESIGN_STUDIO_LABELS[locale] || DESIGN_STUDIO_LABELS.en}</b></button>
       <button type="button" data-open-marketplace><span>▦</span><b>${locale === "fa" ? "بازارگاه" : "Marketplace"}</b></button>
+      <button type="button" data-open-trade-center><span>⇄</span><b>${locale === "fa" ? "مرکز تجارت" : "Trade Center"}</b></button>
     </div></section>
     <section class="suggestions" aria-label="${t('suggestionsLabel',locale)}">
       <button type="button" data-prompt="${escapeHTML(t('promptIdea',locale))}">💡 ${t('idea',locale)} <small>${t('ideaDesc',locale)}</small></button>
@@ -70,6 +72,7 @@ function render() {
   attachLearningFeedback(app.querySelector('.chat'), state.messages, locale);
   initDesignStudio(app, { locale });
   initMarketplace(app, { locale });
+  initTradeCenter(app, { locale });
   app.querySelector('#locale-select').addEventListener('change', event => { setLocale(event.target.value); render(); });
   initAccountPanel(app);
   initAuthFlows(app);

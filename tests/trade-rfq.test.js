@@ -58,6 +58,7 @@ test("RFQ seller matches are country/category scoped and omit buyer identity", a
   assert.match(matchQuery, /country_market_configs cm/);
   assert.match(matchQuery, /cm\.status = 'live'/);
   assert.match(matchQuery, /p\.category = r\.category/);
+  assert.ok(matchQuery.includes("p.status = 'published'"));
 });
 
 test("RFQ schema and endpoint enforce price, quantity, expiry, and live-country guardrails", async () => {
