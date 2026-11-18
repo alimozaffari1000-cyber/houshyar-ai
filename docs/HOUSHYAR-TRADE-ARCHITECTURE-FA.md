@@ -171,3 +171,52 @@ Demand/supply analytics, sourcing recommendations, enterprise APIs, procurement 
 
 ## 15. Implementation boundary
 This is a product/architecture specification only. It creates no tables, endpoints, business verification, orders, carrier connections, or payment processing. Each operational capability requires separate implementation, tests, security review, and explicit deployment approval.
+
+## 16. Core operating model: Houshyar as the intelligent intermediary
+
+The primary business role of Houshyar Trade is **marketplace operator and intelligent commercial intermediary**. Houshyar connects buyers, sellers, manufacturers, wholesalers, exporters, importers, merchants, and service providers. In the default model, Houshyar is not the principal buyer, seller, importer, exporter, inventory owner, or contractual counterparty to the underlying goods transaction.
+
+### Intermediary responsibilities
+- Capture buyer demand and seller supply in structured, searchable formats.
+- Match both sides using product/service fit, quantity, location, destination, price range, lead time, trust signals, and stated preferences.
+- Recommend suitable counterparties and explain why each match is relevant.
+- Obtain user permission before sharing contact details or commercially sensitive RFQ information.
+- Facilitate introductions, multilingual communication, RFQs, offers, negotiation, and meeting scheduling.
+- Keep a transparent timeline of introductions, offer versions, user decisions, and agreed next steps.
+- Help parties prepare order documents and coordinate optional logistics/payment partners without falsely claiming to provide those services itself.
+- Support post-introduction feedback, reports, disputes, and fraud prevention under clearly disclosed platform rules.
+
+### Matching workflow
+1. Buyer submits a request or searches the catalog.
+2. The system normalizes product specifications, quantity, target price, destination, delivery terms, and timing.
+3. Matching ranks eligible suppliers and clearly separates verified data from seller-provided claims.
+4. Buyer reviews a shortlist and chooses whom to contact.
+5. Houshyar sends an RFQ or introduction only within the buyer's chosen disclosure scope.
+6. Suppliers respond with time-limited, versioned offers.
+7. Houshyar compares offers and assists translation and negotiation; parties communicate and decide.
+8. With explicit confirmation from the parties, Houshyar records the referral/transaction milestone and any applicable fee.
+9. The parties complete their contract and payment directly or through separately enabled, qualified providers.
+10. Houshyar records permitted outcome signals to improve matching and reputation, subject to privacy and dispute rules.
+
+### Commercial model for an intermediary
+- **Success/referral fee:** a disclosed fee may be charged when a qualifying introduction or transaction milestone occurs, subject to local law and a clear definition of the fee trigger.
+- **Subscription:** optional seller/business plans for advanced catalog tools, lead management, analytics, and team access.
+- **Qualified leads:** paid lead products may be offered only with transparent rules; never sell exclusive access to a buyer's private data or misrepresent lead quality.
+- **Promoted placement:** sponsored results must be visibly labeled and must not silently override relevance, eligibility, or trust ranking.
+- **Enterprise sourcing:** custom sourcing and procurement workflows may be priced transparently.
+
+Fees, payer, trigger, taxes, refunds, cancellation treatment, and any currency conversion must be shown before the user commits. No recruitment commissions or multi-level referral compensation. No fee should be represented as earned merely because a user registers or invites others.
+
+### Trust and anti-circumvention
+The platform should protect users from scams without trapping them. Disclose what Houshyar can and cannot guarantee. Offer optional on-platform messaging and milestone tracking, but do not falsely claim that an off-platform deal is protected. Any referral-fee agreement must be accepted by the paying party before introduction or before the defined fee-triggering action. Keep a fair complaint and appeal process.
+
+### Legal boundary
+The default intermediary model does not automatically make Houshyar a broker, agent, marketplace facilitator, payment institution, customs broker, or carrier in every jurisdiction. Before launch in each country, obtain qualified legal review of agency/brokerage licensing, consumer and commercial marketplace rules, privacy, competition, sanctions/export controls, tax/VAT, advertising disclosures, and payment-services boundaries. Contracts must clearly state whether Houshyar acts only as an introducer/platform or has a separately authorized agency role. Do not negotiate or bind a party as its agent without explicit authority and jurisdictional review.
+
+### Additional acceptance criteria
+- Buyer and seller can independently control what contact and business data is disclosed and when.
+- Matching results explain key factors and distinguish sponsored placement from organic relevance.
+- No supplier can see another supplier's quote or a buyer's private competing offers.
+- A referral fee cannot be triggered without a recorded, informed acceptance of its terms.
+- The platform never represents itself as seller/owner of goods unless a separately approved business model explicitly says so.
+- Users can report misleading listings, fake suppliers, spam, coercion, and unauthorized data sharing.
