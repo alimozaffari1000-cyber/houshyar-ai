@@ -1,4 +1,5 @@
 import { getSessionUser, originAllowed } from "./_lib/auth.js";
+import { checkAuthRateLimit } from "./_lib/auth-rate-limit.js";
 import { validateAgentTask, taskPublicView } from "./_lib/agent-tasks.js";
 
 const json = (body,status=200) => new Response(JSON.stringify(body), {
@@ -35,6 +36,18 @@ export async function onRequestPost({request,env}) {
   if (Number.isFinite(length) && length>12000) return json({error:"BODY_TOO_LARGE"},413);
   const auth=await authenticatedUser(request,env);
   if (auth.error) return auth.error;
+  try {
+    const rate = await checkAuthRateLimit({
+      db: env.DB,
+      action: "agent-task",
+      email: auth.user.email || auth.user.id,
+      clientIp: request.headers.get("cf-connecting-ip") || "unknown",
+      limit: Number(env.AGENT_TASK_RATE_LIMIT) || 30
+    });
+    if (!rate.allowed) return json({error:"TASK_RATE_LIMITED",message:"تعداد ثبت وظایف بیش از حد مجاز است."},429);
+  } catch {
+    return json({error:"TASK_RATE_LIMIT_UNAVAILABLE"},503);
+  }
   let body;
   try {
     if (!request.body) return json({error:"INVALID_JSON"},400);
