@@ -35,6 +35,8 @@ jobs:
         run: npm run agent:plan
       - name: Generate and validate an isolated patch proposal (no apply)
         run: npm run agent:patch
+      - name: Apply patch in temporary worktree and run fixed checks
+        run: npm run agent:patch-sandbox
       - name: Run offline-safe development checks
         run: npm run agent:offline
       - name: Upload agent report
