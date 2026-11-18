@@ -1,8 +1,8 @@
 import { authJson } from "./_lib/auth-flow.js";
 
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
-const escapeLike = (value) => value.replace(/[\\\\%_]/g, "\\\\$&");
-const normalizeSearch = (value) => String(value || "").normalize("NFKC").replace(/[يى]/g, "ی").replace(/ك/g, "ک").replace(/[\\u064B-\\u065F\\u0670]/g, "").toLowerCase().trim();
+const escapeLike = (value) => value.replace(/[\\%_]/g, "\\$&");
+const normalizeSearch = (value) => String(value || "").normalize("NFKC").replace(/[يى]/g, "ی").replace(/ك/g, "ک").replace(/[\u064B-\u065F\u0670]/g, "").toLowerCase().trim();
 const distanceKm = (aLat, aLon, bLat, bLon) => {
   const radians = (value) => value * Math.PI / 180;
   const dLat = radians(bLat - aLat);
@@ -37,7 +37,7 @@ export async function onRequestGet({ request, env }) {
   const conditions = ["s.status = 'active'", "p.status = 'published'"];
   const bindings = [];
   if (searchTerms.length) {
-    conditions.push("(" + searchTerms.map(() => "(p.title LIKE ? ESCAPE '\\\\' OR p.description LIKE ? ESCAPE '\\\\' OR s.name LIKE ? ESCAPE '\\\\')").join(" OR ") + ")");
+    conditions.push("(" + searchTerms.map(() => "(p.title LIKE ? ESCAPE '\\' OR p.description LIKE ? ESCAPE '\\' OR s.name LIKE ? ESCAPE '\\')").join(" OR ") + ")");
     for (const item of searchTerms) {
       const term = "%" + escapeLike(item) + "%";
       bindings.push(term, term, term);
