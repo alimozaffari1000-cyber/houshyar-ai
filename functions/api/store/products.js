@@ -31,7 +31,7 @@ export async function onRequestGet({ request, env }) {
   bindings.push(limit + 1, offset);
   try {
     const result = await env.DB.prepare(
-      "SELECT p.id, p.title, p.slug, p.description, p.category, p.price_minor AS priceMinor, p.currency_code AS currency, p.stock_count AS stockCount, p.created_at AS createdAt, s.name AS storeName, s.slug AS storeSlug " +
+      "SELECT p.id, p.title, p.slug, p.description, p.category, p.price_minor AS priceMinor, p.currency_code AS currency, p.stock_count AS stockCount, p.created_at AS createdAt, s.name AS storeName, s.slug AS storeSlug, " +
       "s.country_code AS countryCode FROM products p JOIN merchant_stores s ON s.id = p.store_id WHERE " + conditions.join(" AND ") +
       " ORDER BY p.created_at DESC LIMIT ? OFFSET ?"
     ).bind(...bindings).all();
