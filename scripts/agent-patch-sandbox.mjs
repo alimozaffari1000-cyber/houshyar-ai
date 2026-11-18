@@ -31,6 +31,17 @@ function runNpm(script, cwd) {
   });
 }
 
+function runInstall(cwd) {
+  return spawnSync("npm", ["install", "--ignore-scripts", "--no-audit", "--no-fund", "--package-lock=false"], {
+    cwd,
+    encoding: "utf8",
+    shell: false,
+    timeout: TIMEOUT_MS,
+    windowsHide: true,
+    env: { ...process.env, CI: "true", HUSKY: "0" }
+  });
+}
+
 function resultOk(result) {
   return !result.error && result.status === 0;
 }
@@ -38,6 +49,7 @@ function resultOk(result) {
 export async function runPatchSandbox({
   cwd = process.cwd(),
   git = runGit,
+  install = runInstall,
   check = runNpm,
   now = new Date()
 } = {}) {
@@ -66,6 +78,13 @@ export async function runPatchSandbox({
       return returnValue;
     }
     worktreeCreated = true;
+
+    const dependencies = await install(worktree);
+    if (!resultOk(dependencies)) {
+      reason = "sandbox_dependency_install_failed: " + String(dependencies.stderr || dependencies.error?.message || "").slice(0, 1500);
+      returnValue = { status, reason, checks };
+      return returnValue;
+    }
 
     const dryRun = git(["apply", "--check", "--whitespace=error", "-"], { cwd: worktree, input: patch });
     if (!resultOk(dryRun)) {
@@ -128,6 +147,12 @@ export async function runPatchSandbox({
 }
 
 async function main() {
+  if (process.env.CI !== "true" && !process.argv.includes("--allow-local-execution")) {
+    console.log("[PATCH SANDBOX] blocked: patch code may execute with this device's permissions.");
+    console.log("[PATCH SANDBOX] On a trusted local checkout, explicitly pass --allow-local-execution; CI uses an ephemeral runner.");
+    process.exitCode = 2;
+    return;
+  }
   const result = await runPatchSandbox();
   console.log(`[PATCH SANDBOX] ${result.status}`);
   for (const item of result.checks || []) console.log(`[PATCH SANDBOX] ${item.name}: ${item.success ? "PASS" : "FAIL"}`);
