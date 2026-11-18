@@ -10,8 +10,8 @@ function fixture(role = "admin", observability = "true") {
     prepare(sql) {
       if (sql.includes("SELECT users.id")) return { bind(hash) { assert.equal(hash, tokenHash); return { first: async () => ({ id: "user-1", role }) }; } };
       if (sql.includes("FROM operational_metrics")) return { bind() { return { all: async () => ({ results: [
-        { provider: "groq", event: "provider_success", requests: 8, failures: 0, avg_latency_ms: 450, max_latency_ms: 800 },
-        { provider: "google", event: "provider_failure", requests: 2, failures: 2, avg_latency_ms: 900, max_latency_ms: 1200 }
+        { provider: "groq", requests: 8, successes: 8, failures: 0, avg_latency_ms: 450, max_latency_ms: 800 },
+        { provider: "google", requests: 2, successes: 0, failures: 2, avg_latency_ms: 900, max_latency_ms: 1200 }
       ] }) }; } };
       throw new Error("Unexpected SQL");
     }
@@ -39,6 +39,9 @@ test("admin metrics returns only provider aggregates for admins", async () => {
   assert.equal(data.totals.requests, 10);
   assert.equal(data.totals.failures, 2);
   assert.equal(data.providers[0].avgLatencyMs, 450);
+  assert.equal(data.providers[0].successes, 8);
+  assert.equal(data.providers[0].failureRatePercent, 0);
+  assert.equal(data.providers[1].failureRatePercent, 100);
   assert.equal(JSON.stringify(data).includes("metrics-test-session"), false);
 });
 
