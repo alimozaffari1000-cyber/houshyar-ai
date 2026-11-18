@@ -252,6 +252,8 @@ export async function onRequestPost({ request, env, ctx }) {
   const timeout = setTimeout(() => controller.abort("upstream_timeout"), UPSTREAM_TIMEOUT_MS);
   const providerStartedAt = performance.now();
   let result;
+  let responseProvider = providerChoice.provider;
+  let fallbackUsed = false;
   try {
     result = await requestModel({
       provider: providerChoice.provider, env, messages, model,
@@ -262,19 +264,60 @@ export async function onRequestPost({ request, env, ctx }) {
   } catch {
     const timedOut = controller.signal.aborted;
     telemetry.log("provider_failure", { provider: providerChoice.provider, status: timedOut ? 504 : 502, errorCode: timedOut ? "upstream_timeout" : "upstream_error", durationMs: performance.now() - providerStartedAt });
-    await releaseQuota();
-    if (timedOut) {
-      return json({ error: "UPSTREAM_TIMEOUT", message: "پاسخ سرویس هوش مصنوعی بیش از زمان مجاز طول کشید." }, 504, telemetry.responseHeaders());
+    // Automatic mode may try one other configured provider. Explicit user choices never silently switch.
+    const fallback = requestedProvider === "auto"
+      ? listAvailableProviders(env).find(item => item.available && item.id !== providerChoice.provider)
+      : null;
+    if (fallback) {
+      const fallbackController = new AbortController();
+      const fallbackTimeout = setTimeout(() => fallbackController.abort("upstream_timeout"), UPSTREAM_TIMEOUT_MS);
+      const fallbackStartedAt = performance.now();
+      const fallbackModel = fallback.id === "anthropic"
+        ? (env.CLAUDE_MODEL || fallback.defaultModel)
+        : fallback.id === "google"
+          ? (env.GEMINI_MODEL || fallback.defaultModel)
+          : (groqModelByMode[requestedMode] || fallback.defaultModel);
+      try {
+        result = await requestModel({
+          provider: fallback.id, env, messages, model: fallbackModel,
+          signal: fallbackController.signal, maxTokens: 1200, temperature: 0.5,
+          webSearch: body.webSearch === true && fallback.id === "google"
+        });
+        responseProvider = fallback.id;
+        fallbackUsed = true;
+        telemetry.log("provider_success", { provider: fallback.id, status: 200, durationMs: performance.now() - fallbackStartedAt });
+      } catch {
+        telemetry.log("provider_failure", {
+          provider: fallback.id,
+          status: fallbackController.signal.aborted ? 504 : 502,
+          errorCode: fallbackController.signal.aborted ? "upstream_timeout" : "upstream_error",
+          durationMs: performance.now() - fallbackStartedAt
+        });
+        await releaseQuota();
+        if (timedOut && fallbackController.signal.aborted) {
+          return json({ error: "UPSTREAM_TIMEOUT", message: "مدل اصلی و مدل جایگزین در زمان مجاز پاسخ ندادند." }, 504, telemetry.responseHeaders());
+        }
+        return json({ error: "UPSTREAM_ERROR", message: "مدل اصلی و مدل جایگزین موقتاً پاسخ‌گو نیستند." }, 502, telemetry.responseHeaders());
+      } finally {
+        clearTimeout(fallbackTimeout);
+      }
+    } else {
+      await releaseQuota();
+      if (timedOut) {
+        return json({ error: "UPSTREAM_TIMEOUT", message: "پاسخ سرویس هوش مصنوعی بیش از زمان مجاز طول کشید." }, 504, telemetry.responseHeaders());
+      }
+      return json({ error: "UPSTREAM_ERROR", message: "ارائه‌دهنده هوش مصنوعی موقتاً پاسخ‌گو نیست یا تنظیمات آن معتبر نیست." }, 502, telemetry.responseHeaders());
     }
-    return json({ error: "UPSTREAM_ERROR", message: "ارائه‌دهنده هوش مصنوعی موقتاً پاسخ‌گو نیست یا تنظیمات آن معتبر نیست." }, 502, telemetry.responseHeaders());
   } finally {
     clearTimeout(timeout);
   }
   return json({
     reply: result.reply,
     mode: requestedMode,
-    provider: providerChoice.provider,
-    selectionStrategy,
+    provider: responseProvider,
+    requestedProvider: providerChoice.provider,
+    fallbackUsed,
+    selectionStrategy: fallbackUsed ? "automatic_fallback" : selectionStrategy,
     model: result.model,
     usage: result.usage,
     sources: Array.isArray(result.sources) ? result.sources : [],
