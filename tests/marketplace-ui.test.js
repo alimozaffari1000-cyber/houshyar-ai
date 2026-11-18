@@ -93,3 +93,12 @@ test("marketplace UI explains disabled payment and virtual try-on features", asy
   assert.match(ui, /Orders are requests to sellers in this version/);
   assert.match(ui, /ثبت سفارش در این مرحله درخواست به فروشنده است/);
 });
+
+
+test("marketplace parses Persian shopping requests into bounded item terms", async () => {
+  const ui = await readFile(new URL("../src/marketplace.js", import.meta.url), "utf8");
+  assert.match(ui, /const shoppingTerms = value =>/);
+  assert.match(ui, /params\.append\("item", term\)/);
+  assert.match(ui, /slice\(0, 10\)/);
+  assert.match(ui, /normalize\("NFKC"\)/);
+});
