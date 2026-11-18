@@ -7,6 +7,32 @@ const json = (body, status = 200) => new Response(JSON.stringify(body), {
   headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" }
 });
 
+async function readJsonLimited(request) {
+  if (!request.body) return { error: "INVALID_JSON" };
+  const reader = request.body.getReader();
+  const chunks = [];
+  let total = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      total += value.byteLength;
+      if (total > 8192) {
+        await reader.cancel();
+        return { error: "BODY_TOO_LARGE" };
+      }
+      chunks.push(value);
+    }
+  } catch {
+    return { error: "INVALID_JSON" };
+  }
+  const bytes = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.length; }
+  try { return { body: JSON.parse(new TextDecoder().decode(bytes)) }; }
+  catch { return { error: "INVALID_JSON" }; }
+}
+
 async function authenticatedUser(request, env) {
   if (env.AUTH_ENABLED !== "true" || !env.DB) return { error: json({ error: "TASK_QUEUE_NOT_CONFIGURED" }, 503) };
   try {
@@ -40,8 +66,10 @@ export async function onRequestPost({ request, env = {} }) {
   if (Number.isFinite(length) && length > 8192) return json({ error: "BODY_TOO_LARGE" }, 413);
   const auth = await authenticatedUser(request, env);
   if (auth.error) return auth.error;
-  let body;
-  try { body = await request.json(); } catch { return json({ error: "INVALID_JSON" }, 400); }
+  const parsed = await readJsonLimited(request);
+  if (parsed.error === "BODY_TOO_LARGE") return json({ error: "BODY_TOO_LARGE" }, 413);
+  if (parsed.error) return json({ error: "INVALID_JSON" }, 400);
+  const body = parsed.body;
   if (!body || typeof body !== "object" || Array.isArray(body) || typeof body.goal !== "string") {
     return json({ error: "INVALID_BODY" }, 400);
   }
