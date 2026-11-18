@@ -16,15 +16,41 @@ export async function onRequestGet({ request, env }) {
         "SELECT id FROM trade_purchase_requests WHERE id = ? AND buyer_user_id = ? LIMIT 1"
       ).bind(requestId, user.id).first();
       if (!ownRequest) return authJson({ error: "REQUEST_NOT_FOUND" }, 404);
+      const request = await env.DB.prepare(
+        "SELECT quantity FROM trade_purchase_requests WHERE id = ? AND buyer_user_id = ? LIMIT 1"
+      ).bind(requestId, user.id).first();
       const result = await env.DB.prepare(
         "SELECT o.id, o.revision, o.unit_price_minor AS unitPriceMinor, o.currency_code AS currency, " +
         "o.minimum_quantity AS minimumQuantity, o.lead_time_days AS leadTimeDays, " +
         "o.delivery_terms AS deliveryTerms, o.note, o.status, o.created_at AS createdAt, " +
         "s.name AS supplierName, s.city AS supplierCity, s.country_code AS supplierCountryCode " +
         "FROM trade_supplier_offers o JOIN merchant_stores s ON s.id = o.supplier_store_id " +
-        "WHERE o.request_id = ? ORDER BY o.created_at DESC, o.revision DESC LIMIT 100"
+        "WHERE o.request_id = ? AND o.status = 'submitted' " +
+        "ORDER BY o.currency_code ASC, o.unit_price_minor ASC, o.minimum_quantity ASC, o.lead_time_days ASC LIMIT 100"
       ).bind(requestId).all();
-      return authJson({ offers: Array.isArray(result.results) ? result.results : [], view: "buyer" });
+      const offers = (Array.isArray(result.results) ? result.results : []).map((offer) => {
+        const estimatedTotal = offer.unitPriceMinor * request.quantity;
+        return {
+          ...offer,
+          requestedQuantity: request.quantity,
+          estimatedTotalPriceMinor: Number.isSafeInteger(estimatedTotal) ? estimatedTotal : null,
+          meetsMinimumQuantity: request.quantity >= offer.minimumQuantity
+        };
+      });
+      const groups = new Map();
+      for (const offer of offers) {
+        if (!groups.has(offer.currency)) groups.set(offer.currency, []);
+        groups.get(offer.currency).push(offer.id);
+      }
+      return authJson({
+        offers,
+        comparison: {
+          method: "unit-price-then-minimum-quantity-then-lead-time",
+          currencyGroups: Array.from(groups, ([currency, offerIds]) => ({ currency, offerIds })),
+          note: "Currencies are not converted; compare prices only within the same currency group."
+        },
+        view: "buyer"
+      });
     }
     const store = await env.DB.prepare(
       "SELECT id, status FROM merchant_stores WHERE user_id = ? LIMIT 1"
