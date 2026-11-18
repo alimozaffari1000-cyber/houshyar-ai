@@ -1,6 +1,6 @@
 import { spawnSync } from "node:child_process";
-import { appendFileSync, mkdirSync, writeFileSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { mkdirSync, writeFileSync } from "node:fs";
+import { resolve } from "node:path";
 
 const args = new Set(process.argv.slice(2));
 const unknown = [...args].filter((arg) => arg !== "--safe-repair");
@@ -62,7 +62,7 @@ const lines = [
   ...steps.map((step) => `- [${step.passed ? "PASS" : "FAIL"}] ${step.name} (exit: ${step.status ?? "spawn-error"})`),
   "",
   "## Details",
-  ...steps.map((step) => `### ${step.name}\n\n${step.error ? `Runner error: ${step.error}\n\n` : ""}`${step.output || "No output."}`),
+  ...steps.map((step) => [`### ${step.name}`, "", step.error ? `Runner error: ${step.error}` : "", step.output || "No output."].join("\n")),
   "",
   "## Safety boundary",
   "This runner performs deterministic checks only. It does not author application code, execute task-provided shell commands, access credentials, contact external services, push commits, merge pull requests, run database migrations, or deploy.",
