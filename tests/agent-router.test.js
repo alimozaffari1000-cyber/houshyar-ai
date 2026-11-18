@@ -22,3 +22,22 @@ test("agent catalog exposes the available specialist roles", () => {
   assert.ok(listAgents().length >= 7);
   assert.ok(listAgents().every(agent => agent.status === "available"));
 });
+
+
+test("builds a bounded workflow preview without claiming independent agent execution", async () => {
+  const { buildAgentPlan } = await import("../functions/api/_lib/agent-router.js");
+  const plan = buildAgentPlan("این کد را بررسی و debug کن");
+  assert.equal(plan.executionMode, "plan_only");
+  assert.equal(plan.autonomousTools, false);
+  assert.equal(plan.independentAgentCalls, 0);
+  assert.deepEqual(plan.tasks.map(task => task.id), ["orchestrate", "specialist", "security_review", "quality_review"]);
+  assert.deepEqual(plan.tasks[3].dependsOn, ["security_review"]);
+  assert.ok(plan.tasks.every(task => task.status === "planned"));
+});
+
+test("creates a specialist and quality workflow for general requests", async () => {
+  const { buildAgentPlan } = await import("../functions/api/_lib/agent-router.js");
+  const plan = buildAgentPlan("سلام");
+  assert.deepEqual(plan.tasks.map(task => task.agent), ["general", "general", "general"]);
+  assert.equal(plan.tasks[2].dependsOn[0], "specialist");
+});
