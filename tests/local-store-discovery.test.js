@@ -90,6 +90,6 @@ test("public discovery supports bounded multi-item search with Persian text norm
   const body = await response.json();
   assert.equal(response.status, 200);
   assert.match(sql, / OR /);
-  assert.equal(bindings.length, 7);
+  assert.equal(bindings.length, 9);
   assert.deepEqual(body.products.map(item => item.matchedTerms), [["گوجه"], ["تخم مرغ"]]);
 });
