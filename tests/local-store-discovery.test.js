@@ -56,3 +56,21 @@ test("public discovery rejects partial or out-of-range coordinates", async () =>
   assert.equal(response.status, 400);
   assert.equal((await response.json()).error, "INVALID_COORDINATES");
 });
+
+
+test("local discovery keeps the 501st bounded candidate reachable on the final supported page", async () => {
+  const results = Array.from({ length: 501 }, (_, index) => ({
+    productId: "product-" + index, title: "Apple", latitude: null, longitude: null, updatedAt: 501 - index
+  }));
+  const DB = { prepare() { return { bind() { return { async all() { return { results }; } }; } }; } };
+  const response = await searchStores({
+    request: new Request("https://example.test/api/stores?q=apple&limit=1&offset=500"),
+    env: { DB }
+  });
+  const body = await response.json();
+  assert.equal(response.status, 200);
+  assert.equal(body.products.length, 1);
+  assert.equal(body.products[0].productId, "product-500");
+  assert.equal(body.hasMore, false);
+  assert.equal(body.truncated, true);
+});
