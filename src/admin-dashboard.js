@@ -1,6 +1,6 @@
 const labels = {
-  fa: { button: "سلامت سامانه", title: "داشبورد سلامت هوش‌یار", loading: "در حال دریافت وضعیت…", close: "بستن", retry: "تلاش دوباره", ready: "آماده", configured: "فعال", notConfigured: "تنظیم نشده", degraded: "نیازمند بررسی", unavailable: "گزارش سلامت در دسترس نیست", auth: "نشست مدیریتی معتبر نیست.", metrics: "عملکرد ۲۴ ساعت اخیر", requests: "درخواست‌ها", failures: "خطاها", latency: "میانگین تأخیر", maxLatency: "بیشترین تأخیر", metricsDisabled: "ثبت شاخص‌ها هنوز فعال نشده است.", metricsUnavailable: "شاخص‌ها فعلاً در دسترس نیستند." },
-  en: { button: "System health", title: "Houshyar health dashboard", loading: "Loading status…", close: "Close", retry: "Retry", ready: "Ready", configured: "Configured", notConfigured: "Not configured", degraded: "Needs attention", unavailable: "Health report unavailable", auth: "Admin session is not valid.", metrics: "Last 24 hours", requests: "Requests", failures: "Failures", latency: "Average latency", maxLatency: "Max latency", metricsDisabled: "Metrics collection is not enabled.", metricsUnavailable: "Metrics are currently unavailable." }
+  fa: { button: "سلامت سامانه", title: "داشبورد سلامت هوش‌یار", loading: "در حال دریافت وضعیت…", close: "بستن", retry: "تلاش دوباره", ready: "آماده", configured: "فعال", notConfigured: "تنظیم نشده", degraded: "نیازمند بررسی", unavailable: "گزارش سلامت در دسترس نیست", auth: "نشست مدیریتی معتبر نیست.", metrics: "عملکرد ۲۴ ساعت اخیر", requests: "درخواست‌ها", failures: "خطاها", latency: "میانگین تأخیر", successRate: "موفقیت", failureRate: "نرخ خطا", maxLatency: "بیشترین تأخیر", metricsDisabled: "ثبت شاخص‌ها هنوز فعال نشده است.", metricsUnavailable: "شاخص‌ها فعلاً در دسترس نیستند." },
+  en: { button: "System health", title: "Houshyar health dashboard", loading: "Loading status…", close: "Close", retry: "Retry", ready: "Ready", configured: "Configured", notConfigured: "Not configured", degraded: "Needs attention", unavailable: "Health report unavailable", auth: "Admin session is not valid.", metrics: "Last 24 hours", requests: "Requests", failures: "Failures", latency: "Average latency", successRate: "Success rate", failureRate: "Failure rate", maxLatency: "Max latency", metricsDisabled: "Metrics collection is not enabled.", metricsUnavailable: "Metrics are currently unavailable." }
 };
 const getLabels = () => labels[document.documentElement.lang] || labels.fa;
 const make = (tag, className, value) => {
@@ -63,12 +63,14 @@ function renderMetrics(container, report, copy) {
   container.append(summary);
   for (const item of Array.isArray(report.providers) ? report.providers : []) {
     const row = make("div", "admin-health-check");
-    row.append(make("span", "", String(item.provider || "unknown") + " / " + String(item.event || "")));
+    row.append(make("span", "", String(item.provider || "unknown")));
     const failures = Number(item.failures) || 0;
     const isFailure = String(item.event || "").includes("failure") || failures > 0;
     row.append(make("strong", isFailure ? "is-warning" : "is-ok",
       copy.requests + ": " + (Number(item.requests) || 0) +
       " · " + copy.failures + ": " + failures +
+      " · " + copy.successRate + ": " + (Number(item.requests) > 0 ? Math.round((Number(item.successes) || 0) / Number(item.requests) * 1000) / 10 : 0) + "%" +
+      " · " + copy.failureRate + ": " + (Number(item.failureRatePercent) || 0) + "%" +
       " · " + copy.latency + ": " + (Number(item.avgLatencyMs) || 0) + " ms" +
       " · " + copy.maxLatency + ": " + (Number(item.maxLatencyMs) || 0) + " ms"));
     container.append(row);
