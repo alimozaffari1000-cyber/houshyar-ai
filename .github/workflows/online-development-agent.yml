@@ -31,6 +31,8 @@ jobs:
         run: npm install
       - name: Run allowlisted online research
         run: npm run agent:research
+      - name: Produce prioritized development plan
+        run: npm run agent:plan
       - name: Run offline-safe development checks
         run: npm run agent:offline
       - name: Upload agent report
