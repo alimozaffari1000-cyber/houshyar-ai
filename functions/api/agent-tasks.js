@@ -54,10 +54,27 @@ export async function onRequestPost({request,env}) {
   const validated=validateAgentTask(body);
   if (!validated.ok) return json({error:validated.error},400);
   const task=validated.task, now=Math.floor(Date.now()/1000), id=crypto.randomUUID();
+  const idempotencyKey=request.headers.get("idempotency-key");
+  if (idempotencyKey && !/^[A-Za-z0-9._:-]{8,128}$/.test(idempotencyKey)) return json({error:"INVALID_IDEMPOTENCY_KEY"},400);
+  const replay=async () => {
+    if (!idempotencyKey) return null;
+    const row=await env.DB.prepare("SELECT id,title,input_text,agent_id,status,priority,created_at,updated_at FROM agent_tasks WHERE user_id = ? AND idempotency_key = ? LIMIT 1").bind(auth.user.id,idempotencyKey).first();
+    return row ? {task:{id:row.id,title:row.title,input:row.input_text,agentId:row.agent_id,status:row.status,priority:row.priority,createdAt:row.created_at,updatedAt:row.updated_at},execution:"queued_only",autonomousExecution:false,idempotentReplay:true} : null;
+  };
   try {
-    await env.DB.prepare(
-      "INSERT INTO agent_tasks (id,user_id,title,input_text,agent_id,status,priority,created_at,updated_at) VALUES (?,?,?,?,?,'queued',?,?,?)"
-    ).bind(id,auth.user.id,task.title,task.input,task.agentId,task.priority,now,now).run();
+    const previous=await replay();
+    if (previous) return json(previous);
+    const eventId=crypto.randomUUID();
+    const insertTask=env.DB.prepare(
+      "INSERT INTO agent_tasks (id,user_id,title,input_text,agent_id,status,priority,created_at,updated_at,idempotency_key) VALUES (?,?,?,?,?,'queued',?,?,?,?)"
+    ).bind(id,auth.user.id,task.title,task.input,task.agentId,task.priority,now,now,idempotencyKey || null);
+    const insertEvent=env.DB.prepare(
+      "INSERT INTO agent_task_events (id,task_id,actor_type,actor_id,event_type,from_status,to_status,detail_json,created_at) VALUES (?,?, 'user', ?, 'created', NULL, 'queued', '{}', ?)"
+    ).bind(eventId,id,auth.user.id,now);
+    await env.DB.batch([insertTask,insertEvent]);
     return json({task:{id,...task,status:"queued",createdAt:now,updatedAt:now},execution:"queued_only",autonomousExecution:false},201);
-  } catch { return json({error:"TASK_CREATE_FAILED"},503); }
+  } catch {
+    try { const previous=await replay(); if (previous) return json(previous); } catch { /* generic failure response */ }
+    return json({error:"TASK_CREATE_FAILED"},503);
+  }
 }
