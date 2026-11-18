@@ -71,3 +71,7 @@ npm run quality:check
 ### Agent Task Queue (foundation)
 
 The authenticated `/api/agent-tasks` endpoint lets a signed-in user create and list durable, user-owned tasks. Tasks are routed to a specialist using the existing deterministic router and stored in D1 by migration `0009_agent_task_queue.sql`. This foundation is queue-only: it does not execute agents, run user code, or perform external actions. The migration must be applied to the intended D1 database before enabling this endpoint in a deployed environment.
+
+### Agent task lifecycle hardening
+
+Migration `0010_agent_task_lifecycle.sql` adds retry counters, expiring lease metadata, per-user idempotency keys, and append-only task event records. Task creation records a `created` event atomically with the task row. The lifecycle policy validates legal state transitions and requires explicit human approval before resuming approval-gated work. These are execution primitives only: no queue consumer, scheduler, or autonomous worker is deployed by this change.
