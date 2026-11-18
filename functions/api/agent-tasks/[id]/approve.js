@@ -32,11 +32,17 @@ export async function onRequestPost({ request, env = {}, params = {} }) {
 
   try {
     const now = Math.floor(Date.now() / 1000);
-    const result = await env.DB.prepare(
-      "UPDATE agent_tasks SET status = 'queued', updated_at = ? WHERE id = ? AND user_id = ? AND status = 'needs_approval' AND approval_required = 1 AND expires_at > ?"
-    ).bind(now, id, user.id, now).run();
+    const eventId = crypto.randomUUID();
+    const results = await env.DB.batch([
+      env.DB.prepare(
+        "UPDATE agent_tasks SET status = 'queued', updated_at = ? WHERE id = ? AND user_id = ? AND status = 'needs_approval' AND approval_required = 1 AND expires_at > ?"
+      ).bind(now, id, user.id, now),
+      env.DB.prepare(
+        "INSERT INTO agent_task_events (id, task_id, user_id, event_type, actor_type, created_at, metadata_json) SELECT ?, id, user_id, 'task.approval_recorded', 'user', ?, '{}' FROM agent_tasks WHERE id = ? AND user_id = ? AND status = 'queued' AND approval_required = 1 AND updated_at = ? AND changes() = 1"
+      ).bind(eventId, now, id, user.id, now)
+    ]);
 
-    if (!result.meta?.changes) return json({ error: "TASK_NOT_APPROVABLE" }, 409);
+    if (!results[0]?.meta?.changes) return json({ error: "TASK_NOT_APPROVABLE" }, 409);
     return json({
       id,
       status: "queued",
