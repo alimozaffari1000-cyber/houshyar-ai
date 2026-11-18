@@ -56,22 +56,28 @@ export async function runPatchSandbox({
   const checks = [];
   let status = "failed";
   let reason = null;
+  let worktreeCreated = false;
+  let returnValue = null;
   try {
     const add = git(["worktree", "add", "--detach", worktree, "HEAD"], { cwd });
     if (!resultOk(add)) {
       reason = `worktree_creation_failed: ${String(add.stderr || add.error?.message || "").slice(0, 1500)}`;
-      return { status, reason, checks };
+      returnValue = { status, reason, checks };
+      return returnValue;
     }
+    worktreeCreated = true;
 
     const dryRun = git(["apply", "--check", "--whitespace=error", "-"], { cwd: worktree, input: patch });
     if (!resultOk(dryRun)) {
       reason = `patch_check_failed: ${String(dryRun.stderr || dryRun.error?.message || "").slice(0, 1500)}`;
-      return { status, reason, checks };
+      returnValue = { status, reason, checks };
+      return returnValue;
     }
     const applied = git(["apply", "--whitespace=error", "-"], { cwd: worktree, input: patch });
     if (!resultOk(applied)) {
       reason = `patch_apply_failed: ${String(applied.stderr || applied.error?.message || "").slice(0, 1500)}`;
-      return { status, reason, checks };
+      returnValue = { status, reason, checks };
+      return returnValue;
     }
 
     for (const name of CHECKS) {
@@ -85,16 +91,24 @@ export async function runPatchSandbox({
       checks.push(entry);
       if (!entry.success) {
         reason = `check_failed: ${name}`;
-        return { status, reason, checks };
+        returnValue = { status, reason, checks };
+        return returnValue;
       }
     }
     status = "validated_in_isolated_worktree";
-    return { status, patchFile: names.at(-1), paths: validation.paths, appliedInSandboxOnly: true, checks };
+    returnValue = { status, patchFile: names.at(-1), paths: validation.paths, appliedInSandboxOnly: true, checks };
+    return returnValue;
   } finally {
-    const remove = git(["worktree", "remove", "--force", worktree], { cwd });
-    if (!resultOk(remove)) {
-      reason ||= `worktree_cleanup_warning: ${String(remove.stderr || remove.error?.message || "").slice(0, 1000)}`;
-      status = "cleanup_failed";
+    if (worktreeCreated) {
+      const remove = git(["worktree", "remove", "--force", worktree], { cwd });
+      if (!resultOk(remove)) {
+        reason ||= `worktree_cleanup_warning: ${String(remove.stderr || remove.error?.message || "").slice(0, 1000)}`;
+        status = "cleanup_failed";
+        if (returnValue) {
+          returnValue.status = status;
+          returnValue.reason = reason;
+        }
+      }
     }
     rmSync(tempRoot, { recursive: true, force: true });
     const stamp = now.toISOString().replace(/[:.]/g, "-");
