@@ -26,6 +26,8 @@ test("rejects traversal, unapproved paths, renames and binary patches", () => {
     validPatch.replaceAll("src/visual-image-validation.js", "../secrets.txt"),
     validPatch.replaceAll("src/visual-image-validation.js", "package.json"),
     validPatch.replace("diff --git a/src/visual-image-validation.js b/src/visual-image-validation.js", "diff --git a/src/visual-image-validation.js b/tests/visual-image-validation.test.js"),
+    validPatch.replace("--- a/src/visual-image-validation.js", "--- a/../../outside.txt"),
+    validPatch.replace("index 1111111..2222222 100644", "old mode 100644\nnew mode 100755"),
     validPatch + "GIT binary patch\n"
   ]) assert.equal(validatePatchProposal(patch).valid, false);
 });
