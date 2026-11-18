@@ -1,0 +1,82 @@
+name: Houshyar Agent Orchestrator
+on:
+  schedule:
+    - cron: "15 6 * * *"
+  workflow_dispatch:
+permissions:
+  contents: read
+  pull-requests: read
+  actions: read
+  issues: write
+concurrency:
+  group: houshyar-agent-orchestrator
+  cancel-in-progress: false
+jobs:
+  daily-project-review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Review project state and create an actionable daily brief
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const [prs, runs, issues] = await Promise.all([
+              github.rest.pulls.list({ owner, repo, state: "open", per_page: 50 }),
+              github.rest.actions.listWorkflowRunsForRepo({ owner, repo, per_page: 30 }),
+              github.rest.issues.listForRepo({ owner, repo, state: "open", per_page: 100 })
+            ]);
+            const openPRs = prs.data.filter(pr => !pr.draft ? true : true);
+            const recentRuns = runs.data.workflow_runs;
+            const latestByWorkflow = new Map();
+            for (const run of recentRuns) {
+              if (!latestByWorkflow.has(run.name)) latestByWorkflow.set(run.name, run);
+            }
+            const failed = [...latestByWorkflow.values()].filter(run => run.conclusion === "failure");
+            const pending = [...latestByWorkflow.values()].filter(run => run.status !== "completed");
+            const draftPRs = openPRs.filter(pr => pr.draft);
+            const blockers = issues.data.filter(issue => !issue.pull_request && /security|guardian|quality|blocker|migration/i.test(issue.title));
+            const lines = [
+              "# گزارش روزانه هماهنگ‌کننده هوش‌یار",
+              "",
+              "تاریخ UTC: " + new Date().toISOString(),
+              "",
+              "## وضعیت مخزن",
+              "- Pull Requestهای باز: " + openPRs.length,
+              "- Pull Requestهای پیش‌نویس: " + draftPRs.length,
+              "- گردش‌کارهای ناموفق در آخرین اجرای هر workflow: " + failed.length,
+              "- گردش‌کارهای هنوز در حال اجرا: " + pending.length,
+              "- Issueهای باز مرتبط با نگهبانی/امنیت/کیفیت/مهاجرت: " + blockers.length,
+              "",
+              "## اولویت‌های پیشنهادی"
+            ];
+            if (failed.length) {
+              lines.push("1. رفع شکست CI پیش از توسعه قابلیت جدید:");
+              for (const run of failed) lines.push("   - " + run.name + " — " + run.html_url);
+            } else {
+              lines.push("1. CI در آخرین اجرای workflowهای مشاهده‌شده شکست ثبت نکرده است؛ لاگ‌ها و تغییرات جدید همچنان باید بازبینی شوند.");
+            }
+            if (draftPRs.length) {
+              lines.push("2. بازبینی PRهای پیش‌نویس و تکمیل تست‌ها/مستندات:");
+              for (const pr of draftPRs) lines.push("   - #" + pr.number + " " + pr.title + " — " + pr.html_url);
+            } else {
+              lines.push("2. بررسی PRهای باز و آماده‌سازی تصمیم ادغام با تأیید مالک.");
+            }
+            lines.push("3. بررسی Issueهای باز و جلوگیری از تکرار وظایف:");
+            for (const issue of blockers.slice(0, 10)) lines.push("   - #" + issue.number + " " + issue.title + " — " + issue.html_url);
+            lines.push(
+              "",
+              "## محدودیت این گزارش",
+              "این هماهنگ‌کننده مبتنی بر قواعد و داده‌های GitHub است؛ از مدل زبانی یا جست‌وجوی وب استفاده نمی‌کند، کد را تغییر نمی‌دهد، PR را merge نمی‌کند و چیزی را deploy نمی‌کند.",
+              "",
+              "## شواهد",
+              "- مخزن: " + context.serverUrl + "/" + owner + "/" + repo,
+              "- اجرای گزارش: " + context.serverUrl + "/" + owner + "/" + repo + "/actions/runs/" + context.runId
+            );
+            const title = "گزارش روزانه هماهنگ‌کننده هوش‌یار — " + new Date().toISOString().slice(0,10);
+            const existing = await github.rest.issues.listForRepo({ owner, repo, state: "all", per_page: 100 });
+            if (existing.data.some(issue => issue.title === title && !issue.pull_request)) {
+              core.info("Daily report already exists; avoiding duplicate.");
+              return;
+            }
+            await github.rest.issues.create({ owner, repo, title, body: lines.join("\n"), labels: [] });
