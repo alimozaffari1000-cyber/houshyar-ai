@@ -1,4 +1,4 @@
-const ALLOWED_TASKS = new Set(["research_summary", "architecture_review", "change_plan", "patch_review"]);
+const ALLOWED_TASKS = new Set(["research_summary", "architecture_review", "change_plan", "patch_review", "patch_proposal"]);
 const MAX_PROMPT_CHARS = 12000;
 const MAX_RESPONSE_TOKENS = 2048;
 const REQUEST_TIMEOUT_MS = 30000;
