@@ -471,3 +471,7 @@ button:focus-visible,textarea:focus-visible,select:focus-visible{
 .agent-task-status{padding:3px 8px;border-radius:999px;background:rgba(110,231,196,.1);color:#9af0d7;font-size:10px;white-space:nowrap}
 .agent-tasks-empty{text-align:center;padding:18px}
 @media(max-width:520px){.agent-tasks-card{padding:15px}.agent-tasks-form-row{grid-template-columns:1fr 1fr}}
+
+.agent-task-run{margin-top:10px;border:1px solid rgba(110,231,196,.35);border-radius:9px;padding:7px 12px;background:rgba(110,231,196,.1);color:#a8f2dc;font:12px Vazirmatn}
+.agent-task-run:disabled{opacity:.5}
+.agent-task-result{margin-top:12px;padding:12px;border-right:2px solid #83efd1;border-radius:8px;background:rgba(4,12,22,.45);color:#e5f2ff!important;white-space:pre-wrap}
