@@ -19,7 +19,8 @@ export async function onRequestGet({ request, env }) {
       const rows = await env.DB.prepare(
         "SELECT r.id, r.country_code AS countryCode, r.city, r.title, r.description, r.category, r.quantity, r.unit, r.target_price_minor AS targetPriceMinor, r.currency_code AS currency, r.expires_at AS expiresAt, r.created_at AS createdAt " +
         "FROM trade_purchase_requests r WHERE r.status = 'open' AND r.supplier_visible = 1 AND r.expires_at > ? AND r.buyer_user_id != ? " +
-        "AND r.country_code IS ? AND EXISTS (SELECT 1 FROM products p WHERE p.store_id = ? AND p.status IN ('draft','published') AND p.category = r.category) " +
+        "AND r.country_code IS ? AND (r.country_code IS NULL OR EXISTS (SELECT 1 FROM country_market_configs cm WHERE cm.country_code = r.country_code AND cm.status = 'live')) " +
+        "AND EXISTS (SELECT 1 FROM products p WHERE p.store_id = ? AND p.status IN ('draft','published') AND p.category = r.category) " +
         "ORDER BY r.created_at DESC LIMIT 50"
       ).bind(Math.floor(Date.now() / 1000), user.id, store.countryCode ?? null, store.id).all();
       return authJson({ requests: Array.isArray(rows.results) ? rows.results : [], view: "matches" });
