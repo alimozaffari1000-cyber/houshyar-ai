@@ -47,3 +47,22 @@ test("offer input limits and currency checks are present", async () => {
   assert.match(source, /OFFER_CURRENCY_MISMATCH/);
   assert.match(source, /PUBLISHED_MATCHING_PRODUCT_REQUIRED/);
 });
+
+test("buyer comparison exposes only current offers and groups prices by currency", async () => {
+  const source = await readFile(new URL("../functions/api/trade/offers.js", import.meta.url), "utf8");
+  assert.match(source, /o\.status = 'submitted'/);
+  assert.match(source, /ORDER BY o\.currency_code ASC, o\.unit_price_minor ASC, o\.minimum_quantity ASC, o\.lead_time_days ASC/);
+  assert.match(source, /estimatedTotalPriceMinor/);
+  assert.match(source, /Number\.isSafeInteger\(estimatedTotal\)/);
+  assert.match(source, /meetsMinimumQuantity/);
+  assert.match(source, /currencyGroups/);
+  assert.match(source, /Currencies are not converted/);
+});
+
+test("buyer comparison reads quantity only after ownership-scoped request lookup", async () => {
+  const source = await readFile(new URL("../functions/api/trade/offers.js", import.meta.url), "utf8");
+  assert.match(source, /SELECT id, quantity FROM trade_purchase_requests WHERE id = \? AND buyer_user_id = \? LIMIT 1/);
+  assert.match(source, /if \(!request\) return authJson\(\{ error: "REQUEST_NOT_FOUND" \}, 404\)/);
+  assert.match(source, /quantityIsValid && Number\.isSafeInteger\(estimatedTotal\)/);
+  assert.match(source, /quantityIsValid \? request\.quantity >= offer\.minimumQuantity : null/);
+});
