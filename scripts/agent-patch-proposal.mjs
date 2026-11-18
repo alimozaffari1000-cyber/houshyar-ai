@@ -26,11 +26,13 @@ export function validatePatchProposal(patch) {
     if (path.startsWith("/") || path.split("/").includes("..") || !ALLOWED_FILES.has(path)) {
       return { valid: false, reason: "path_not_allowlisted", path };
     }
-    if (/^(new file mode|deleted file mode|similarity index|rename from|rename to)/m.test(section)) {
-      return { valid: false, reason: "file_creation_deletion_or_rename_forbidden", path };
+    if (/^(new file mode|deleted file mode|old mode|new mode|similarity index|rename from|rename to|copy from|copy to)/m.test(section)) {
+      return { valid: false, reason: "file_creation_deletion_or_mode_change_forbidden", path };
     }
-    if (!/^--- a\//m.test(section) || !/^\+\+\+ b\//m.test(section)) {
-      return { valid: false, reason: "malformed_diff_headers", path };
+    const oldPath = section.match(/^--- a\/(.+)$/m)?.[1];
+    const newPath = section.match(/^\+\+\+ b\/(.+)$/m)?.[1];
+    if (!oldPath || !newPath || oldPath !== path || newPath !== path) {
+      return { valid: false, reason: "diff_header_path_mismatch", path };
     }
     paths.push(path);
   }
