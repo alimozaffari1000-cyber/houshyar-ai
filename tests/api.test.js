@@ -271,7 +271,7 @@ test('automatic provider selection falls back once when the primary provider fai
     assert.equal(response.status, 200);
     assert.equal(body.reply, 'پاسخ از مدل جایگزین');
     assert.equal(body.provider, 'anthropic');
-    assert.equal(body.requestedProvider, 'groq');
+    assert.equal(body.requestedProvider, 'auto');
     assert.equal(body.fallbackUsed, true);
     assert.equal(body.selectionStrategy, 'automatic_fallback');
     assert.equal(calls.length, 2);
