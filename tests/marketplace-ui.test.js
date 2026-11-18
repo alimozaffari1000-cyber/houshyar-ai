@@ -80,6 +80,10 @@ test("marketplace UI is connected to home screen and uses authenticated store en
   assert.match(ui, /data-market-near/);
   assert.match(ui, /params\.set\("mode"/);
   assert.match(ui, /data-order-create/);
+  assert.match(ui, /stockAvailable/);
+  assert.match(ui, /outOfStock/);
+  assert.match(ui, /modes && stockAvailable/);
+  assert.match(ui, /marketplace-stock/);
   assert.match(ui, /data-market-tab="orders"/);
   assert.match(ui, /\/api\/store\/orders/);
 });
@@ -88,4 +92,45 @@ test("marketplace UI explains disabled payment and virtual try-on features", asy
   const ui = await readFile(new URL("../src/marketplace.js", import.meta.url), "utf8");
   assert.match(ui, /Orders are requests to sellers in this version/);
   assert.match(ui, /ثبت سفارش در این مرحله درخواست به فروشنده است/);
+});
+
+
+test("marketplace parses Persian shopping requests into bounded item terms", async () => {
+  const ui = await readFile(new URL("../src/marketplace.js", import.meta.url), "utf8");
+  assert.match(ui, /const shoppingTerms = value =>/);
+  assert.match(ui, /params\.append\("item", term\)/);
+  assert.match(ui, /slice\(0, 10\)/);
+  assert.match(ui, /normalize\("NFKC"\)/);
+});
+
+test("multi-item result summary groups matches, reports missing items, and ranks stores by coverage", async () => {
+  const { summarizeShoppingResults } = await import("../src/marketplace.js");
+  const terms = ["سیب", "شیر", "نان"];
+  const products = [
+    { storeId:"a", storeName:"فروشگاه الف", title:"سیب", matchedTerms:["سیب"] },
+    { storeId:"a", storeName:"فروشگاه الف", title:"شیر", matchedTerms:["شیر"] },
+    { storeId:"b", storeName:"فروشگاه ب", title:"سیب", matchedTerms:["سیب"] }
+  ];
+  const result = summarizeShoppingResults(terms, products);
+  assert.deepEqual(result.itemGroups.map(group => group.products.length), [2, 1, 0]);
+  assert.deepEqual(result.missingTerms, ["نان"]);
+  assert.equal(result.storeCoverage[0].storeName, "فروشگاه الف");
+  assert.equal(result.storeCoverage[0].itemCount, 2);
+});
+
+test("multi-item baskets prefer complete nearby stores and calculate totals only in one currency", async () => {
+  const { summarizeShoppingResults } = await import("../src/marketplace.js");
+  const terms = ["apple", "milk"];
+  const products = [
+    { productId:"far-apple", storeId:"far", storeName:"Far Shop", matchedTerms:["apple", "milk"], stockCount:2, priceMinor:100, currency:"IRR", distanceKm:8 },
+    { productId:"far-milk", storeId:"far", storeName:"Far Shop", matchedTerms:["milk"], stockCount:2, priceMinor:200, currency:"IRR", distanceKm:8 },
+    { productId:"near-apple", storeId:"near", storeName:"Near Shop", matchedTerms:["apple"], stockCount:2, priceMinor:80, currency:"IRR", distanceKm:1 },
+    { productId:"near-milk", storeId:"near", storeName:"Near Shop", matchedTerms:["milk"], stockCount:2, priceMinor:120, currency:"IRR", distanceKm:1 }
+  ];
+  const result = summarizeShoppingResults(terms, products);
+  assert.equal(result.completeStores[0].storeName, "Near Shop");
+  assert.equal(result.completeStores[0].basketTotal, 200);
+  assert.equal(result.completeStores[0].distanceKm, 1);
+  const mixed = summarizeShoppingResults(terms, [{...products[2]}, {...products[3], currency:"USD"}]);
+  assert.equal(mixed.completeStores[0].basketTotal, null);
 });

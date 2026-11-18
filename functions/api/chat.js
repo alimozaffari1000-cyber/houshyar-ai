@@ -1,8 +1,10 @@
 import { checkChatRateLimit } from "./_lib/chat-rate-limit.js";
 import { getSessionUser } from "./_lib/auth.js";
 import { reserveDailyChat, releaseDailyChat } from "./_lib/daily-quota.js";
-import { routeAgentRequest } from "./_lib/agent-router.js";
+import { routeAgentRequest, buildAgentPlan } from "./_lib/agent-router.js";
 import { resolveProvider, requestModel, listAvailableProviders } from "./_lib/model-providers.js";
+import { createRequestTelemetry } from "./_lib/observability.js";
+import { rankProvidersFromObservations } from "./_lib/provider-evaluator.js";
 
 const MAX_BODY_BYTES = 32 * 1024;
 const UPSTREAM_TIMEOUT_MS = 20_000;
@@ -57,7 +59,8 @@ async function readJsonLimited(request) {
   }
 }
 
-export async function onRequestPost({ request, env }) {
+export async function onRequestPost({ request, env, ctx }) {
+  const telemetry = createRequestTelemetry({ request, route: "chat", env, ctx });
   if (!env.GROQ_API_KEY && !env.CLAUDE_API_KEY && !env.GEMINI_API_KEY) return json({ error: "AI_NOT_CONFIGURED", message: "هیچ ارائه‌دهنده هوش مصنوعی پیکربندی نشده است." }, 503);
   const contentType = (request.headers.get("content-type") || "").split(";", 1)[0].trim().toLowerCase();
   if (contentType !== "application/json") {
@@ -147,7 +150,32 @@ export async function onRequestPost({ request, env }) {
 
   const requestedMode = ["fast", "balanced", "deep", "creative"].includes(body.mode) ? body.mode : "balanced";
   const requestedProvider = ["auto", "groq", "anthropic", "google"].includes(body.provider) ? body.provider : "auto";
-  const providerChoice = resolveProvider(env, requestedProvider, requestedMode);
+  let providerChoice = resolveProvider(env, requestedProvider, requestedMode);
+  let selectionStrategy = "configured_default";
+  // Automatic ranking is opt-in and uses only recent aggregate operational metrics.
+  // Missing schema, insufficient samples, or disabled telemetry keeps the established safe default.
+  if (requestedProvider === "auto" && env.OBSERVABILITY_ENABLED === "true" && env.DB && ["fast", "balanced"].includes(requestedMode)) {
+    try {
+      const since = Math.floor(Date.now() / 1000) - 24 * 3600;
+      const metrics = await env.DB.prepare(
+        "SELECT provider, SUM(CASE WHEN event = 'provider_success' THEN 1 ELSE 0 END) AS successes, SUM(CASE WHEN event = 'provider_failure' THEN 1 ELSE 0 END) AS failures, AVG(CASE WHEN event = 'provider_success' THEN elapsed_ms END) AS avg_latency_ms FROM operational_metrics WHERE created_at >= ? AND event IN ('provider_success', 'provider_failure') GROUP BY provider"
+      ).bind(since).all();
+      const observations = (Array.isArray(metrics?.results) ? metrics.results : []).map(row => ({
+        provider: row.provider,
+        successes: Number(row.successes) || 0,
+        failures: Number(row.failures) || 0,
+        avgLatencyMs: Number(row.avg_latency_ms) || 0
+      }));
+      const ranked = rankProvidersFromObservations(listAvailableProviders(env), observations, { mode: requestedMode === "fast" ? "speed" : "balanced" });
+      if (ranked.selected) {
+        const selected = listAvailableProviders(env).find(item => item.id === ranked.selected);
+        providerChoice = { provider: selected.id, model: selected.defaultModel };
+        selectionStrategy = "observed_performance";
+      }
+    } catch {
+      // A missing migration or unavailable metrics store must not block chat.
+    }
+  }
   if (providerChoice.error) {
     await releaseQuota();
     return json({ error: "PROVIDER_NOT_CONFIGURED", provider: providerChoice.provider, message: "ارائه‌دهنده انتخاب‌شده هنوز در تنظیمات سرور فعال نیست." }, 503);
@@ -159,6 +187,7 @@ export async function onRequestPost({ request, env }) {
       ? (env.GEMINI_MODEL || providerChoice.model)
       : (groqModelByMode[requestedMode] || providerChoice.model);
   const selectedAgent = routeAgentRequest(latest);
+  const agentWorkflow = buildAgentPlan(latest);
   const messages = [
     { role: "system", content: "تو هوش‌یار، یک دستیار چندمنظوره و چندزبانه دقیق و کاربردی هستی. پاسخ را به زبان کاربر، روشن و مرحله‌ای ارائه کن. اطلاعات نامطمئن را قطعی جلوه نده. برای موضوعات پزشکی، مالی و حقوقی محدودیت‌ها و ریسک‌ها را روشن کن. هرگز ادعا نکن جستجوی زنده، اقدام بیرونی، اجرای کد یا دسترسی به ابزار انجام داده‌ای مگر واقعاً انجام شده باشد.\n\nنقش تخصصی این درخواست: " + selectedAgent.instruction },
     ...safeHistory,
@@ -186,12 +215,22 @@ export async function onRequestPost({ request, env }) {
     const runComparison = async target => {
       const compareController = new AbortController();
       const compareTimeout = setTimeout(() => compareController.abort("upstream_timeout"), UPSTREAM_TIMEOUT_MS);
+      const providerStartedAt = performance.now();
       try {
         const result = await requestModel({
           provider: target.provider, env, messages, model: target.model,
           signal: compareController.signal, maxTokens: 1200, temperature: 0.5
         });
+        telemetry.log("comparison_success", { provider: target.provider, status: 200, durationMs: performance.now() - providerStartedAt });
         return { provider: target.provider, model: result.model, reply: result.reply, usage: result.usage };
+      } catch {
+        telemetry.log("comparison_failure", {
+          provider: target.provider,
+          status: compareController.signal.aborted ? 504 : 502,
+          errorCode: compareController.signal.aborted ? "upstream_timeout" : "provider_error",
+          durationMs: performance.now() - providerStartedAt
+        });
+        throw new Error("comparison_provider_failed");
       } finally { clearTimeout(compareTimeout); }
     };
     try {
@@ -202,40 +241,90 @@ export async function onRequestPost({ request, env }) {
         totalTokens: sum.totalTokens + item.usage.totalTokens
       }), { promptTokens: 0, completionTokens: 0, totalTokens: 0 }) : null;
       const reply = comparison.map((item, index) => "مدل " + (index + 1) + " (" + item.provider + " / " + item.model + ")\\n" + item.reply).join("\\n\\n━━━━━━━━━━━━━━━━━━━━\\n\\n");
-      return json({ reply, compare: true, comparison, usage, provider: "comparison", providers: comparison.map(item => item.provider), agent: { id: selectedAgent.id, label: selectedAgent.label, labelEn: selectedAgent.labelEn } });
+      return json({ reply, compare: true, comparison, usage, provider: "comparison", providers: comparison.map(item => item.provider), agent: { id: selectedAgent.id, label: selectedAgent.label, labelEn: selectedAgent.labelEn } }, 200, telemetry.responseHeaders());
     } catch {
+      telemetry.log("comparison_failure", { provider: "comparison", status: 502, errorCode: "comparison_failed" });
       await releaseQuota();
-      return json({ error: "COMPARISON_FAILED", message: "مقایسه مدل‌ها کامل نشد. کلیدها، اعتبار حساب و دسترسی مدل‌ها را بررسی کنید." }, 502);
+      return json({ error: "COMPARISON_FAILED", message: "مقایسه مدل‌ها کامل نشد. کلیدها، اعتبار حساب و دسترسی مدل‌ها را بررسی کنید." }, 502, telemetry.responseHeaders());
     }
   }
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort("upstream_timeout"), UPSTREAM_TIMEOUT_MS);
+  const providerStartedAt = performance.now();
   let result;
+  let responseProvider = providerChoice.provider;
+  let fallbackUsed = false;
   try {
     result = await requestModel({
       provider: providerChoice.provider, env, messages, model,
       signal: controller.signal, maxTokens: 1200, temperature: 0.5,
       webSearch: body.webSearch === true && providerChoice.provider === "google"
     });
+    telemetry.log("provider_success", { provider: providerChoice.provider, status: 200, durationMs: performance.now() - providerStartedAt });
   } catch {
-    await releaseQuota();
-    if (controller.signal.aborted) {
-      return json({ error: "UPSTREAM_TIMEOUT", message: "پاسخ سرویس هوش مصنوعی بیش از زمان مجاز طول کشید." }, 504);
+    const timedOut = controller.signal.aborted;
+    telemetry.log("provider_failure", { provider: providerChoice.provider, status: timedOut ? 504 : 502, errorCode: timedOut ? "upstream_timeout" : "upstream_error", durationMs: performance.now() - providerStartedAt });
+    // Automatic mode may try one other configured provider. Explicit user choices never silently switch.
+    const fallback = requestedProvider === "auto"
+      ? listAvailableProviders(env).find(item => item.available && item.id !== providerChoice.provider)
+      : null;
+    if (fallback) {
+      const fallbackController = new AbortController();
+      const fallbackTimeout = setTimeout(() => fallbackController.abort("upstream_timeout"), UPSTREAM_TIMEOUT_MS);
+      const fallbackStartedAt = performance.now();
+      const fallbackModel = fallback.id === "anthropic"
+        ? (env.CLAUDE_MODEL || fallback.defaultModel)
+        : fallback.id === "google"
+          ? (env.GEMINI_MODEL || fallback.defaultModel)
+          : (groqModelByMode[requestedMode] || fallback.defaultModel);
+      try {
+        result = await requestModel({
+          provider: fallback.id, env, messages, model: fallbackModel,
+          signal: fallbackController.signal, maxTokens: 1200, temperature: 0.5,
+          webSearch: body.webSearch === true && fallback.id === "google"
+        });
+        responseProvider = fallback.id;
+        fallbackUsed = true;
+        telemetry.log("provider_success", { provider: fallback.id, status: 200, durationMs: performance.now() - fallbackStartedAt });
+      } catch {
+        telemetry.log("provider_failure", {
+          provider: fallback.id,
+          status: fallbackController.signal.aborted ? 504 : 502,
+          errorCode: fallbackController.signal.aborted ? "upstream_timeout" : "upstream_error",
+          durationMs: performance.now() - fallbackStartedAt
+        });
+        await releaseQuota();
+        if (timedOut && fallbackController.signal.aborted) {
+          return json({ error: "UPSTREAM_TIMEOUT", message: "مدل اصلی و مدل جایگزین در زمان مجاز پاسخ ندادند." }, 504, telemetry.responseHeaders());
+        }
+        return json({ error: "UPSTREAM_ERROR", message: "مدل اصلی و مدل جایگزین موقتاً پاسخ‌گو نیستند." }, 502, telemetry.responseHeaders());
+      } finally {
+        clearTimeout(fallbackTimeout);
+      }
+    } else {
+      await releaseQuota();
+      if (timedOut) {
+        return json({ error: "UPSTREAM_TIMEOUT", message: "پاسخ سرویس هوش مصنوعی بیش از زمان مجاز طول کشید." }, 504, telemetry.responseHeaders());
+      }
+      return json({ error: "UPSTREAM_ERROR", message: "ارائه‌دهنده هوش مصنوعی موقتاً پاسخ‌گو نیست یا تنظیمات آن معتبر نیست." }, 502, telemetry.responseHeaders());
     }
-    return json({ error: "UPSTREAM_ERROR", message: "ارائه‌دهنده هوش مصنوعی موقتاً پاسخ‌گو نیست یا تنظیمات آن معتبر نیست." }, 502);
   } finally {
     clearTimeout(timeout);
   }
   return json({
     reply: result.reply,
     mode: requestedMode,
-    provider: providerChoice.provider,
+    provider: responseProvider,
+    requestedProvider,
+    fallbackUsed,
+    selectionStrategy: fallbackUsed ? "automatic_fallback" : selectionStrategy,
     model: result.model,
     usage: result.usage,
     sources: Array.isArray(result.sources) ? result.sources : [],
-    agent: { id: selectedAgent.id, label: selectedAgent.label, labelEn: selectedAgent.labelEn }
-  });
+    agent: { id: selectedAgent.id, label: selectedAgent.label, labelEn: selectedAgent.labelEn },
+    agentWorkflow
+  }, 200, telemetry.responseHeaders());
 }
 
 export async function onRequestGet({ env } = {}) {

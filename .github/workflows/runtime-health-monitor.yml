@@ -1,0 +1,82 @@
+name: Houshyar Runtime Health Monitor
+
+on:
+  workflow_dispatch:
+    inputs:
+      public_url:
+        description: "Public HTTPS base URL of the deployed Houshyar Pages site"
+        required: false
+        type: string
+  schedule:
+    - cron: "*/15 * * * *"
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: houshyar-runtime-health
+  cancel-in-progress: true
+
+jobs:
+  synthetic-health:
+    name: Check deployed Pages health endpoint
+    if: ${{ vars.HOUSHYAR_PUBLIC_URL != '' || inputs.public_url != '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Run bounded synthetic health check
+        id: synthetic
+        env:
+          HOUSHYAR_PUBLIC_URL: ${{ inputs.public_url || vars.HOUSHYAR_PUBLIC_URL }}
+        run: node scripts/synthetic-health-check.mjs
+
+      - name: Open or update runtime incident issue
+        if: failure() && steps.synthetic.outcome == 'failure'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const title = "Houshyar runtime health check failed";
+            const runUrl = context.serverUrl + "/" + owner + "/" + repo + "/actions/runs/" + context.runId;
+            const issues = await github.rest.issues.listForRepo({ owner, repo, state: "open", per_page: 100 });
+            const existing = issues.data.find(issue => issue.title === title && !issue.pull_request);
+            const body = [
+              "The scheduled synthetic check could not confirm the public Houshyar health endpoint.",
+              "",
+              "This is an availability alert, not evidence of data loss or compromise.",
+              "Workflow run: " + runUrl,
+              "Commit: " + context.sha,
+              "",
+              "Check the Cloudflare Pages deployment and the public `/api/health` endpoint. Do not add credentials or user data to this issue."
+            ].join("\\n");
+            try {
+              await github.rest.issues.createLabel({ owner, repo, name: "automated-runtime-alert", color: "D93F0B", description: "Automatically managed Houshyar runtime availability alert" });
+            } catch (error) {
+              if (error.status !== 422) throw error;
+            }
+            if (existing) {
+              await github.rest.issues.createComment({ owner, repo, issue_number: existing.number, body: "Another failed check was recorded. Workflow run: " + runUrl });
+            } else {
+              await github.rest.issues.create({ owner, repo, title, body, labels: ["automated-runtime-alert"] });
+            }
+
+      - name: Close runtime incident issue after recovery
+        if: success() && steps.synthetic.outcome == 'success'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const title = "Houshyar runtime health check failed";
+            const issues = await github.rest.issues.listForRepo({ owner, repo, state: "open", per_page: 100 });
+            const existing = issues.data.find(issue => issue.title === title && !issue.pull_request && issue.labels.some(label => (typeof label === "string" ? label : label.name) === "automated-runtime-alert"));
+            if (existing) {
+              await github.rest.issues.update({ owner, repo, issue_number: existing.number, state: "closed", state_reason: "completed" });
+              await github.rest.issues.createComment({ owner, repo, issue_number: existing.number, body: "The latest synthetic health check succeeded. Workflow run: " + context.serverUrl + "/" + owner + "/" + repo + "/actions/runs/" + context.runId });
+            }

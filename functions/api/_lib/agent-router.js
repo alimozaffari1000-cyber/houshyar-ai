@@ -29,3 +29,34 @@ export function listAgents() {
     id, label, labelEn, status: "available"
   }));
 }
+
+
+/**
+ * Creates a bounded, deterministic workflow preview.
+ * This is a plan only: it does not invoke independent agents or grant tool access.
+ */
+export function buildAgentPlan(message) {
+  const specialist = routeAgentRequest(message);
+  const tasks = [
+    { id: "orchestrate", agent: "general", dependsOn: [], permission: "classify_and_coordinate", status: "planned" },
+    { id: "specialist", agent: specialist.id, dependsOn: ["orchestrate"], permission: "generate_response", status: "planned" },
+    { id: "quality_review", agent: "general", dependsOn: ["specialist"], permission: "review_response_safety_and_completeness", status: "planned" }
+  ];
+  if (specialist.id === "developer") {
+    tasks.splice(2, 0, {
+      id: "security_review",
+      agent: "developer",
+      dependsOn: ["specialist"],
+      permission: "review_security_risks",
+      status: "planned"
+    });
+    tasks[3].dependsOn = ["security_review"];
+  }
+  return {
+    workflow: "houshyar_bounded_agent_plan",
+    executionMode: "plan_only",
+    autonomousTools: false,
+    independentAgentCalls: 0,
+    tasks
+  };
+}

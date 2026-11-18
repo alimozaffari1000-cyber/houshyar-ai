@@ -31,3 +31,13 @@ test('D1 setup guide clearly states migration does not activate auth or rate lim
   assert.match(doc, /به‌تنهایی احراز هویت یا rate limiting را فعال نمی‌کنند/);
   assert.match(doc, /binding/);
 });
+
+test('operational metrics schema excludes personal and conversation data', async () => {
+  const sql = await readFile(new URL('../migrations/0008_operational_metrics.sql', import.meta.url), 'utf8');
+  assert.match(sql, /CREATE TABLE IF NOT EXISTS operational_metrics/);
+  assert.match(sql, /request_id TEXT NOT NULL/);
+  assert.match(sql, /elapsed_ms INTEGER NOT NULL/);
+  const schemaOnly = sql.replace(/^--.*$/gm, "");
+  assert.doesNotMatch(schemaOnly, /prompt|message|user_id|email|ip_address|api_key/i);
+  assert.match(sql, /created_at INTEGER NOT NULL/);
+});

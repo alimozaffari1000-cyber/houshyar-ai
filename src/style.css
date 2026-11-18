@@ -396,6 +396,7 @@ button:focus-visible,textarea:focus-visible,select:focus-visible{
 .marketplace-product-info strong{margin-top:3px;color:#83efd1;font-size:13px}
 .marketplace-product-info small,.marketplace-category{color:#91a6bf;font-size:10px}
 .marketplace-category{padding:2px 7px;border-radius:99px;background:#20364e}
+.marketplace-stock{display:inline-flex;align-items:center;padding:3px 8px;border-radius:99px;font-weight:700}.marketplace-stock.is-available{color:#8cebd1;background:rgba(110,231,196,.1)}.marketplace-stock.is-unavailable{color:#ffb7ad;background:rgba(255,130,115,.1)}
 .marketplace-more{display:block;margin:16px auto}
 .marketplace-more[hidden]{display:none}
 .marketplace-form-card{margin:12px 0;padding:16px;border:1px solid var(--line);border-radius:16px;background:rgba(255,255,255,.025)}
@@ -428,3 +429,32 @@ button:focus-visible,textarea:focus-visible,select:focus-visible{
 .marketplace-order>div{display:grid;gap:5px;min-width:0}
 .marketplace-order small{overflow-wrap:anywhere}
 .marketplace-order button{cursor:pointer}
+
+/* Admin-only health dashboard */
+.admin-health-overlay{position:fixed;inset:0;z-index:80;display:grid;place-items:center;padding:16px;background:rgba(2,8,18,.84);backdrop-filter:blur(10px)}
+.admin-health-dialog{width:min(100%,560px);max-height:85vh;overflow:auto;padding:20px;border:1px solid var(--line);border-radius:18px;background:#102139;color:#edf5ff;box-shadow:0 24px 80px #000a}
+.admin-health-header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.admin-health-header h2{margin:0;font-size:17px}
+.admin-health-close{width:34px;height:34px;border:1px solid var(--line);border-radius:9px;background:#1b304a;color:#fff;font-size:20px;cursor:pointer}
+.admin-health-content{display:grid;gap:10px;min-height:64px;margin:18px 0;color:#a9bdd4;font-size:12px}
+.admin-health-content h3{margin:0;color:#83efd1;font-size:14px}
+.admin-health-check{display:flex;justify-content:space-between;gap:14px;padding:10px;border:1px solid var(--line);border-radius:10px}
+.admin-health-check strong{font-size:11px}
+.admin-health-check .is-ok{color:#83efd1}
+.admin-health-check .is-warning{color:#ffd18a}
+.admin-health-time{color:#8298b2;font-size:10px}
+.admin-health-retry{padding:9px 14px;border:0;border-radius:9px;background:#83efd1;color:#09201e;font:600 12px Vazirmatn;cursor:pointer}
+
+.admin-metrics-title{margin:16px 0 0;color:#83efd1;font-size:14px}
+.admin-metrics-summary{display:flex;flex-wrap:wrap;gap:8px}
+.admin-metrics-summary span{padding:8px 10px;border:1px solid var(--line);border-radius:9px;color:#e5f0fc;font-size:11px}
+.admin-metrics-note{margin:0;color:#9eb1c9;font-size:11px}
+.admin-health-check strong{max-width:65%;text-align:end;overflow-wrap:anywhere}
+
+
+.marketplace-shopping-summary { margin: 0 0 1rem; }
+.marketplace-summary-card { padding: .85rem 1rem; border: 1px solid var(--border, #d9dce3); border-radius: 1rem; background: var(--surface, #fff); }
+.marketplace-summary-card ul { margin: .4rem 0 .75rem; padding-inline-start: 1.25rem; }
+.marketplace-summary-card p { margin: .5rem 0; }
+.marketplace-summary-card b { display: inline-block; margin-top: .25rem; }
+.marketplace-match { color: var(--accent, #3765a8); }

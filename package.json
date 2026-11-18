@@ -13,7 +13,11 @@
     "security:scan": "node scripts/security-scan.mjs",
     "quality:check": "node scripts/quality-agent.mjs",
     "android:add": "cap add android",
-    "android:sync": "npm run build && cap sync android"
+    "android:sync": "npm run build && cap sync android",
+    "developer:scout": "node scripts/developer-scout.mjs",
+    "monitor:health": "node scripts/synthetic-health-check.mjs",
+    "agent:repair-plan": "node scripts/repair-advisor.mjs",
+    "provider:evaluate": "node --test tests/provider-evaluator.test.js"
   },
   "dependencies": {
     "@capacitor/android": "^8.6.0",
@@ -21,6 +25,6 @@
   },
   "devDependencies": {
     "@capacitor/cli": "^8.6.0",
-    "vite": "^6.0.0"
+    "vite": "^8.3.8"
   }
 }

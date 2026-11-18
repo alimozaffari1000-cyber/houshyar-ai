@@ -1,0 +1,40 @@
+name: Houshyar Developer Scout
+
+on:
+  pull_request:
+    paths:
+      - "scripts/developer-scout.mjs"
+      - "package.json"
+      - ".github/workflows/developer-scout.yml"
+  workflow_dispatch:
+  schedule:
+    - cron: "13 5 * * 1"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: houshyar-developer-scout
+  cancel-in-progress: true
+
+jobs:
+  inspect:
+    name: Build a deterministic engineering backlog report
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Inspect source and engineering markers
+        run: npm run developer:scout
+      - name: Publish report
+        uses: actions/upload-artifact@v4
+        with:
+          name: houshyar-developer-scout
+          path: developer-report/README.md
+          if-no-files-found: error
+          retention-days: 30

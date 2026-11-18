@@ -1,0 +1,107 @@
+name: Houshyar Innovation Radar
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/innovation-radar.yml"
+  workflow_dispatch:
+  schedule:
+    - cron: "41 4 * * 3"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: houshyar-innovation-radar
+  cancel-in-progress: true
+
+jobs:
+  scan:
+    name: Review upstream AI ecosystem releases
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Collect curated upstream releases
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const targets = [
+              { owner: "openai", repo: "openai-python", area: "OpenAI SDK" },
+              { owner: "googleapis", repo: "python-genai", area: "Google Gen AI SDK" },
+              { owner: "anthropics", repo: "anthropic-sdk-python", area: "Anthropic SDK" },
+              { owner: "groq", repo: "groq-python", area: "Groq SDK" },
+              { owner: "langchain-ai", repo: "langchain", area: "Agent and orchestration ecosystem" }
+            ];
+            const rows = [];
+            for (const target of targets) {
+              try {
+                const response = await github.rest.repos.listReleases({
+                  owner: target.owner,
+                  repo: target.repo,
+                  per_page: 1
+                });
+                const release = response.data[0];
+                if (!release) {
+                  rows.push({ ...target, status: "No published release found" });
+                  continue;
+                }
+                rows.push({
+                  ...target,
+                  name: release.name || release.tag_name,
+                  tag: release.tag_name,
+                  date: release.published_at || "Unknown",
+                  url: release.html_url,
+                  notes: (release.body || "").replace(/\r/g, "").slice(0, 1200)
+                });
+              } catch (error) {
+                core.warning(`Could not inspect ${target.owner}/${target.repo}: ${error.message}`);
+                rows.push({ ...target, status: "Lookup failed; review manually" });
+              }
+            }
+            const date = new Date().toISOString().slice(0, 10);
+            const lines = [
+              "# Houshyar Innovation Radar",
+              "",
+              `Generated: ${date}`,
+              "",
+              "> This report detects upstream releases. It does not install packages, change model providers, or deploy code. A release is only a candidate for evaluation.",
+              "",
+              "## Latest releases",
+              ""
+            ];
+            for (const row of rows) {
+              lines.push(`### ${row.area} — ${row.owner}/${row.repo}`);
+              if (row.url) {
+                lines.push(`- Release: [${row.name}](${row.url})`);
+                lines.push(`- Tag: \`${row.tag}\``);
+                lines.push(`- Published: ${row.date}`);
+                lines.push(`- Notes: ${row.notes || "No release notes supplied."}`);
+              } else {
+                lines.push(`- Status: ${row.status}`);
+              }
+              lines.push("");
+            }
+            lines.push(
+              "## Required human/agent evaluation before adoption",
+              "",
+              "1. Confirm the release is relevant to Houshyar's current architecture.",
+              "2. Review breaking changes, license, security advisories, data handling, and regional availability.",
+              "3. Test in an isolated branch with the existing QA, security, build, and quality checks.",
+              "4. Open a separate pull request with a rollback plan; never update production automatically.",
+              "",
+              "## Scope",
+              "",
+              "The radar monitors public release metadata only. It does not inspect private vendor roadmaps or imply that a new SDK release adds a new model capability."
+            );
+            const fs = await import("node:fs/promises");
+            await fs.mkdir("innovation-report", { recursive: true });
+            await fs.writeFile("innovation-report/README.md", lines.join("\n"));
+            await core.summary.addRaw(lines.join("\n")).write();
+
+      - name: Publish report artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: houshyar-innovation-radar
+          path: innovation-report/README.md
+          if-no-files-found: error
+          retention-days: 30

@@ -1,0 +1,69 @@
+name: Houshyar Evolution Engine
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 3 * * *"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: houshyar-evolution-engine
+  cancel-in-progress: false
+
+jobs:
+  inspect-repair-and-verify:
+    name: Inspect, safely repair, and verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out default branch
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: package.json
+
+      - name: Install dependencies without creating a lockfile
+        run: npm install --package-lock=false --no-audit --no-fund
+
+      - name: Apply allowlisted local repairs
+        run: npm run agent:repair
+
+      - name: Run automated tests
+        run: npm run qa
+
+      - name: Check project structure and deployment configuration
+        run: npm run agent:check
+
+      - name: Scan tracked files for known secret patterns
+        run: npm run security:scan
+
+      - name: Build production bundle
+        run: npm run build
+
+      - name: Check static quality and bundle budgets
+        run: npm run quality:check
+
+      - name: Propose safe repairs as a pull request
+        if: success()
+        uses: peter-evans/create-pull-request@v7
+        with:
+          branch: bot/evolution-safe-repairs
+          delete-branch: true
+          commit-message: "chore: apply allowlisted evolution repairs"
+          title: "Houshyar Evolution Engine: safe maintenance"
+          body: |
+            This pull request was prepared by the scheduled/manual Evolution Engine.
+
+            Scope is deliberately restricted to changes made by scripts/agent-repair.mjs.
+            Automated checks must pass before merge. No production deployment is performed
+            by this workflow. Review the diff before merging.
+          draft: true

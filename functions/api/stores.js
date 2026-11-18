@@ -2,6 +2,7 @@ import { authJson } from "./_lib/auth-flow.js";
 
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 const escapeLike = (value) => value.replace(/[\\%_]/g, "\\$&");
+const normalizeSearch = (value) => String(value || "").normalize("NFKC").replace(/[يى]/g, "ی").replace(/ك/g, "ک").replace(/[\u064B-\u065F\u0670]/g, "").toLowerCase().trim();
 const distanceKm = (aLat, aLon, bLat, bLon) => {
   const radians = (value) => value * Math.PI / 180;
   const dLat = radians(bLat - aLat);
@@ -15,6 +16,8 @@ export async function onRequestGet({ request, env }) {
   if (!env.DB) return authJson({ error: "CATALOG_UNAVAILABLE" }, 503);
   const url = new URL(request.url);
   const query = (url.searchParams.get("q") || "").trim().slice(0, 80);
+  const requestedItems = url.searchParams.getAll("item").map((item) => normalizeSearch(item).slice(0, 40)).filter(Boolean).slice(0, 10);
+  const searchTerms = requestedItems.length ? requestedItems : (query ? [normalizeSearch(query)] : []);
   const city = (url.searchParams.get("city") || "").trim().slice(0, 80);
   const region = (url.searchParams.get("region") || "").trim().slice(0, 80);
   const mode = (url.searchParams.get("mode") || "").trim().toLowerCase();
@@ -33,10 +36,12 @@ export async function onRequestGet({ request, env }) {
 
   const conditions = ["s.status = 'active'", "p.status = 'published'"];
   const bindings = [];
-  if (query) {
-    conditions.push("(p.title LIKE ? ESCAPE '\\' OR p.description LIKE ? ESCAPE '\\' OR s.name LIKE ? ESCAPE '\\')");
-    const term = "%" + escapeLike(query) + "%";
-    bindings.push(term, term, term);
+  if (searchTerms.length) {
+    conditions.push("(" + searchTerms.map(() => "(replace(replace(lower(p.title), 'ي', 'ی'), 'ك', 'ک') LIKE ? ESCAPE '\\' OR replace(replace(lower(p.description), 'ي', 'ی'), 'ك', 'ک') LIKE ? ESCAPE '\\' OR replace(replace(lower(s.name), 'ي', 'ی'), 'ك', 'ک') LIKE ? ESCAPE '\\' OR replace(replace(lower(p.category), 'ي', 'ی'), 'ك', 'ک') LIKE ? ESCAPE '\\')").join(" OR ") + ")");
+    for (const item of searchTerms) {
+      const term = "%" + escapeLike(item) + "%";
+      bindings.push(term, term, term, term);
+    }
   }
   if (city) { conditions.push("lower(s.city) = lower(?)"); bindings.push(city); }
   if (region) { conditions.push("lower(s.region) = lower(?)"); bindings.push(region); }
@@ -57,10 +62,12 @@ export async function onRequestGet({ request, env }) {
     ).bind(...bindings).all();
     const rows = Array.isArray(result.results) ? result.results : [];
     const truncated = rows.length > 500;
-    const products = rows.slice(0, 500).map((row) => {
+    const products = rows.map((row) => {
       const distanceKmValue = lat === null || row.latitude === null || row.longitude === null
         ? null : Math.round(distanceKm(lat, lon, row.latitude, row.longitude) * 10) / 10;
-      return { ...row, distanceKm: distanceKmValue };
+      const searchable = normalizeSearch([row.title, row.description, row.storeName, row.category].join(" "));
+      const matchedTerms = searchTerms.filter((term) => searchable.includes(term));
+      return { ...row, distanceKm: distanceKmValue, ...(searchTerms.length ? { matchedTerms } : {}) };
     });
     if (lat !== null) products.sort((a, b) => {
       if (a.distanceKm === null && b.distanceKm === null) return 0;
@@ -69,7 +76,19 @@ export async function onRequestGet({ request, env }) {
       return a.distanceKm - b.distanceKm;
     });
     const page = products.slice(offset, offset + limit);
-    return authJson({ products: page, count: page.length, limit, offset, hasMore: offset + page.length < products.length, truncated, locationUsedForThisSearch: lat !== null });
+    const hasMore = offset + page.length < products.length;
+    const nextOffset = hasMore ? offset + page.length : null;
+    return authJson({
+      products: page,
+      count: page.length,
+      limit,
+      offset,
+      hasMore,
+      nextOffset,
+      truncated,
+      candidateWindowLimit: 500,
+      locationUsedForThisSearch: lat !== null
+    });
   } catch {
     return authJson({ error: "CATALOG_UNAVAILABLE" }, 503);
   }
