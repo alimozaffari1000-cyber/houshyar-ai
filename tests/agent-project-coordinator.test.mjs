@@ -46,3 +46,27 @@ test("security and product tasks are explicitly human-gated", () => {
   assert.equal(registry.tasks[0].requiresHumanApproval, true);
   assert.equal(registry.tasks[1].requiresHumanApproval, false);
 });
+
+test("duplicate plan entries are deduplicated and malformed fields are ignored", () => {
+  const duplicated = buildTaskRegistry({
+    priorities: [
+      { area: "Product", task: "Same task" },
+      { area: "Product", task: "Same task" },
+      { area: { untrusted: true }, task: "Ignore object area" },
+      { area: "Product", task: { command: "not a task string" } }
+    ]
+  }, undefined, now);
+  assert.equal(duplicated.tasks.length, 1);
+  assert.equal(duplicated.tasks[0].title, "Same task");
+});
+
+test("oversized plans are rejected instead of silently creating an unbounded registry", () => {
+  assert.throws(() => buildTaskRegistry({ priorities: Array.from({ length: 51 }, () => ({ area: "Product", task: "Task" })) }, undefined, now), /50-task limit/);
+});
+
+test("sensitive task cannot retain approved status without an approval record", () => {
+  const first = buildTaskRegistry(plan, undefined, now);
+  const tamperedPrevious = { tasks: [{ ...first.tasks[0], status: "approved", approvalRecorded: false }] };
+  const refreshed = buildTaskRegistry(plan, tamperedPrevious, now);
+  assert.equal(refreshed.tasks[0].status, "proposed");
+});
