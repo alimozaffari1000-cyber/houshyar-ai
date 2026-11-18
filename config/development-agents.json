@@ -19,24 +19,118 @@
     "enabled": true,
     "runner": "github-actions",
     "schedule": "weekly",
-    "capabilities": ["repository_audit", "run_tests", "security_scan", "build_pages_bundle", "write_report_artifact", "open_diagnostic_issue"],
-    "forbidden": ["write_application_code", "push_branch", "merge_pull_request", "deploy_production", "run_production_migration", "read_secrets"]
+    "capabilities": [
+      "repository_audit",
+      "run_tests",
+      "security_scan",
+      "build_pages_bundle",
+      "write_report_artifact",
+      "open_diagnostic_issue"
+    ],
+    "forbidden": [
+      "write_application_code",
+      "push_branch",
+      "merge_pull_request",
+      "deploy_production",
+      "run_production_migration",
+      "read_secrets"
+    ]
   },
   "offline": {
     "enabled": true,
     "runner": "local-nodejs",
     "networkRequired": false,
-    "capabilities": ["repository_audit", "run_tests", "security_scan", "build_pages_bundle", "write_local_report", "apply_allowlisted_repairs_only_with_flag"],
-    "forbidden": ["network_requests", "shell_from_task_input", "write_application_code", "modify_credentials", "deploy", "production_database_access"]
+    "capabilities": [
+      "repository_audit",
+      "run_tests",
+      "security_scan",
+      "build_pages_bundle",
+      "write_local_report",
+      "apply_allowlisted_repairs_only_with_flag"
+    ],
+    "forbidden": [
+      "network_requests",
+      "shell_from_task_input",
+      "write_application_code",
+      "modify_credentials",
+      "deploy",
+      "production_database_access"
+    ]
   },
   "roles": [
-    {"id":"architect","purpose":"Review architecture boundaries and Pages compatibility","mode":"report_only"},
-    {"id":"developer","purpose":"Prepare implementation plans and reviewed branch changes","mode":"human_gated"},
-    {"id":"qa","purpose":"Run deterministic tests and build checks","mode":"automated"},
-    {"id":"security","purpose":"Scan tracked files for known secret patterns and review policy","mode":"automated_report"},
-    {"id":"performance","purpose":"Check static build budgets and frontend quality","mode":"automated_report"},
-    {"id":"guardian","purpose":"Detect failed checks and create a diagnostic issue","mode":"automated_report"},
-    {"id":"research","purpose":"Prepare research tasks and evidence requirements","mode":"human_gated"},
-    {"id":"release_manager","purpose":"Verify release checklist without publishing","mode":"human_approval"}
-  ]
+    {
+      "id": "architect",
+      "purpose": "Review architecture boundaries and Pages compatibility",
+      "mode": "report_only"
+    },
+    {
+      "id": "developer",
+      "purpose": "Prepare implementation plans and reviewed branch changes",
+      "mode": "human_gated"
+    },
+    {
+      "id": "qa",
+      "purpose": "Run deterministic tests and build checks",
+      "mode": "automated"
+    },
+    {
+      "id": "security",
+      "purpose": "Scan tracked files for known secret patterns and review policy",
+      "mode": "automated_report"
+    },
+    {
+      "id": "performance",
+      "purpose": "Check static build budgets and frontend quality",
+      "mode": "automated_report"
+    },
+    {
+      "id": "guardian",
+      "purpose": "Detect failed checks and create a diagnostic issue",
+      "mode": "automated_report"
+    },
+    {
+      "id": "research",
+      "purpose": "Prepare research tasks and evidence requirements",
+      "mode": "human_gated"
+    },
+    {
+      "id": "release_manager",
+      "purpose": "Verify release checklist without publishing",
+      "mode": "human_approval"
+    }
+  ],
+  "modelProvider": {
+    "defaultMode": "disabled",
+    "adapter": "openai-compatible-chat-completions",
+    "online": {
+      "requiresHttps": true,
+      "apiKeyFrom": "server_environment_only"
+    },
+    "offline": {
+      "allowedHosts": [
+        "localhost",
+        "127.0.0.1",
+        "::1"
+      ],
+      "networkScope": "loopback_only"
+    },
+    "allowedTasks": [
+      "research_summary",
+      "architecture_review",
+      "change_plan",
+      "patch_review"
+    ],
+    "limits": {
+      "maxPromptChars": 12000,
+      "maxResponseTokens": 2048,
+      "timeoutMs": 30000
+    },
+    "permissions": {
+      "readRepository": false,
+      "writeRepository": false,
+      "executeCommands": false,
+      "mergePullRequests": false,
+      "deploy": false
+    }
+  }
 }
