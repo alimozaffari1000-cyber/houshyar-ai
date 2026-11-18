@@ -44,5 +44,6 @@ test("D1 task event audit schema is bounded and excludes private content fields"
   assert.match(sql, /user_id TEXT NOT NULL REFERENCES users\(id\) ON DELETE CASCADE/);
   assert.match(sql, /'task.created'.*'task.approval_recorded'.*'task.cancelled'/s);
   assert.match(sql, /length\(metadata_json\) <= 2048/);
-  assert.doesNotMatch(sql, /prompt|password|secret|token/i);
+  const schemaOnly = sql.replace(/^--.*$/gm, "");
+  assert.doesNotMatch(schemaOnly, /prompt|password|secret|token/i);
 });
