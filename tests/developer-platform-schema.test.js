@@ -21,6 +21,7 @@ test('API credentials store hashes and prefixes, never raw bearer secrets', () =
 test('apps require review before public catalog visibility can be used', () => {
   assert.match(migration, /visibility IN \('private', 'unlisted', 'public'\)/);
   assert.match(migration, /review_status IN \('draft', 'submitted', 'approved', 'rejected', 'suspended'\)/);
+  assert.match(migration, /CHECK \(visibility <> 'public' OR review_status = 'approved'\)/);
   assert.match(migration, /permissions_json TEXT NOT NULL DEFAULT '\[\]'/);
 });
 
