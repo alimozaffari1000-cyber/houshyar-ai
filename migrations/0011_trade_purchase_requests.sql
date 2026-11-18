@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS trade_purchase_requests (
   unit TEXT NOT NULL CHECK (length(unit) BETWEEN 1 AND 30),
   target_price_minor INTEGER CHECK (target_price_minor IS NULL OR target_price_minor > 0),
   currency_code TEXT CHECK (currency_code IS NULL OR currency_code GLOB '[A-Z][A-Z][A-Z]'),
+  supplier_visible INTEGER NOT NULL DEFAULT 0 CHECK (supplier_visible IN (0, 1)),
   status TEXT NOT NULL DEFAULT 'open'
     CHECK (status IN ('open', 'closed', 'cancelled', 'fulfilled', 'expired')),
   expires_at INTEGER NOT NULL,
