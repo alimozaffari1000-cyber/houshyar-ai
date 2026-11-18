@@ -1,4 +1,4 @@
-import { getSessionUser } from "../../_lib/auth.js";
+import { getSessionUser } from "../_lib/auth.js";
 const json=(body,status=200)=>new Response(JSON.stringify(body),{status,headers:{"Content-Type":"application/json; charset=utf-8","Cache-Control":"no-store","X-Content-Type-Options":"nosniff"}});
 export async function onRequestGet({request,env}) {
  if(!env?.DB) return json({error:"DATABASE_UNAVAILABLE"},503);
