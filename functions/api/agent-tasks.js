@@ -36,7 +36,21 @@ export async function onRequestPost({request,env}) {
   const auth=await authenticatedUser(request,env);
   if (auth.error) return auth.error;
   let body;
-  try { body=await request.json(); } catch { return json({error:"INVALID_JSON"},400); }
+  try {
+    if (!request.body) return json({error:"INVALID_JSON"},400);
+    const reader=request.body.getReader(), chunks=[];
+    let total=0;
+    while (true) {
+      const {done,value}=await reader.read();
+      if (done) break;
+      total+=value.byteLength;
+      if (total>12000) { await reader.cancel(); return json({error:"BODY_TOO_LARGE"},413); }
+      chunks.push(value);
+    }
+    const bytes=new Uint8Array(total); let offset=0;
+    for (const chunk of chunks) { bytes.set(chunk,offset); offset+=chunk.byteLength; }
+    body=JSON.parse(new TextDecoder().decode(bytes));
+  } catch { return json({error:"INVALID_JSON"},400); }
   const validated=validateAgentTask(body);
   if (!validated.ok) return json({error:validated.error},400);
   const task=validated.task, now=Math.floor(Date.now()/1000), id=crypto.randomUUID();
