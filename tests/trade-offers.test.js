@@ -58,3 +58,11 @@ test("buyer comparison exposes only current offers and groups prices by currency
   assert.match(source, /currencyGroups/);
   assert.match(source, /Currencies are not converted/);
 });
+
+test("buyer comparison reads quantity only after ownership-scoped request lookup", async () => {
+  const source = await readFile(new URL("../functions/api/trade/offers.js", import.meta.url), "utf8");
+  assert.match(source, /SELECT id, quantity FROM trade_purchase_requests WHERE id = \? AND buyer_user_id = \? LIMIT 1/);
+  assert.match(source, /if \(!request\) return authJson\(\{ error: "REQUEST_NOT_FOUND" \}, 404\)/);
+  assert.match(source, /quantityIsValid && Number\.isSafeInteger\(estimatedTotal\)/);
+  assert.match(source, /quantityIsValid \? request\.quantity >= offer\.minimumQuantity : null/);
+});
