@@ -10,7 +10,7 @@ export function initAgentTasks(app, { locale = "fa" } = {}) {
   const panel = document.createElement("section");
   panel.className = "agent-tasks-overlay";
   panel.hidden = true;
-  panel.innerHTML = '<div class="agent-tasks-card" role="dialog" aria-modal="true" aria-labelledby="agent-tasks-heading"><header><div><h2 id="agent-tasks-heading"></h2><p class="agent-tasks-subtitle"></p></div><button type="button" data-close></button></header><div class="agent-tasks-toolbar"><button type="button" data-refresh></button><span class="agent-tasks-state" role="status"></span></div><form class="agent-tasks-form"><label><span></span><input name="title" maxlength="120" minlength="2" required></label><label><span></span><textarea name="input" rows="3" maxlength="6000" required></textarea></label><div class="agent-tasks-form-row"><label><span></span><select name="agentId"><option value="general"></option><option value="research"></option><option value="analyst"></option><option value="content"></option><option value="translator"></option><option value="planner"></option><option value="developer"></option></select></label><label><span></span><select name="priority"><option value="1">1</option><option value="2">2</option><option value="3" selected>3</option><option value="4">4</option><option value="5">5</option></select></label></div><button class="agent-tasks-submit" type="submit"></button></form><div class="agent-tasks-list" aria-live="polite"></div><p class="agent-tasks-footnote"></p></div>';
+  panel.innerHTML = '<div class="agent-tasks-card" role="dialog" aria-modal="true" aria-labelledby="agent-tasks-heading"><header><div><h2 id="agent-tasks-heading"></h2><p class="agent-tasks-subtitle"></p></div><button type="button" data-close></button></header><div class="agent-tasks-toolbar"><button type="button" data-refresh></button><span class="agent-tasks-state" role="status"></span></div><div class="agent-tasks-health" data-health aria-live="polite"></div><form class="agent-tasks-form"><label><span></span><input name="title" maxlength="120" minlength="2" required></label><label><span></span><textarea name="input" rows="3" maxlength="6000" required></textarea></label><div class="agent-tasks-form-row"><label><span></span><select name="agentId"><option value="general"></option><option value="research"></option><option value="analyst"></option><option value="content"></option><option value="translator"></option><option value="planner"></option><option value="developer"></option></select></label><label><span></span><select name="priority"><option value="1">1</option><option value="2">2</option><option value="3" selected>3</option><option value="4">4</option><option value="5">5</option></select></label></div><button class="agent-tasks-submit" type="submit"></button></form><div class="agent-tasks-list" aria-live="polite"></div><p class="agent-tasks-footnote"></p></div>';
   app.append(panel);
   const $ = selector => panel.querySelector(selector);
   $("#agent-tasks-heading").textContent = words.title;
@@ -41,19 +41,24 @@ export function initAgentTasks(app, { locale = "fa" } = {}) {
       const meta=document.createElement("small"); meta.textContent=(words[task.agentId] || task.agentId) + " · " + words.priority + " " + String(task.priority ?? 3);
       item.append(heading,detail,meta);
       if(task.result){const result=document.createElement("p");result.className="agent-task-result";result.textContent=task.result;item.append(result);}
-      if(task.status==="queued"){
-        const run=document.createElement("button");run.type="button";run.className="agent-task-run";run.textContent=words.run;
-        run.addEventListener("click",async()=>{
-          run.disabled=true;state.textContent=words.loading;
+      const actions=document.createElement("div");actions.className="agent-task-actions";
+      const actionButton=(label,action)=>{
+        const button=document.createElement("button");button.type="button";button.className="agent-task-action";button.textContent=label;
+        button.addEventListener("click",async()=>{
+          button.disabled=true;state.textContent=words.loading;
           try{
-            const response=await fetch("/api/agent-tasks/"+encodeURIComponent(task.id)+"/run",{method:"POST",credentials:"same-origin",headers:{Accept:"application/json"}});
+            const response=await fetch("/api/agent-tasks/"+encodeURIComponent(task.id)+"/"+action,{method:"POST",credentials:"same-origin",headers:{Accept:"application/json"}});
             const data=await response.json().catch(()=>({}));
-            if(!response.ok)throw new Error(data.error||"AGENT_RUN_FAILED");
+            if(!response.ok)throw new Error(data.error||"TASK_ACTION_FAILED");
             await loadTasks();state.textContent="";
-          }catch(error){state.textContent=error.message==="AGENT_MODEL_NOT_CONFIGURED"?words.unavailable:words.failedSave;run.disabled=false;}
+          }catch{state.textContent=words.failedSave;button.disabled=false;}
         });
-        item.append(run);
-      }
+        actions.append(button);
+      };
+      if(task.status==="queued") actionButton(words.run,"run");
+      if(task.status==="queued"||task.status==="in_progress"||task.status==="awaiting_approval") actionButton(words.cancel,"cancel");
+      if(task.status==="failed") actionButton(words.retry,"retry");
+      if(actions.childElementCount)item.append(actions);
       list.append(item);
     }
   }
@@ -65,6 +70,14 @@ export function initAgentTasks(app, { locale = "fa" } = {}) {
       if(response.status===401){state.textContent=words.auth;renderTasks([]);return;}
       if(!response.ok) throw new Error("TASKS_UNAVAILABLE");
       renderTasks(Array.isArray(data.tasks)?data.tasks:[]);
+      try{
+        const healthResponse=await fetch("/api/agent-tasks/health",{credentials:"same-origin",headers:{Accept:"application/json"}});
+        const healthData=await healthResponse.json().catch(()=>({}));
+        if(healthResponse.ok&&healthData.health){
+          const h=healthData.health;
+          $("[data-health]").textContent=words.health+": "+(locale==="fa"?"کل "+h.total+" · صف "+h.queued+" · فعال "+h.running+" · ناموفق "+h.failed+" · تکمیل "+h.completed:"Total "+h.total+" · queued "+h.queued+" · running "+h.running+" · failed "+h.failed+" · completed "+h.completed);
+        }else $("[data-health]").textContent="";
+      }catch{$("[data-health]").textContent="";}
       state.textContent="";
     } catch { state.textContent=words.unavailable;renderTasks([]); }
   }
