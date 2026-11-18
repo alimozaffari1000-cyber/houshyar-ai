@@ -23,7 +23,7 @@ const ROLE_BY_AREA = {
 const HUMAN_GATED_AREAS = new Set(["Security", "Product"]);
 
 function stableId(area, task) {
-  return "task-" + createHash("sha256").update(area + "\\n" + task).digest("hex").slice(0, 12);
+  return "task-" + createHash("sha256").update(area + "\n" + task).digest("hex").slice(0, 12);
 }
 
 export function buildTaskRegistry(plan, previous = { version: 1, tasks: [] }, now = new Date()) {
@@ -87,7 +87,7 @@ function latestFile(dir, pattern) {
 
 export function runProjectCoordinator({ cwd = process.cwd(), now = new Date() } = {}) {
   const dir = resolve(cwd, REPORT_DIR);
-  const planPath = latestFile(dir, /^development-plan-.*\\.json$/);
+  const planPath = latestFile(dir, /^development-plan-.*\.json$/);
   if (!planPath) throw new Error("No development plan found; run npm run agent:plan first");
   const plan = JSON.parse(readFileSync(planPath, "utf8"));
   const registryPath = join(dir, "agent-task-registry.json");
@@ -95,7 +95,7 @@ export function runProjectCoordinator({ cwd = process.cwd(), now = new Date() } 
   try { previous = JSON.parse(readFileSync(registryPath, "utf8")); } catch {}
   const registry = buildTaskRegistry(plan, previous, now);
   mkdirSync(dir, { recursive: true });
-  writeFileSync(registryPath, JSON.stringify(registry, null, 2) + "\\n", "utf8");
+  writeFileSync(registryPath, JSON.stringify(registry, null, 2) + "\n", "utf8");
   const lines = [
     "# Houshyar Agent Task Registry",
     "",
@@ -118,7 +118,7 @@ export function runProjectCoordinator({ cwd = process.cwd(), now = new Date() } 
     "- Merge, deployment, production migrations, secrets, payments, and private data require separate approvals."
   ];
   const markdownPath = join(dir, "agent-task-registry.md");
-  writeFileSync(markdownPath, lines.join("\\n") + "\\n", "utf8");
+  writeFileSync(markdownPath, lines.join("\n") + "\n", "utf8");
   return { registry, registryPath, markdownPath };
 }
 
