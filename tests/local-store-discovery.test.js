@@ -86,7 +86,7 @@ test("public discovery supports bounded multi-item search with Persian text norm
     { productId:"tomato", title:"گوجه فرنگی", description:"تازه", category:"food", storeName:"سبزی فروشی", latitude:null, longitude:null },
     { productId:"egg", title:"تخم مرغ", description:"", category:"food", storeName:"سوپرمارکت", latitude:null, longitude:null }
   ] }; } }; } }; } };
-  const response = await searchStores({ request:new Request("https://example.test/api/stores?item=%D8%AA%D8%AE%D9%85%20%D9%85%D8%B1%D8%BA&item=%DA%AF%D9%88%D9%85%D9%87"), env:{ DB } });
+  const response = await searchStores({ request:new Request("https://example.test/api/stores?item=%D8%AA%D8%AE%D9%85%20%D9%85%D8%B1%D8%BA&item=%DA%AF%D9%88%D8%AC%D9%87"), env:{ DB } });
   const body = await response.json();
   assert.equal(response.status, 200);
   assert.match(sql, / OR /);
