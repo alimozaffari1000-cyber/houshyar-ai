@@ -15,10 +15,16 @@ export async function onRequestPost({ request, env = {}, params = {} }) {
   if (!/^[0-9a-f-]{36}$/i.test(id)) return json({ error: "INVALID_TASK_ID" }, 400);
   try {
     const now = Math.floor(Date.now() / 1000);
-    const result = await env.DB.prepare(
-      "UPDATE agent_tasks SET status = 'cancelled', updated_at = ? WHERE id = ? AND user_id = ? AND status IN ('queued', 'needs_approval') AND expires_at > ?"
-    ).bind(now, id, user.id, now).run();
-    if (!result.meta?.changes) return json({ error: "TASK_NOT_CANCELLABLE" }, 409);
+    const eventId = crypto.randomUUID();
+    const results = await env.DB.batch([
+      env.DB.prepare(
+        "UPDATE agent_tasks SET status = 'cancelled', updated_at = ? WHERE id = ? AND user_id = ? AND status IN ('queued', 'needs_approval') AND expires_at > ?"
+      ).bind(now, id, user.id, now),
+      env.DB.prepare(
+        "INSERT INTO agent_task_events (id, task_id, user_id, event_type, actor_type, created_at, metadata_json) SELECT ?, id, user_id, 'task.cancelled', 'user', ?, '{}' FROM agent_tasks WHERE id = ? AND user_id = ? AND status = 'cancelled' AND updated_at = ? AND changes() = 1"
+      ).bind(eventId, now, id, user.id, now)
+    ]);
+    if (!results[0]?.meta?.changes) return json({ error: "TASK_NOT_CANCELLABLE" }, 409);
     return json({ id, status: "cancelled" });
   } catch {
     return json({ error: "TASK_QUEUE_UNAVAILABLE" }, 503);
