@@ -66,3 +66,8 @@ npm run quality:check
 تا زمان تکمیل Pages، D1، migrationها، ایمیل، secrets و تست end-to-end، احراز هویت و سهمیه را در production فعال نکنید. هیچ کلید API یا secret را در Git، کد مرورگر، متغیرهای `VITE_*` یا گفتگو قرار ندهید.
 
 سیاست حریم خصوصی فعلی پیش‌نویس فنی است و باید پیش از عرضه عمومی بازبینی حقوقی شود. پرداخت واقعی، پنل مدیریت کامل، پایش عملیاتی، پشتیبان‌گیری و تست نفوذ مستقل هنوز از گیت‌های انتشار هستند.
+
+
+### Agent Task Queue (foundation)
+
+The authenticated `/api/agent-tasks` endpoint lets a signed-in user create and list durable, user-owned tasks. Tasks are routed to a specialist using the existing deterministic router and stored in D1 by migration `0009_agent_task_queue.sql`. This foundation is queue-only: it does not execute agents, run user code, or perform external actions. The migration must be applied to the intended D1 database before enabling this endpoint in a deployed environment.
