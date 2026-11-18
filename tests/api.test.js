@@ -299,3 +299,24 @@ test('explicit provider selection does not silently fall back', async () => {
     globalThis.fetch = originalFetch;
   }
 });
+
+
+test('chat response exposes a plan-only workflow with no autonomous tool access', async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response(JSON.stringify({ choices: [{ message: { content: 'پاسخ' } }] }), { status: 200 });
+  try {
+    const response = await onRequestPost({
+      request: request({ message: 'این کد را debug کن' }),
+      env: { GROQ_API_KEY: 'test-key' }
+    });
+    const body = await response.json();
+    assert.equal(response.status, 200);
+    assert.equal(body.agent.id, 'developer');
+    assert.equal(body.agentWorkflow.executionMode, 'plan_only');
+    assert.equal(body.agentWorkflow.autonomousTools, false);
+    assert.equal(body.agentWorkflow.independentAgentCalls, 0);
+    assert.ok(body.agentWorkflow.tasks.some(task => task.id === 'security_review'));
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
