@@ -48,6 +48,8 @@ test("public discovery filters delivery and paginates the sorted candidate set",
   assert.equal(body.products[0].productId, "near");
   assert.equal(body.products[0].distanceKm, 0);
   assert.equal(body.hasMore, true);
+  assert.equal(body.nextOffset, 1);
+  assert.equal(body.candidateWindowLimit, 500);
   assert.equal(body.locationUsedForThisSearch, true);
 });
 
@@ -72,5 +74,7 @@ test("local discovery keeps the 501st bounded candidate reachable on the final s
   assert.equal(body.products.length, 1);
   assert.equal(body.products[0].productId, "product-500");
   assert.equal(body.hasMore, false);
+  assert.equal(body.nextOffset, null);
+  assert.equal(body.candidateWindowLimit, 500);
   assert.equal(body.truncated, true);
 });
