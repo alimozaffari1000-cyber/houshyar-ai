@@ -1,6 +1,6 @@
-import { getSessionUser, originAllowed } from "../_lib/auth.js";
-import { buildAgentPlan, routeAgentRequest } from "../_lib/agent-router.js";
-import { requiresHumanApproval, safeTaskRecord, taskTitle } from "../_lib/agent-tasks.js";
+import { getSessionUser, originAllowed } from "./_lib/auth.js";
+import { buildAgentPlan, routeAgentRequest } from "./_lib/agent-router.js";
+import { requiresHumanApproval, safeTaskRecord, taskTitle } from "./_lib/agent-tasks.js";
 
 const json = (body, status = 200) => new Response(JSON.stringify(body), {
   status,
