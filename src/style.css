@@ -396,6 +396,7 @@ button:focus-visible,textarea:focus-visible,select:focus-visible{
 .marketplace-product-info strong{margin-top:3px;color:#83efd1;font-size:13px}
 .marketplace-product-info small,.marketplace-category{color:#91a6bf;font-size:10px}
 .marketplace-category{padding:2px 7px;border-radius:99px;background:#20364e}
+.marketplace-stock{display:inline-flex;align-items:center;padding:3px 8px;border-radius:99px;font-weight:700}.marketplace-stock.is-available{color:#8cebd1;background:rgba(110,231,196,.1)}.marketplace-stock.is-unavailable{color:#ffb7ad;background:rgba(255,130,115,.1)}
 .marketplace-more{display:block;margin:16px auto}
 .marketplace-more[hidden]{display:none}
 .marketplace-form-card{margin:12px 0;padding:16px;border:1px solid var(--line);border-radius:16px;background:rgba(255,255,255,.025)}
