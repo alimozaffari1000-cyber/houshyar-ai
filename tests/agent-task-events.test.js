@@ -57,10 +57,10 @@ test("returns a bounded owner-scoped event page without private metadata", async
   ]);
   assert.deepEqual(body.page, { limit: 2, hasMore: true, nextCursor: "20.event-2" });
   assert.equal("metadata_json" in body.events[0], false);
-  assert.match(DB.queries[0].sql, /WHERE id = \? AND user_id = \?/);
-  assert.match(DB.queries[1].sql, /WHERE task_id = \? AND user_id = \?/);
-  assert.match(DB.queries[1].sql, /ORDER BY created_at DESC, id DESC LIMIT \?/);
-  assert.deepEqual(DB.queries[1].args, [taskId, "user-1", 3]);
+  assert.match(DB.queries[1].sql, /WHERE id = \? AND user_id = \?/);
+  assert.match(DB.queries[2].sql, /WHERE task_id = \? AND user_id = \?/);
+  assert.match(DB.queries[2].sql, /ORDER BY created_at DESC, id DESC LIMIT \?/);
+  assert.deepEqual(DB.queries[2].args, [taskId, "user-1", 3]);
 });
 
 test("uses the cursor as a stable descending timestamp and id boundary", async () => {
@@ -71,8 +71,8 @@ test("uses the cursor as a stable descending timestamp and id boundary", async (
     params: { id: taskId }
   });
   assert.equal(response.status, 200);
-  assert.match(DB.queries[1].sql, /created_at < \? OR \(created_at = \? AND id < \?\)/);
-  assert.deepEqual(DB.queries[1].args, [
+  assert.match(DB.queries[2].sql, /created_at < \? OR \(created_at = \? AND id < \?\)/);
+  assert.deepEqual(DB.queries[2].args, [
     taskId, "user-1", 1700000000, 1700000000,
     "123e4567-e89b-12d3-a456-426614174000", 6
   ]);
