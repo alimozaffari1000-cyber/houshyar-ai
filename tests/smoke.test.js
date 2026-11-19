@@ -127,3 +127,11 @@ test('Google Search grounding is limited to Gemini and renders sanitized source 
  assert.match(providers,/groundingMetadata/);
  assert.match(providers,/startsWith\("https:\/\/"\)/);
 });
+
+test('workspace dialog uses the dynamic mobile viewport with a legacy fallback', async () => {
+ const css=await readFile(new URL('../src/style.css',import.meta.url),'utf8');
+ const workspaceCard=css.match(/\\.workspace-card\\{([^}]*)\\}/)?.[1] || '';
+ assert.match(workspaceCard,/max-height:min\\(88vh,820px\\)/);
+ assert.match(workspaceCard,/max-height:min\\(88dvh,820px\\)/);
+ assert.match(workspaceCard,/overflow:auto/);
+});
