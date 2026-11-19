@@ -25,8 +25,8 @@ test("detects multiple canonicals and noindex", () => {
 });
 
 test("rejects empty and oversized input", () => {
-  assert.throws(() => analyzeHTML(" "), { code: undefined, message: "HTML_REQUIRED" });
-  assert.throws(() => analyzeHTML("x".repeat(SEO_AUDIT_MAX_HTML_LENGTH + 1)), { message: "HTML_TOO_LARGE" });
+  assert.throws(() => analyzeHTML(" "), error => error instanceof TypeError && error.message === "HTML_REQUIRED");
+  assert.throws(() => analyzeHTML("x".repeat(SEO_AUDIT_MAX_HTML_LENGTH + 1)), error => error instanceof RangeError && error.message === "HTML_TOO_LARGE");
 });
 
 test("ignores HTML comments while analyzing", () => {
