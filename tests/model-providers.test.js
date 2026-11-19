@@ -207,3 +207,57 @@ test("chat API enables Google grounding only for an explicitly selected Gemini p
     globalThis.fetch = originalFetch;
   }
 });
+test("DeepSeek appears as a server-secret-backed fourth provider and supports deep-mode routing", () => {
+  assert.deepEqual(listAvailableProviders({ DEEPSEEK_API_KEY: "d" }).map(item => [item.id, item.available]), [
+    ["groq", false], ["anthropic", false], ["google", false], ["deepseek", true]
+  ]);
+  assert.equal(resolveProvider({ GROQ_API_KEY: "g", DEEPSEEK_API_KEY: "d" }, "auto", "deep").provider, "deepseek");
+  assert.deepEqual(resolveProvider({ GROQ_API_KEY: "g" }, "deepseek", "balanced"), {
+    error: "PROVIDER_NOT_CONFIGURED", provider: "deepseek"
+  });
+});
+
+test("DeepSeek adapter uses the official Chat Completions endpoint and maps token usage", async () => {
+  const originalFetch = globalThis.fetch;
+  let captured;
+  globalThis.fetch = async (url, init) => {
+    captured = { url, headers: init.headers, body: JSON.parse(init.body) };
+    return new Response(JSON.stringify({
+      model: "deepseek-flash",
+      choices: [{ message: { role: "assistant", content: "سلام از دیپ‌سیک" } }],
+      usage: { prompt_tokens: 11, completion_tokens: 9, total_tokens: 20 }
+    }), { status: 200, headers: { "content-type": "application/json" } });
+  };
+  try {
+    const result = await requestModel({ provider: "deepseek", env: { DEEPSEEK_API_KEY: "deepseek-test-secret" }, messages: [{ role: "user", content: "سلام" }] });
+    assert.equal(captured.url, "https://api.deepseek.com/chat/completions");
+    assert.equal(captured.headers.Authorization, "Bearer deepseek-test-secret");
+    assert.equal(captured.body.model, "deepseek-flash");
+    assert.deepEqual(captured.body.thinking, { type: "disabled" });
+    assert.equal(result.reply, "سلام از دیپ‌سیک");
+    assert.deepEqual(result.usage, { promptTokens: 11, completionTokens: 9, totalTokens: 20 });
+    assert.equal(JSON.stringify(result).includes("deepseek-test-secret"), false);
+  } finally { globalThis.fetch = originalFetch; }
+});
+
+test("DeepSeek deep mode enables thinking and the chat health endpoint reports it", async () => {
+  const originalFetch = globalThis.fetch;
+  let captured;
+  globalThis.fetch = async (_url, init) => {
+    captured = JSON.parse(init.body);
+    return new Response(JSON.stringify({ model: "deepseek-v4-pro", choices: [{ message: { content: "تحلیل آزمایشی" } }], usage: { prompt_tokens: 2, completion_tokens: 3, total_tokens: 5 } }), { status: 200, headers: { "content-type": "application/json" } });
+  };
+  try {
+    const request = new Request("https://houshyar.example/api/chat", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ message: "تحلیل کن", provider: "deepseek", mode: "deep" }) });
+    const response = await onRequestPost({ request, env: { DEEPSEEK_API_KEY: "test-deepseek-secret" } });
+    const data = await response.json();
+    assert.equal(response.status, 200);
+    assert.equal(data.provider, "deepseek");
+    assert.equal(data.model, "deepseek-v4-pro");
+    assert.deepEqual(captured.thinking, { type: "enabled" });
+    assert.equal(JSON.stringify(data).includes("test-deepseek-secret"), false);
+    const health = await onRequestGet({ env: { DEEPSEEK_API_KEY: "test-deepseek-secret" } });
+    assert.equal(health.status, 200);
+    assert.equal((await health.json()).providers.find(item => item.id === "deepseek").available, true);
+  } finally { globalThis.fetch = originalFetch; }
+});
