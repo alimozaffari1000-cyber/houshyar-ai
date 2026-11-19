@@ -15,7 +15,7 @@ function hasAttr(tag, name) {
   return false;
 }
 
-function finding(id, severity, title, evidence, recommendation) {");\n  return new RegExp("(?:^|\\\\s)" + escaped + "(?:\\\\s*=|\\\\s|/?>)", "i").test(tag);\n}\n\nfunction finding(id, severity, title, evidence, recommendation) {
+function finding(id, severity, title, evidence, recommendation) {
   return { id, severity, title, evidence, recommendation };
 }
 
