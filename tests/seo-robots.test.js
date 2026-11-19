@@ -7,12 +7,12 @@ import {
 } from "../src/seo-robots.js";
 
 test("parses groups, comments, crawl delay and sitemap hints", () => {
-  const parsed = parseRobotsTxt(`# global comment
+  const parsed = parseRobotsTxt(\`# global comment
 User-agent: *
 Disallow: /private # no crawl
 Crawl-delay: 2
 Sitemap: https://example.com/sitemap.xml
-`);
+\`);
   assert.equal(parsed.groups.length, 1);
   assert.deepEqual(parsed.groups[0].userAgents, ["*"]);
   assert.deepEqual(parsed.groups[0].rules, [{ type: "disallow", path: "/private" }]);
@@ -29,11 +29,11 @@ test("allows by default and blocks matching disallow rules", () => {
 });
 
 test("uses the longest matching rule and Allow wins equal-length ties", () => {
-  const robots = `User-agent: *
+  const robots = \`User-agent: *
 Disallow: /folder/
 Allow: /folder/open
 Disallow: /equal
-Allow: /equal`;
+Allow: /equal\`;
   assert.equal(isAllowedByRobots(robots, "https://example.com/folder/open/file").allowed, true);
   assert.equal(isAllowedByRobots(robots, "https://example.com/folder/closed").allowed, false);
   assert.equal(isAllowedByRobots(robots, "https://example.com/equal").allowed, true);
@@ -46,9 +46,10 @@ test("supports wildcard and end-anchor matching", () => {
 });
 
 test("merges consecutive user-agent declarations into one group", () => {
-  const parsed = parseRobotsTxt("User-agent: BotA\nUser-agent: BotB\nDisallow: /blocked");
+  const robots = "User-agent: BotA\nUser-agent: BotB\nDisallow: /blocked";
+  const parsed = parseRobotsTxt(robots);
   assert.deepEqual(parsed.groups[0].userAgents, ["bota", "botb"]);
-  assert.equal(isAllowedByRobots("User-agent: BotA\nUser-agent: BotB\nDisallow: /blocked", "https://example.com/blocked", "BotB").allowed, false);
+  assert.equal(isAllowedByRobots(robots, "https://example.com/blocked", "BotB").allowed, false);
 });
 
 test("prefers the most specific matching agent over wildcard", () => {
