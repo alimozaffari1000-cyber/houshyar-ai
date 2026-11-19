@@ -10,7 +10,7 @@ function attr(tag, name) {
   return (match?.[1] ?? match?.[2] ?? match?.[3] ?? "").trim();
 }
 
-function finding(id, severity, title, evidence, recommendation) {
+function hasAttr(tag, name) {\n  const escaped = name.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\\\function finding(id, severity, title, evidence, recommendation) {");\n  return new RegExp("(?:^|\\\\s)" + escaped + "(?:\\\\s*=|\\\\s|/?>)", "i").test(tag);\n}\n\nfunction finding(id, severity, title, evidence, recommendation) {
   return { id, severity, title, evidence, recommendation };
 }
 
@@ -32,7 +32,7 @@ export function analyzeHTML(input) {
   const h1 = [...html.matchAll(/<h1\b[^>]*>([\s\S]*?)<\/h1\s*>/gi)].map(match => textContent(match[1]));
   const headings = ["h2","h3","h4","h5","h6"].map(name => ({name, count: [...html.matchAll(new RegExp("<" + name + "\\b", "gi"))].length}));
   const images = [...html.matchAll(/<img\b[^>]*>/gi)].map(match => match[0]);
-  const missingAlt = images.filter(tag => !attr(tag, "alt"));
+  const missingAlt = images.filter(tag => !hasAttr(tag, "alt"));
   const anchors = [...html.matchAll(/<a\b[^>]*>/gi)].map(match => match[0]);
   const noHref = anchors.filter(tag => !attr(tag, "href"));
   const lang = attr((html.match(/<html\b[^>]*>/i) || [""])[0], "lang");
