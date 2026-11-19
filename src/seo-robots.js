@@ -11,11 +11,7 @@ function ruleMatches(pattern, pathAndQuery) {
   const source = anchored ? pattern.slice(0, -1) : pattern;
   const escaped = source
     .split("*")
-    .map(part => part.replace(/[|\\{}()[\]^$+?.]/g, "\\  const escaped = pattern
-    .split("*")
     .map(part => part.replace(/[|\\{}()[\]^$+?.]/g, "\\$&"))
-    .join(".*");
-  const expression = new RegExp("^" + escaped + (pattern.endsWith("$") ? "" : ".*"));"))
     .join(".*");
   const expression = new RegExp("^" + escaped + (anchored ? "$" : ".*"));
   return expression.test(pathAndQuery);
@@ -36,7 +32,7 @@ export function parseRobotsTxt(input) {
   let current = null;
   let hasDirective = false;
 
-  for (const rawLine of input.replace(/^\\uFEFF/, "").split(/\\r?\\n/)) {
+  for (const rawLine of input.replace(/^\uFEFF/, "").split(/\r?\n/)) {
     const line = rawLine.split("#", 1)[0].trim();
     if (!line) continue;
     const separator = line.indexOf(":");
@@ -88,7 +84,7 @@ export function isAllowedByRobots(robotsText, targetUrl, userAgent = "*") {
   let parsed;
   try {
     parsed = parseRobotsTxt(robotsText);
-  } catch (error) {
+  } catch {
     return { allowed: false, reason: "robots_unreadable", matchedRule: null, sitemaps: [] };
   }
 
@@ -102,7 +98,7 @@ export function isAllowedByRobots(robotsText, targetUrl, userAgent = "*") {
     return { allowed: false, reason: "invalid_target", matchedRule: null, sitemaps: parsed.sitemaps };
   }
 
-  const requestedAgent = normalizeAgent(userAgent).split(/[\\s/]/, 1)[0];
+  const requestedAgent = normalizeAgent(userAgent).split(/[\s/]/, 1)[0];
   if (!requestedAgent) {
     return { allowed: false, reason: "invalid_user_agent", matchedRule: null, sitemaps: parsed.sitemaps };
   }
