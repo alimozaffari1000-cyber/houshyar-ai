@@ -298,7 +298,7 @@ button:focus-visible,textarea:focus-visible,select:focus-visible{
 /* Workspace dashboard */
 .workspace-overlay{position:fixed;inset:0;z-index:30;display:grid;place-items:center;padding:16px;background:rgba(2,8,18,.82);backdrop-filter:blur(10px)}
 .workspace-overlay[hidden]{display:none}
-.workspace-card{width:min(100%,720px);max-height:min(88vh,820px);overflow:auto;padding:22px;border:1px solid rgba(145,180,218,.24);border-radius:22px;background:linear-gradient(145deg,#172a43,#101d31);box-shadow:0 28px 90px rgba(0,0,0,.5)}
+.workspace-card{width:min(100%,720px);max-height:min(88vh,820px);overflow:auto;max-height:min(88dvh,820px);padding:22px;border:1px solid rgba(145,180,218,.24);border-radius:22px;background:linear-gradient(145deg,#172a43,#101d31);box-shadow:0 28px 90px rgba(0,0,0,.5)}
 .workspace-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px}
 .workspace-head h2{margin:0;font-size:20px;color:#eff7ff}
 .workspace-head p{margin:5px 0 0;color:#91a6bf;font-size:12px}
