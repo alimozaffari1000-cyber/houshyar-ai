@@ -7,11 +7,17 @@ function normalizeAgent(value) {
 
 function ruleMatches(pattern, pathAndQuery) {
   if (!pattern) return false;
-  const escaped = pattern
+  const anchored = pattern.endsWith("$");
+  const source = anchored ? pattern.slice(0, -1) : pattern;
+  const escaped = source
+    .split("*")
+    .map(part => part.replace(/[|\\{}()[\]^$+?.]/g, "\\  const escaped = pattern
     .split("*")
     .map(part => part.replace(/[|\\{}()[\]^$+?.]/g, "\\$&"))
     .join(".*");
-  const expression = new RegExp("^" + escaped + (pattern.endsWith("$") ? "" : ".*"));
+  const expression = new RegExp("^" + escaped + (pattern.endsWith("$") ? "" : ".*"));"))
+    .join(".*");
+  const expression = new RegExp("^" + escaped + (anchored ? "$" : ".*"));
   return expression.test(pathAndQuery);
 }
 
