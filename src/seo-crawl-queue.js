@@ -14,7 +14,9 @@ export function createCrawlQueue(seedUrl, options = {}) {
   if (!seed.ok) throw new Error("CRAWL_SEED_REJECTED:" + seed.reason);
 
   const policy = createCrawlPolicy(options);
-  const userAgent = String(options.userAgent || "HoushyarBot").trim();
+  const userAgent = options.userAgent === undefined
+    ? "HoushyarBot"
+    : typeof options.userAgent === "string" ? options.userAgent.trim() : "";
   if (!userAgent || userAgent.length > 100) throw new Error("CRAWL_USER_AGENT_INVALID");
 
   const queue = [];
