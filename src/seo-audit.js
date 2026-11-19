@@ -10,7 +10,12 @@ function attr(tag, name) {
   return (match?.[1] ?? match?.[2] ?? match?.[3] ?? "").trim();
 }
 
-function hasAttr(tag, name) {\n  const escaped = name.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\\\function finding(id, severity, title, evidence, recommendation) {");\n  return new RegExp("(?:^|\\\\s)" + escaped + "(?:\\\\s*=|\\\\s|/?>)", "i").test(tag);\n}\n\nfunction finding(id, severity, title, evidence, recommendation) {
+function hasAttr(tag, name) {
+  if (name === "alt") return /(?:^|\s)alt(?:\s*=|\s|\/?>)/i.test(tag);
+  return false;
+}
+
+function finding(id, severity, title, evidence, recommendation) {");\n  return new RegExp("(?:^|\\\\s)" + escaped + "(?:\\\\s*=|\\\\s|/?>)", "i").test(tag);\n}\n\nfunction finding(id, severity, title, evidence, recommendation) {
   return { id, severity, title, evidence, recommendation };
 }
 
