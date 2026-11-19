@@ -33,3 +33,10 @@ test("ignores HTML comments while analyzing", () => {
   const result = analyzeHTML("<!-- <title>fake</title> --><html><body><h1>Real</h1></body></html>");
   assert.ok(result.findings.some(item => item.id === "title-missing"));
 });
+
+test("does not flag an explicit empty alt used for decorative images", () => {
+  const html = '<html><head><title>A sufficiently descriptive test title</title></head><body><h1>Heading</h1><img src="decoration.svg" alt=""></body></html>';
+  const result = analyzeHTML(html);
+  assert.equal(result.metrics.imagesMissingAlt, 0);
+  assert.ok(!result.findings.some(item => item.id === "images-alt-missing"));
+});
