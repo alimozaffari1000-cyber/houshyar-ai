@@ -7,12 +7,13 @@ import {
 } from "../src/seo-robots.js";
 
 test("parses groups, comments, crawl delay and sitemap hints", () => {
-  const parsed = parseRobotsTxt(\`# global comment
-User-agent: *
-Disallow: /private # no crawl
-Crawl-delay: 2
-Sitemap: https://example.com/sitemap.xml
-\`);
+  const parsed = parseRobotsTxt([
+    "# global comment",
+    "User-agent: *",
+    "Disallow: /private # no crawl",
+    "Crawl-delay: 2",
+    "Sitemap: https://example.com/sitemap.xml"
+  ].join("\n"));
   assert.equal(parsed.groups.length, 1);
   assert.deepEqual(parsed.groups[0].userAgents, ["*"]);
   assert.deepEqual(parsed.groups[0].rules, [{ type: "disallow", path: "/private" }]);
@@ -29,11 +30,13 @@ test("allows by default and blocks matching disallow rules", () => {
 });
 
 test("uses the longest matching rule and Allow wins equal-length ties", () => {
-  const robots = \`User-agent: *
-Disallow: /folder/
-Allow: /folder/open
-Disallow: /equal
-Allow: /equal\`;
+  const robots = [
+    "User-agent: *",
+    "Disallow: /folder/",
+    "Allow: /folder/open",
+    "Disallow: /equal",
+    "Allow: /equal"
+  ].join("\n");
   assert.equal(isAllowedByRobots(robots, "https://example.com/folder/open/file").allowed, true);
   assert.equal(isAllowedByRobots(robots, "https://example.com/folder/closed").allowed, false);
   assert.equal(isAllowedByRobots(robots, "https://example.com/equal").allowed, true);
