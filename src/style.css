@@ -244,10 +244,10 @@ textarea::placeholder{color:#8196b1}
   box-shadow:0 28px 90px rgba(0,0,0,.48);
 }
 .account-card input{border-color:rgba(145,180,218,.2)}
-.account-card input:focus{border-color:rgba(110,231,196,.6);outline:none;box-shadow:0 0 0 3px rgba(110,231,196,.08)}
+.account-card input:focus{border-color:rgba(110,231,196,.6);box-shadow:0 0 0 3px rgba(110,231,196,.08)}
 .notice{max-width:680px;margin:20px auto;color:#8b9db5}
 footer{border-color:rgba(166,190,221,.09);color:#8294ad}
-button:focus-visible,textarea:focus-visible,select:focus-visible{
+button:focus-visible,textarea:focus-visible,select:focus-visible,input:focus-visible{
   outline:2px solid #83efd1;
   outline-offset:3px;
 }

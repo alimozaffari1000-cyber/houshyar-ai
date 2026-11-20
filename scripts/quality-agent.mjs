@@ -14,6 +14,7 @@ if (!/<meta[^>]*name="description"[^>]*content="[^"]+"/i.test(html)) warnings.pu
 if (!/<title>[^<]{3,}<\/title>/i.test(html)) failures.push('عنوان صفحه مناسب نیست.');
 if (!/aria-live="polite"/i.test(js)) warnings.push('ناحیه پیام‌ها بهتر است aria-live داشته باشد.');
 if (!/aria-label=/.test(js) && !/label[^>]*for=/i.test(js)) failures.push('ورودی پیام برچسب دسترس‌پذیر ندارد.');
+if (!/input:focus-visible/.test(css)) failures.push('ورودی‌های فرم باید نشانگر فوکوس صفحه‌کلید داشته باشند.');
 if (!/@media\s*\(/.test(css)) failures.push('هیچ breakpoint واکنش‌گرایی در CSS پیدا نشد.');
 if (!/box-sizing\s*:\s*border-box/.test(css)) warnings.push('box-sizing سراسری توصیه می‌شود.');
 if (/https?:\/\/[^\s"'\x60]+/.test(js) && !/https:\/\/api\.groq\.com/.test(js)) warnings.push('آدرس خارجی در کد فرانت‌اند بررسی شود.');
