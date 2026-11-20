@@ -1,6 +1,27 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
+import { runInNewContext } from 'node:vm';
+
+async function loadServiceWorker({ fetchImpl = async () => { throw new Error('network unavailable'); }, cachedResponse = null } = {}) {
+  const source = await readFile(new URL('../public/sw.js', import.meta.url), 'utf8');
+  const handlers = {};
+  const cache = { match: async () => cachedResponse, put: async () => {} };
+  const self = {
+    location: { origin: 'https://houshyar.example' },
+    addEventListener: (name, handler) => { handlers[name] = handler; },
+    skipWaiting: async () => {},
+    clients: { claim: async () => {} }
+  };
+  const caches = {
+    match: async () => cachedResponse,
+    open: async () => cache,
+    keys: async () => [],
+    delete: async () => true
+  };
+  runInNewContext(source, { self, caches, URL, fetch: fetchImpl, Response });
+  return handlers.fetch;
+}
 
 test('هوش‌یار در مرورگرهای امن Service Worker را ثبت می‌کند', async () => {
   const js = await readFile(new URL('../src/main.js', import.meta.url), 'utf8');
@@ -17,4 +38,45 @@ test('پوسته آفلاین فقط فایل‌های عمومی برنامه �
   assert.match(sw, /\/assets\//);
   assert.match(sw, /\/brand\//);
   assert.doesNotMatch(sw, /cache\.addAll\(\[[^\]]*\/api\//s);
+});
+
+test('درخواست API به Service Worker سپرده یا cache نمی‌شود', async () => {
+  let networkCalls = 0;
+  const onFetch = await loadServiceWorker({
+    fetchImpl: async () => { networkCalls += 1; throw new Error('unexpected network call'); }
+  });
+  let responsePromise;
+  await onFetch({
+    request: { method: 'GET', url: 'https://houshyar.example/api/chat', mode: 'cors' },
+    respondWith: promise => { responsePromise = promise; }
+  });
+  assert.equal(responsePromise, undefined);
+  assert.equal(networkCalls, 0);
+});
+
+test('در حالت قطع اینترنت، مسیر صفحه به پوسته ذخیره‌شده برمی‌گردد', async () => {
+  const offlineShell = { marker: 'cached-app-shell' };
+  const onFetch = await loadServiceWorker({ cachedResponse: offlineShell });
+  let responsePromise;
+  await onFetch({
+    request: { method: 'GET', url: 'https://houshyar.example/dashboard', mode: 'navigate' },
+    respondWith: promise => { responsePromise = promise; }
+  });
+  assert.equal(await responsePromise, offlineShell);
+});
+
+test('درخواست غیر GET و منبع خارج از دامنه وارد مسیر cache نمی‌شوند', async () => {
+  let networkCalls = 0;
+  const onFetch = await loadServiceWorker({
+    fetchImpl: async () => { networkCalls += 1; throw new Error('unexpected network call'); }
+  });
+  for (const request of [
+    { method: 'POST', url: 'https://houshyar.example/api/chat', mode: 'cors' },
+    { method: 'GET', url: 'https://cdn.example/library.js', mode: 'no-cors' }
+  ]) {
+    let responsePromise;
+    await onFetch({ request, respondWith: promise => { responsePromise = promise; } });
+    assert.equal(responsePromise, undefined);
+  }
+  assert.equal(networkCalls, 0);
 });
