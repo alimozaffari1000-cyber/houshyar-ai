@@ -1,24 +1,17 @@
 import { execFileSync } from "node:child_process";
 import { readFileSync, statSync } from "node:fs";
+import { SECRET_PATTERNS } from "./secret-patterns.js";
 
 const files = execFileSync("git", ["ls-files", "-z"], { encoding: "utf8" })
   .split("\0").filter(Boolean);
 const findings = [];
-const rules = [
-  ["Private key", /-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/],
-  ["GitHub personal access token", /\b(?:ghp|gho|ghu|ghs|github_pat)_[A-Za-z0-9_]{20,}\b/],
-  ["Slack token", /\bxox[baprs]-[A-Za-z0-9-]{20,}\b/],
-  ["AWS access key", /\bAKIA[0-9A-Z]{16}\b/],
-  ["Groq API key", /\bgsk_[A-Za-z0-9]{30,}\b/],
-  ["Possible hard-coded API secret", /(?:api[_-]?key|secret|access[_-]?token)\s*[:=]\s*["'][A-Za-z0-9_\-]{28,}["']/i],
-];
 
 for (const file of files) {
   if (file === "scripts/security-scan.mjs" || file.endsWith(".lock") || file.startsWith("dist/")) continue;
   try {
     if (statSync(file).size > 1_000_000) continue;
     const content = readFileSync(file, "utf8");
-    for (const [name, pattern] of rules) {
+    for (const [name, pattern] of SECRET_PATTERNS) {
       if (pattern.test(content)) findings.push({ file, name });
     }
   } catch {
