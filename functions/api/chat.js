@@ -104,6 +104,7 @@ export async function onRequestPost({ request, env }) {
   }
 
   let quotaReservation = null;
+  let comparisonQuotaReservation = null;
   let quotaUserId = null;
   let quotaUsageDate = null;
   if (env.CHAT_QUOTA_ENABLED === "true") {
@@ -129,8 +130,12 @@ export async function onRequestPost({ request, env }) {
   }
   const releaseQuota = async () => {
     if (!quotaReservation?.allowed || !quotaUserId) return;
-    try { await releaseDailyChat({ db: env.DB, userId: quotaUserId, usageDate: quotaUsageDate }); } catch { /* generic provider error */ }
+    try {
+      if (quotaReservation?.allowed) await releaseDailyChat({ db: env.DB, userId: quotaUserId, usageDate: quotaUsageDate });
+      if (comparisonQuotaReservation?.allowed) await releaseDailyChat({ db: env.DB, userId: quotaUserId, usageDate: quotaUsageDate });
+    } catch { /* generic provider error */ }
     quotaReservation = null;
+    comparisonQuotaReservation = null;
   };
 
   const safeHistory = [];
@@ -189,6 +194,27 @@ export async function onRequestPost({ request, env }) {
     } else {
       await releaseQuota();
       return json({ error: "COMPARE_NOT_CONFIGURED", message: "برای مقایسه، کلید Claude را همراه Groq یا دو مدل متفاوت Groq تنظیم کنید." }, 503);
+    }
+    // Comparison calls two providers and therefore consumes two quota units.
+    if (quotaReservation?.allowed) {
+      try {
+        comparisonQuotaReservation = await reserveDailyChat({
+          db: env.DB, userId: quotaUserId, limit: env.FREE_DAILY_CHAT_LIMIT
+        });
+      } catch {
+        await releaseQuota();
+        return json({ error: "QUOTA_UNAVAILABLE", message: "سامانه سهمیه‌بندی موقتاً در دسترس نیست." }, 503);
+      }
+      if (!comparisonQuotaReservation.allowed) {
+        const resetAt = comparisonQuotaReservation.resetAt;
+        const limit = comparisonQuotaReservation.limit;
+        await releaseQuota();
+        return json(
+          { error: "DAILY_QUOTA_EXCEEDED", message: "برای مقایسه دو مدل، سهمیه کافی باقی نمانده است.", limit, resetAt },
+          429,
+          { "Retry-After": String(Math.max(1, resetAt - Math.floor(Date.now() / 1000))) }
+        );
+      }
     }
     const runComparison = async target => {
       const compareController = new AbortController();

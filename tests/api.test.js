@@ -249,3 +249,102 @@ test('returns 504 when the upstream deadline aborts the request', async () => {
     globalThis.clearTimeout = originalClearTimeout;
   }
 });
+
+test('comparison mode reserves two daily quota units for its two provider calls', async () => {
+  const originalFetch = globalThis.fetch;
+  let reservations = 0;
+  let releases = 0;
+  const db = {
+    prepare(sql) {
+      return {
+        bind(...values) {
+          return {
+            first: async () => {
+              if (sql.includes('FROM sessions JOIN users')) return { id: 'user-1', email: 'user@example.test', role: 'user' };
+              if (sql.startsWith('INSERT INTO daily_usage')) {
+                reservations += 1;
+                return { request_count: reservations };
+              }
+              throw new Error('Unexpected query: ' + sql);
+            },
+            run: async () => {
+              if (sql.startsWith('UPDATE daily_usage')) releases += 1;
+              return { success: true };
+            }
+          };
+        }
+      };
+    }
+  };
+  globalThis.fetch = async (_url, options) => {
+    const model = JSON.parse(options.body).model;
+    return new Response(JSON.stringify({ choices: [{ message: { content: 'answer-' + model } }] }), { status: 200 });
+  };
+  try {
+    const response = await onRequestPost({
+      request: new Request('https://example.test/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', cookie: 'houshyar_session=valid-test-session-token' },
+        body: JSON.stringify({ message: 'compare', compare: true })
+      }),
+      env: {
+        GROQ_API_KEY: 'test-key', GROQ_MODEL_COMPARE_A: 'model-a', GROQ_MODEL_COMPARE_B: 'model-b',
+        AUTH_ENABLED: 'true', CHAT_QUOTA_ENABLED: 'true', FREE_DAILY_CHAT_LIMIT: '5', DB: db
+      }
+    });
+    assert.equal(response.status, 200);
+    assert.equal(reservations, 2);
+    assert.equal(releases, 0);
+  } finally { globalThis.fetch = originalFetch; }
+});
+
+test('comparison mode releases the first quota reservation when the second unit is unavailable', async () => {
+  const originalFetch = globalThis.fetch;
+  let reservations = 0;
+  let releases = 0;
+  let providerCalls = 0;
+  const db = {
+    prepare(sql) {
+      return {
+        bind() {
+          return {
+            first: async () => {
+              if (sql.includes('FROM sessions JOIN users')) return { id: 'user-1', email: 'user@example.test', role: 'user' };
+              if (sql.startsWith('INSERT INTO daily_usage')) {
+                reservations += 1;
+                return reservations === 1 ? { request_count: 1 } : null;
+              }
+              throw new Error('Unexpected query: ' + sql);
+            },
+            run: async () => {
+              if (sql.startsWith('UPDATE daily_usage')) releases += 1;
+              return { success: true };
+            }
+          };
+        }
+      };
+    }
+  };
+  globalThis.fetch = async () => {
+    providerCalls += 1;
+    return new Response(JSON.stringify({ choices: [{ message: { content: 'should not run' } }] }), { status: 200 });
+  };
+  try {
+    const response = await onRequestPost({
+      request: new Request('https://example.test/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', cookie: 'houshyar_session=valid-test-session-token' },
+        body: JSON.stringify({ message: 'compare', compare: true })
+      }),
+      env: {
+        GROQ_API_KEY: 'test-key', GROQ_MODEL_COMPARE_A: 'model-a', GROQ_MODEL_COMPARE_B: 'model-b',
+        AUTH_ENABLED: 'true', CHAT_QUOTA_ENABLED: 'true', FREE_DAILY_CHAT_LIMIT: '1', DB: db
+      }
+    });
+    assert.equal(response.status, 429);
+    assert.equal((await response.json()).error, 'DAILY_QUOTA_EXCEEDED');
+    assert.equal(reservations, 2);
+    assert.equal(releases, 1);
+    assert.equal(providerCalls, 0);
+  } finally { globalThis.fetch = originalFetch; }
+});
