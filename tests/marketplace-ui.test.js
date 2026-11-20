@@ -80,6 +80,10 @@ test("marketplace UI is connected to home screen and uses authenticated store en
   assert.match(ui, /data-market-near/);
   assert.match(ui, /params\.set\("mode"/);
   assert.match(ui, /data-order-create/);
+  assert.match(ui, /name="buyerNote" maxlength="500"/);
+  assert.match(ui, /buyerNote:form\.elements\.buyerNote\.value\.trim\(\)/);
+  assert.match(ui, /buyerNote:"توضیح برای فروشنده \(اختیاری\)"/);
+  assert.match(ui, /buyerNote:"Note to seller \(optional\)"/);
   assert.match(ui, /data-market-tab="orders"/);
   assert.match(ui, /\/api\/store\/orders/);
 });
