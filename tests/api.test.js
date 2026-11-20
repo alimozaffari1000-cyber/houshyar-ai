@@ -129,7 +129,7 @@ test('unknown response modes safely fall back to the default model', async () =>
 test('runs two configured models in comparison mode and aggregates usage', async () => {
  const originalFetch=globalThis.fetch; const called=[];
  globalThis.fetch=async(_url,options)=>{const body=JSON.parse(options.body);called.push(body.model);return new Response(JSON.stringify({choices:[{message:{content:'answer-'+body.model}}],usage:{prompt_tokens:2,completion_tokens:3,total_tokens:5}}),{status:200});};
- try {const response=await onRequestPost({request:request({message:'مقایسه کن',compare:true}),env:{GROQ_API_KEY:'test-key',GROQ_MODEL_COMPARE_A:'model-a',GROQ_MODEL_COMPARE_B:'model-b'}});const body=await response.json();assert.equal(response.status,200);assert.deepEqual(called.sort(),['model-a','model-b']);assert.equal(body.compare,true);assert.equal(body.comparison.length,2);assert.equal(body.usage.totalTokens,10);assert.match(body.reply,/answer-model-a/);assert.match(body.reply,/answer-model-b/);}
+ try {const response=await onRequestPost({request:request({message:'مقایسه کن',compare:true}),env:{GROQ_API_KEY:'test-key',GROQ_MODEL_COMPARE_A:'model-a',GROQ_MODEL_COMPARE_B:'model-b'}});const body=await response.json();assert.equal(response.status,200);assert.deepEqual(called.sort(),['model-a','model-b']);assert.equal(body.compare,true);assert.equal(body.comparison.length,2);assert.equal(body.usage.totalTokens,10);assert.match(body.reply,/answer-model-a/);assert.match(body.reply,/answer-model-b/);assert.ok(body.reply.includes('\n'));assert.equal(body.reply.includes('\\n'),false);}
  finally {globalThis.fetch=originalFetch;}
 });
 
