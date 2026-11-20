@@ -14,16 +14,19 @@ export async function onRequestPost({ request, env }) {
   const name = typeof parsed.body.name === "string" ? parsed.body.name.trim() : "";
   const slug = typeof parsed.body.slug === "string" ? parsed.body.slug.trim().toLowerCase() : "";
   const description = typeof parsed.body.description === "string" ? parsed.body.description.trim() : "";
+  const countryCode = parsed.body.countryCode === undefined || parsed.body.countryCode === null || parsed.body.countryCode === ""
+    ? null : (typeof parsed.body.countryCode === "string" ? parsed.body.countryCode.trim().toUpperCase() : "");
   if (name.length < 2 || name.length > 100) return authJson({ error: "INVALID_STORE_NAME" }, 400);
   if (!slugPattern.test(slug) || slug.length > 80) return authJson({ error: "INVALID_STORE_SLUG" }, 400);
   if (description.length > 1000) return authJson({ error: "DESCRIPTION_TOO_LONG" }, 400);
+  if (countryCode !== null && !/^[A-Z]{2}$/.test(countryCode)) return authJson({ error: "INVALID_COUNTRY_CODE" }, 400);
   const now = Math.floor(Date.now() / 1000);
   const id = crypto.randomUUID();
   try {
     await env.DB.prepare(
-      "INSERT INTO merchant_stores (id, user_id, name, slug, description, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 'pending', ?, ?)"
-    ).bind(id, user.id, name, slug, description, now, now).run();
-    return authJson({ accepted: true, store: { id, name, slug, status: "pending" } }, 201);
+      "INSERT INTO merchant_stores (id, user_id, name, slug, description, country_code, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, 'pending', ?, ?)"
+    ).bind(id, user.id, name, slug, description, countryCode, now, now).run();
+    return authJson({ accepted: true, store: { id, name, slug, countryCode, status: "pending" } }, 201);
   } catch {
     return authJson({ error: "STORE_APPLICATION_CONFLICT", message: "برای این حساب فروشگاه ثبت شده یا نامک قبلاً استفاده شده است." }, 409);
   }

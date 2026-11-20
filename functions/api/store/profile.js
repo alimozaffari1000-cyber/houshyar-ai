@@ -22,12 +22,16 @@ export async function onRequestPut({ request, env }) {
     const current = await env.DB.prepare(
       "SELECT id, city, region, public_address AS publicAddress, latitude, longitude, " +
       "offers_delivery AS offersDelivery, offers_pickup AS offersPickup, " +
-      "contact_phone AS contactPhone, order_url AS orderUrl " +
+      "contact_phone AS contactPhone, order_url AS orderUrl, country_code AS countryCode " +
       "FROM merchant_stores WHERE user_id = ? LIMIT 1"
     ).bind(user.id).first();
     if (!current) return authJson({ error: "STORE_NOT_FOUND" }, 404);
 
     const city = textField(body, "city", current.city, 80);
+    const countryCode = body.countryCode === undefined ? current.countryCode :
+      (body.countryCode === null || body.countryCode === "" ? null :
+        (typeof body.countryCode === "string" ? body.countryCode.trim().toUpperCase() : ""));
+    if (countryCode !== null && !/^[A-Z]{2}$/.test(countryCode)) return authJson({ error: "INVALID_COUNTRY_CODE" }, 400);
     const region = textField(body, "region", current.region, 80);
     const publicAddress = textField(body, "publicAddress", current.publicAddress, 240);
     const contactPhone = textField(body, "contactPhone", current.contactPhone, 30);
@@ -56,13 +60,13 @@ export async function onRequestPut({ request, env }) {
     const now = Math.floor(Date.now() / 1000);
     await env.DB.prepare(
       "UPDATE merchant_stores SET city = ?, region = ?, public_address = ?, latitude = ?, longitude = ?, " +
-      "offers_delivery = ?, offers_pickup = ?, contact_phone = ?, order_url = ?, updated_at = ? WHERE id = ? AND user_id = ?"
+      "offers_delivery = ?, offers_pickup = ?, contact_phone = ?, order_url = ?, country_code = ?, updated_at = ? WHERE id = ? AND user_id = ?"
     ).bind(city, region, publicAddress, latitude, longitude, offersDelivery ? 1 : 0,
-      offersPickup ? 1 : 0, contactPhone, orderUrl, now, current.id, user.id).run();
+      offersPickup ? 1 : 0, contactPhone, orderUrl, countryCode, now, current.id, user.id).run();
     return authJson({ updated: true, store: {
       city, region, publicAddress, latitude, longitude,
       offersDelivery: offersDelivery ? 1 : 0, offersPickup: offersPickup ? 1 : 0,
-      contactPhone, orderUrl
+      contactPhone, orderUrl, countryCode
     } });
   } catch {
     return authJson({ error: "STORE_PROFILE_UNAVAILABLE" }, 503);

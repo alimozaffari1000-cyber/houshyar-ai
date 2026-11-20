@@ -17,6 +17,8 @@ export async function onRequestGet({ request, env }) {
   const query = (url.searchParams.get("q") || "").trim().slice(0, 80);
   const city = (url.searchParams.get("city") || "").trim().slice(0, 80);
   const region = (url.searchParams.get("region") || "").trim().slice(0, 80);
+  const countryCode = (url.searchParams.get("country") || "").trim().toUpperCase();
+  if (countryCode && !/^[A-Z]{2}$/.test(countryCode)) return authJson({ error: "INVALID_COUNTRY_CODE" }, 400);
   const mode = (url.searchParams.get("mode") || "").trim().toLowerCase();
   const limit = clamp(Number.parseInt(url.searchParams.get("limit") || "30", 10) || 30, 1, 50);
   const offset = clamp(Number.parseInt(url.searchParams.get("offset") || "0", 10) || 0, 0, 500);
@@ -40,6 +42,11 @@ export async function onRequestGet({ request, env }) {
   }
   if (city) { conditions.push("lower(s.city) = lower(?)"); bindings.push(city); }
   if (region) { conditions.push("lower(s.region) = lower(?)"); bindings.push(region); }
+  if (countryCode) {
+    conditions.push("s.country_code = ?");
+    conditions.push("EXISTS (SELECT 1 FROM country_market_configs cm WHERE cm.country_code = s.country_code AND cm.status = 'live')");
+    bindings.push(countryCode);
+  }
   if (mode === "delivery") conditions.push("s.offers_delivery = 1");
   if (mode === "pickup") conditions.push("s.offers_pickup = 1");
   bindings.push(501);
@@ -51,7 +58,7 @@ export async function onRequestGet({ request, env }) {
       "s.id AS storeId, s.name AS storeName, s.slug AS storeSlug, s.city, s.region, " +
       "s.public_address AS publicAddress, s.latitude, s.longitude, " +
       "s.offers_delivery AS offersDelivery, s.offers_pickup AS offersPickup, " +
-      "s.contact_phone AS contactPhone, s.order_url AS orderUrl " +
+      "s.contact_phone AS contactPhone, s.order_url AS orderUrl, s.country_code AS countryCode " +
       "FROM products p JOIN merchant_stores s ON s.id = p.store_id WHERE " +
       conditions.join(" AND ") + " ORDER BY p.updated_at DESC LIMIT ?"
     ).bind(...bindings).all();
