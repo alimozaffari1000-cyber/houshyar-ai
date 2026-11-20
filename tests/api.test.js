@@ -249,3 +249,65 @@ test('returns 504 when the upstream deadline aborts the request', async () => {
     globalThis.clearTimeout = originalClearTimeout;
   }
 });
+
+
+test('automatic mode fails over from Groq to Claude on a transient provider failure', async () => {
+  const originalFetch = globalThis.fetch;
+  const calls = [];
+  globalThis.fetch = async (url) => {
+    calls.push(url);
+    if (url.includes('groq.com')) return new Response('temporarily unavailable', { status: 503 });
+    return new Response(JSON.stringify({
+      model: 'claude-sonnet-5-5',
+      content: [{ type: 'text', text: 'پاسخ از مسیر جایگزین' }],
+      usage: { input_tokens: 4, output_tokens: 5 }
+    }), { status: 200, headers: { 'content-type': 'application/json' } });
+  };
+  try {
+    const response = await onRequestPost({
+      request: request({ message: 'سلام', provider: 'auto' }),
+      env: { GROQ_API_KEY: 'groq-test', CLAUDE_API_KEY: 'claude-test' }
+    });
+    const body = await response.json();
+    assert.equal(response.status, 200);
+    assert.equal(body.provider, 'anthropic');
+    assert.equal(body.fallback.from, 'groq');
+    assert.equal(body.reply, 'پاسخ از مسیر جایگزین');
+    assert.equal(calls.length, 2);
+  } finally { globalThis.fetch = originalFetch; }
+});
+
+test('automatic mode does not fail over on a non-retryable provider 4xx response', async () => {
+  const originalFetch = globalThis.fetch;
+  const calls = [];
+  globalThis.fetch = async (url) => {
+    calls.push(url);
+    return new Response('invalid credentials', { status: 401 });
+  };
+  try {
+    const response = await onRequestPost({
+      request: request({ message: 'سلام', provider: 'auto' }),
+      env: { GROQ_API_KEY: 'groq-test', CLAUDE_API_KEY: 'claude-test' }
+    });
+    assert.equal(response.status, 502);
+    assert.equal((await response.json()).error, 'UPSTREAM_ERROR');
+    assert.equal(calls.length, 1);
+  } finally { globalThis.fetch = originalFetch; }
+});
+
+test('explicit provider selection does not silently switch providers', async () => {
+  const originalFetch = globalThis.fetch;
+  const calls = [];
+  globalThis.fetch = async (url) => {
+    calls.push(url);
+    return new Response('temporarily unavailable', { status: 503 });
+  };
+  try {
+    const response = await onRequestPost({
+      request: request({ message: 'سلام', provider: 'groq' }),
+      env: { GROQ_API_KEY: 'groq-test', CLAUDE_API_KEY: 'claude-test' }
+    });
+    assert.equal(response.status, 502);
+    assert.equal(calls.length, 1);
+  } finally { globalThis.fetch = originalFetch; }
+});

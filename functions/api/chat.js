@@ -226,7 +226,42 @@ export async function onRequestPost({ request, env }) {
       webSearch: body.webSearch === true && providerChoice.provider === "google",
       thinking: requestedMode === "deep"
     });
-  } catch {
+  } catch (primaryError) {
+    clearTimeout(timeout);
+    const fallbackProvider = providerChoice.provider === "groq" ? "anthropic" : "groq";
+    const fallbackConfigured = fallbackProvider === "groq" ? Boolean(env.GROQ_API_KEY) : Boolean(env.CLAUDE_API_KEY);
+    // Respect an explicitly selected provider. Automatic mode may fail over only
+    // for network/timeout and transient HTTP failures; never for ordinary 4xx.
+    if (requestedProvider === "auto" && fallbackConfigured && primaryError?.retryable === true) {
+      const fallbackModel = fallbackProvider === "anthropic"
+        ? (env.CLAUDE_MODEL || "claude-sonnet-5-5")
+        : (groqModelByMode[requestedMode] || env.GROQ_MODEL || "llama-3.3-70b-versatile");
+      const fallbackController = new AbortController();
+      const fallbackTimeout = setTimeout(() => fallbackController.abort("upstream_timeout"), UPSTREAM_TIMEOUT_MS);
+      try {
+        const fallbackResult = await requestModel({
+          provider: fallbackProvider, env, messages, model: fallbackModel,
+          signal: fallbackController.signal, maxTokens: 1200, temperature: 0.5
+        });
+        return json({
+          reply: fallbackResult.reply,
+          mode: requestedMode,
+          provider: fallbackProvider,
+          model: fallbackResult.model,
+          usage: fallbackResult.usage,
+          fallback: { from: providerChoice.provider, reason: "transient_provider_failure" },
+          agent: { id: selectedAgent.id, label: selectedAgent.label, labelEn: selectedAgent.labelEn }
+        });
+      } catch {
+        await releaseQuota();
+        if (fallbackController.signal.aborted) {
+          return json({ error: "UPSTREAM_TIMEOUT", message: "هر دو ارائه‌دهنده در زمان مجاز پاسخ ندادند." }, 504);
+        }
+        return json({ error: "UPSTREAM_ERROR", message: "ارائه‌دهنده اصلی و جایگزین موقتاً پاسخ‌گو نیستند." }, 502);
+      } finally {
+        clearTimeout(fallbackTimeout);
+      }
+    }
     await releaseQuota();
     if (controller.signal.aborted) {
       return json({ error: "UPSTREAM_TIMEOUT", message: "پاسخ سرویس هوش مصنوعی بیش از زمان مجاز طول کشید." }, 504);

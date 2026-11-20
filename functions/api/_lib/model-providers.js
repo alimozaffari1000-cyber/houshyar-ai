@@ -2,6 +2,25 @@ const CLAUDE_DEFAULT_MODEL = "claude-sonnet-5-5";
 const GEMINI_DEFAULT_MODEL = "gemini-2.5-flash";
 const DEEPSEEK_DEFAULT_MODEL = "deepseek-flash";
 
+async function fetchProvider(url, init) {
+  let response;
+  try {
+    response = await fetch(url, init);
+  } catch (cause) {
+    const error = new Error("provider_network_error");
+    error.retryable = true;
+    error.cause = cause;
+    throw error;
+  }
+  if (!response.ok) {
+    const error = new Error("provider_request_failed");
+    error.status = response.status;
+    error.retryable = response.status === 408 || response.status === 425 || response.status === 429 || response.status >= 500;
+    throw error;
+  }
+  return response;
+}
+
 export function listAvailableProviders(env = {}) {
   return [
     { id: "groq", available: Boolean(env.GROQ_API_KEY), defaultModel: env.GROQ_MODEL || "llama-3.3-70b-versatile" },
@@ -72,7 +91,7 @@ export async function requestModel({ provider, env, messages, model, signal, max
     if (!env.CLAUDE_API_KEY) throw new Error("provider_not_configured");
     const system = messages.filter(item => item.role === "system").map(item => item.content).join("\n\n");
     const conversation = messages.filter(item => item.role !== "system");
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
+    const response = await fetchProvider("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
         "x-api-key": env.CLAUDE_API_KEY,
@@ -89,7 +108,6 @@ export async function requestModel({ provider, env, messages, model, signal, max
       }),
       signal
     });
-    if (!response.ok) throw new Error("provider_request_failed");
     const data = await response.json();
     const reply = Array.isArray(data?.content)
       ? data.content.filter(block => block?.type === "text").map(block => block.text).join("\n").trim()
@@ -138,13 +156,12 @@ export async function requestModel({ provider, env, messages, model, signal, max
 
   if (provider !== "groq" || !env.GROQ_API_KEY) throw new Error("provider_not_configured");
   const selectedModel = model || env.GROQ_MODEL || "llama-3.3-70b-versatile";
-  const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+  const response = await fetchProvider("https://api.groq.com/openai/v1/chat/completions", {
     method: "POST",
     headers: { Authorization: `Bearer ${env.GROQ_API_KEY}`, "Content-Type": "application/json" },
     body: JSON.stringify({ model: selectedModel, messages, temperature, max_tokens: maxTokens }),
     signal
   });
-  if (!response.ok) throw new Error("provider_request_failed");
   const data = await response.json();
   const reply = data?.choices?.[0]?.message?.content;
   if (typeof reply !== "string" || !reply.trim()) throw new Error("provider_empty_reply");
