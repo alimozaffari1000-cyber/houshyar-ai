@@ -4,6 +4,7 @@ import { authJson, readAuthBody, enforceAuthRateLimit } from "../_lib/auth-flow.
 export async function onRequestPost({ request, env }) {
   if (env.AUTH_ENABLED !== "true") return authJson({ error: "AUTH_NOT_CONFIGURED" }, 503);
   if (!env.DB) return authJson({ error: "DATABASE_NOT_CONFIGURED" }, 503);
+  if (typeof env.AUTH_PEPPER !== "string" || new TextEncoder().encode(env.AUTH_PEPPER).byteLength < 32) return authJson({ error: "AUTH_SECURITY_NOT_CONFIGURED" }, 503);
   if (!originAllowed(request)) return authJson({ error: "ORIGIN_NOT_ALLOWED" }, 403);
   if (!authEmailConfig(env)) return authJson({ error: "AUTH_EMAIL_NOT_CONFIGURED" }, 503);
   const parsed = await readAuthBody(request);
@@ -20,7 +21,7 @@ export async function onRequestPost({ request, env }) {
   if (existing) return authJson({ accepted: true, verificationRequired: true }, 202);
   const now = Math.floor(Date.now() / 1000);
   const id = crypto.randomUUID();
-  const record = await createPasswordRecord(password);
+  const record = await createPasswordRecord(password, env.AUTH_PEPPER);
   try {
     await env.DB.prepare("INSERT INTO users (id, email_normalized, password_hash, password_salt, password_iterations, status, role, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 'pending', 'user', ?, ?)").bind(id, email, record.hash, record.salt, record.iterations, now, now).run();
   } catch {

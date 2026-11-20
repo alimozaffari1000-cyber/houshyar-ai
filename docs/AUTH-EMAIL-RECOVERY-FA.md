@@ -10,6 +10,7 @@
 - `EMAIL_API_KEY`: کلید محرمانه سرویس؛ فقط در Cloudflare Secret ذخیره شود.
 - `EMAIL_FROM`: فرستنده تأییدشده، مانند `Houshyar <no-reply@example.com>`.
 - `APP_BASE_URL`: دامنه اصلی HTTPS سایت، بدون مسیر.
+- `AUTH_PEPPER`: secret تصادفی حداقل ۳۲ بایتی برای HMAC پیش از PBKDF2؛ فقط به‌صورت Cloudflare Secret.
 - `AUTH_ENABLED=true`: فقط پس از اعمال تمام migrationها و تست محیط production.
 
 هوش‌یار به‌صورت پیش‌فرض به ارائه‌دهنده خاصی وابسته نیست. آداپتور ایمیل یک درخواست POST با هدر `Authorization: Bearer <key>` و بدنه زیر ارسال می‌کند:

@@ -4,6 +4,7 @@ import { authJson, readAuthBody, enforceAuthRateLimit } from "../_lib/auth-flow.
 
 export async function onRequestPost({ request, env }) {
   if (env.AUTH_ENABLED !== "true" || !env.DB) return authJson({ error: "AUTH_NOT_CONFIGURED" }, 503);
+  if (typeof env.AUTH_PEPPER !== "string" || new TextEncoder().encode(env.AUTH_PEPPER).byteLength < 32) return authJson({ error: "AUTH_SECURITY_NOT_CONFIGURED" }, 503);
   if (!originAllowed(request)) return authJson({ error: "ORIGIN_NOT_ALLOWED" }, 403);
   const parsed = await readAuthBody(request);
   if (parsed.error) return authJson({ error: parsed.error }, parsed.status);
@@ -18,7 +19,7 @@ export async function onRequestPost({ request, env }) {
 
   const now = Math.floor(Date.now() / 1000);
   const tokenHash = await hashAuthToken(token);
-  const record = await createPasswordRecord(password);
+  const record = await createPasswordRecord(password, env.AUTH_PEPPER);
 
   // D1 batch is transactional: update the account, consume the matching token,
   // and revoke sessions together. Never burn a valid token in a separate query
