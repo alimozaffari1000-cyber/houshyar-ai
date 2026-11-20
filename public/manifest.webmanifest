@@ -1,0 +1,21 @@
+{
+  "id": "/",
+  "name": "هوش‌یار | دستیار هوشمند",
+  "short_name": "هوش‌یار",
+  "description": "دستیار هوشمند چندمنظوره، فارسی‌محور و چندزبانه",
+  "lang": "fa",
+  "dir": "rtl",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#080f1d",
+  "theme_color": "#080f1d",
+  "icons": [
+    {
+      "src": "/brand/mark.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
