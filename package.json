@@ -13,7 +13,8 @@
     "security:scan": "node scripts/security-scan.mjs",
     "quality:check": "node scripts/quality-agent.mjs",
     "android:add": "cap add android",
-    "android:sync": "npm run build && cap sync android"
+    "android:sync": "npm run build && cap sync android",
+    "agent:team-audit": "node scripts/agent-team-audit.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.6.0",

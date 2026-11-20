@@ -32,6 +32,8 @@ jobs:
         run: npm install
       - name: Project and secret-safety diagnostics
         run: npm run agent:check
+      - name: Multi-agent team safety and readiness audit
+        run: npm run agent:team-audit
       - name: Automated tests
         run: npm run qa
       - name: Production build

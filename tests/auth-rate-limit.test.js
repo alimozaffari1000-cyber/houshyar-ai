@@ -36,3 +36,14 @@ test("verification and recovery use distinct throttling buckets", async () => {
   assert.ok(keys.some(key => key.startsWith("auth:password-reset:")));
   assert.ok(keys.some(key => key.startsWith("auth:reset-confirm:")));
 });
+
+
+test("agent task submissions use their own privacy-preserving rate-limit bucket", async () => {
+  const keys = [];
+  const db = { prepare(sql) { return { bind(...args) { keys.push(args[0]); return { first: async () => ({ request_count: 1 }) }; } }; } };
+  const result = await checkAuthRateLimit({ db, action: "agent-task", email: "user@example.com", clientIp: "203.0.113.9", now: 1800000000 });
+  assert.equal(result.allowed, true);
+  assert.equal(result.limit, 30);
+  assert.ok(keys.every(key => key.startsWith("auth:agent-task:")));
+  assert.ok(keys.every(key => !key.includes("user@example.com")));
+});

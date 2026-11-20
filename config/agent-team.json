@@ -1,0 +1,46 @@
+{
+  "version": 1,
+  "project": "houshyar-ai",
+  "executionModes": {
+    "cloud": {
+      "enabled": true,
+      "purpose": "scheduled research, repository analysis, QA and queued task processing",
+      "requiresConfiguredRuntime": true
+    },
+    "local": {
+      "enabled": false,
+      "purpose": "offline-capable analysis and queued work on a user-controlled device",
+      "requiresInstalledLocalRunner": true
+    }
+  },
+  "agents": [
+    {"id":"orchestrator","name":"هماهنگ‌کننده","domain":"task_planning","schedule":"on_demand_and_daily","permissions":["task:create","task:assign","report:write"],"autonomousChanges":false},
+    {"id":"research","name":"پژوهشگر","domain":"technology_market_competitor_research","schedule":"daily","permissions":["web:read","repository:read","report:write"],"autonomousChanges":false},
+    {"id":"architect","name":"معمار فنی","domain":"architecture_and_roadmap","schedule":"weekly","permissions":["repository:read","report:write","task:create"],"autonomousChanges":false},
+    {"id":"developer","name":"توسعه‌دهنده","domain":"allowlisted_code_changes","schedule":"queued","permissions":["repository:read","branch:write","pull_request:create"],"autonomousChanges":false},
+    {"id":"qa","name":"آزمون‌گر","domain":"tests_regression_accessibility_performance","schedule":"on_pull_request_and_daily","permissions":["repository:read","tests:run","report:write"],"autonomousChanges":false},
+    {"id":"security","name":"نگهبان امنیت","domain":"dependency_secret_auth_tenant_isolation_audit","schedule":"on_pull_request_and_daily","permissions":["repository:read","security:scan","report:write"],"autonomousChanges":false},
+    {"id":"translator","name":"متخصص زبان","domain":"translation_quality_localization","schedule":"weekly","permissions":["repository:read","report:write","task:create"],"autonomousChanges":false},
+    {"id":"commerce","name":"متخصص تجارت","domain":"marketplace_country_trade_payments_risk","schedule":"weekly","permissions":["repository:read","report:write","task:create"],"autonomousChanges":false},
+    {"id":"growth","name":"متخصص رشد و برند","domain":"branding_marketing_product_analytics","schedule":"weekly","permissions":["repository:read","report:write","task:create"],"autonomousChanges":false},
+    {"id":"guardian","name":"نگهبان پایداری","domain":"health_checks_incident_triage_rollback_proposals","schedule":"hourly","permissions":["repository:read","monitoring:read","report:write","task:create"],"autonomousChanges":false}
+  ],
+  "approvalRequiredFor": [
+    "production_deploy",
+    "database_migration",
+    "payment_or_refund",
+    "external_message",
+    "data_deletion",
+    "security_policy_change",
+    "legal_commitment",
+    "contract_acceptance"
+  ],
+  "globalLimits": {
+    "denyByDefault": true,
+    "noArbitraryCodeExecution": true,
+    "noRawSecretAccessInAgentPrompts": true,
+    "allActionsAudited": true,
+    "allCodeChangesRequirePullRequest": true,
+    "productionChangesRequireHumanApproval": true
+  }
+}
