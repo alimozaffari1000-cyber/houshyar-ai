@@ -428,3 +428,22 @@ button:focus-visible,textarea:focus-visible,select:focus-visible{
 .marketplace-order>div{display:grid;gap:5px;min-width:0}
 .marketplace-order small{overflow-wrap:anywhere}
 .marketplace-order button{cursor:pointer}
+
+
+.seo-studio-overlay{position:fixed;inset:0;z-index:45;display:grid;place-items:center;padding:18px;background:rgba(3,8,17,.78);backdrop-filter:blur(12px)}
+.seo-studio-overlay[hidden]{display:none}
+.seo-studio-dialog{width:min(100%,620px);max-height:92vh;overflow:auto;padding:22px;border:1px solid var(--line);border-radius:22px;background:linear-gradient(145deg,#14243a,#0b1525);box-shadow:0 24px 90px #0009}
+.seo-studio-head{display:flex;justify-content:space-between;gap:14px;align-items:flex-start;margin-bottom:18px}
+.seo-studio-head h2{margin:0 0 6px;font-size:20px;color:#eaf5ff}
+.seo-studio-head p,.seo-studio-note{margin:0;color:#9aacc5;font-size:11px;line-height:1.9}
+.seo-studio-head button{flex:0 0 36px;height:36px;border:1px solid var(--line);border-radius:10px;background:#ffffff08;color:#dce9f8;font-size:22px;cursor:pointer}
+.seo-studio-form{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.seo-studio-form label{display:grid;gap:6px;color:#b8c9dc;font-size:11px}
+.seo-studio-form label:nth-child(4),.seo-studio-form label:nth-child(5){grid-column:1/-1}
+.seo-studio-form input,.seo-studio-form textarea,.seo-studio-form select{width:100%;min-width:0;padding:10px 11px;border:1px solid #344a65;border-radius:10px;background:#091525;color:#f1f6ff;font:12px Vazirmatn, sans-serif}
+.seo-studio-form textarea{resize:vertical;line-height:1.8}
+.seo-studio-form button{grid-column:1/-1;padding:12px;border:0;border-radius:11px;background:#65dfc0;color:#09201d;font:700 12px Vazirmatn;cursor:pointer}
+.seo-studio-error{grid-column:1/-1;min-height:0;margin:0;color:#ff9c9c;font-size:11px}
+.seo-studio-note{margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
+.seo-studio-form :focus-visible,.seo-studio-head button:focus-visible{outline:2px solid #75e8ce;outline-offset:2px}
+@media(max-width:560px){.seo-studio-overlay{padding:8px}.seo-studio-dialog{padding:16px;border-radius:17px}.seo-studio-form{grid-template-columns:1fr}.seo-studio-form label:nth-child(n){grid-column:1}.seo-studio-head h2{font-size:18px}}
