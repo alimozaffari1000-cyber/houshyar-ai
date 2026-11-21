@@ -11,7 +11,7 @@
 3. مخزن `alimozaffari1000-cyber/houshyar-ai` و شاخه `main` را انتخاب کنید.
 4. Build command را `npm run build` و output directory را `dist` قرار دهید.
 5. پس از ساخت پروژه، Settings → Variables and Secrets را باز کنید.
-6. کلیدهای ارائه‌دهنده مورد استفاده را به‌صورت Secret اضافه کنید:
+6. در صورت استفاده از ارائه‌دهنده‌های خارجی، کلیدهای مورد استفاده را به‌صورت Secret اضافه کنید:
    - `GROQ_API_KEY` برای Groq
    - `CLAUDE_API_KEY` برای Claude / Anthropic
    - `GEMINI_API_KEY` برای Google Gemini
@@ -72,3 +72,14 @@
 مستند رسمی:
 - https://developers.cloudflare.com/pages/configuration/build-configuration/
 - https://developers.cloudflare.com/workers/ci-cd/builds/configuration/
+
+
+## فعال‌سازی چت با سهمیه رایگان Cloudflare AI (بدون API key)
+اگر نمی‌خواهید کلید سرویس خارجی تهیه کنید:
+1. در پروژه Pages به **Settings → Bindings → Add → Workers AI** بروید.
+2. نام binding را دقیقاً `AI` بگذارید.
+3. آن را ذخیره کنید و پروژه را دوباره Deploy کنید.
+4. پس از انتشار، `https://<your-pages-domain>/api/chat` را باز کنید. پاسخ سالم باید `aiConfigured: true` و provider `cloudflare_ai` را نشان دهد، اگر کلیدهای دیگر تنظیم نشده باشند.
+5. در رابط چت گزینه **Cloudflare AI** را انتخاب کنید یا provider را روی انتخاب خودکار بگذارید.
+
+مدل پیش‌فرض `@cf/zai-org/glm-4.7-flash` است. Cloudflare برای پلن Free روزانه ۱۰٬۰۰۰ Neurons رایگان اعلام کرده است؛ پس از اتمام سهمیه در پلن Free درخواست‌های بیشتر متوقف می‌شوند. برای حفظ حالت بدون هزینه، به پلن Paid ارتقا ندهید و مصرف را در داشبورد پایش کنید.
