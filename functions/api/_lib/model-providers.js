@@ -33,7 +33,7 @@ export async function requestModel({ provider, env, messages, model, signal, max
   if (provider === "cloudflare_ai") {
     if (typeof env.AI?.run !== "function") throw new Error("provider_not_configured");
     const selectedModel = model || env.CLOUDFLARE_AI_MODEL || CLOUDFLARE_AI_DEFAULT_MODEL;
-    const data = await env.AI.run(selectedModel, { messages, max_tokens: maxTokens, temperature });
+    const data = await env.AI.run(selectedModel, { messages, max_completion_tokens: maxTokens, temperature });
     const rawReply = data?.response ?? data?.choices?.[0]?.message?.content ?? data?.result?.response;
     if (typeof rawReply !== "string" || !rawReply.trim()) throw new Error("provider_empty_reply");
     const usage = data?.usage || data?.result?.usage;
