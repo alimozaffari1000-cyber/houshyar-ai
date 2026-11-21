@@ -428,3 +428,24 @@ button:focus-visible,textarea:focus-visible,select:focus-visible{
 .marketplace-order>div{display:grid;gap:5px;min-width:0}
 .marketplace-order small{overflow-wrap:anywhere}
 .marketplace-order button{cursor:pointer}
+
+
+/* Translation panel */
+.translation-panel{margin:28px 0;padding:22px;background:linear-gradient(145deg,#13243a,#101b2d);border:1px solid #34516a;border-radius:20px;box-shadow:0 16px 42px #0003}
+.translation-heading,.translation-result-head,.translation-actions{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.translation-heading h2{margin:5px 0;font-size:21px}.translation-eyebrow{font-size:9px;letter-spacing:2px;color:#6ee7c4;font-weight:800}
+.translation-count{padding:6px 10px;border:1px solid #356b68;border-radius:20px;color:#7de8ce;font-size:11px}
+.translation-description{font-size:12px;line-height:1.9;color:#9aacc5}
+.translation-fields{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:16px 0}
+.translation-fields label,.translation-input-label{display:grid;gap:7px;color:#cbd8e8;font-size:11px}
+.translation-fields select,.translation-panel textarea{width:100%;min-width:0;background:#0b1728;border:1px solid #344b66;border-radius:10px;color:#edf5ff;padding:10px;font:12px Vazirmatn}
+.translation-panel textarea{margin-top:8px;resize:vertical;line-height:1.9}
+.translation-actions{margin-top:10px}.translation-actions small{color:#91a6bf;font-size:10px}
+.translation-actions button,.translation-result-head button{border:0;border-radius:10px;background:#6ee7c4;color:#09221d;padding:9px 16px;font:700 12px Vazirmatn;cursor:pointer}
+.translation-actions button:disabled{opacity:.55;cursor:wait}
+.translation-status{min-height:20px;color:#a9c6d8;font-size:11px;line-height:1.8}
+.translation-result-wrap{margin-top:12px;padding:15px;background:#0b1728;border:1px solid #2e4b62;border-radius:13px}
+.translation-result-wrap[hidden]{display:none}.translation-result-head strong{font-size:12px;color:#7de8ce}
+.translation-result-head button{background:#203a4d;color:#d9f7f0;padding:6px 10px;font-size:10px}
+.translation-result{white-space:pre-wrap;overflow-wrap:anywhere;line-height:2;font-size:14px;color:#f1f6ff}
+@media(max-width:620px){.translation-panel{padding:16px}.translation-fields{grid-template-columns:1fr}.translation-heading h2{font-size:18px}}
