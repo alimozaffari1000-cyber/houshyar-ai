@@ -13,7 +13,7 @@ test('صفحه اصلی و ورودی برنامه وجود دارند', async (
 test('ورودی کاربر قبل از نمایش escape می‌شود', async () => {
   const js=await readFile(new URL('../src/main.js',import.meta.url),'utf8');
   assert.match(js,/escapeHTML/);
-  assert.match(js,/replace\(/\[&<>"'\]/);
+  assert.match(js,/replace\(\/\[[&<>"']\]/);
 });
 
 test('پیش‌نویس پیام هنگام انتظار برای پاسخ حفظ می‌شود', async () => {
