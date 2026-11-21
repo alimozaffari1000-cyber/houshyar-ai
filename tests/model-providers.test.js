@@ -5,7 +5,7 @@ import { onRequestPost, onRequestGet } from "../functions/api/chat.js";
 
 test("provider availability reflects server-side secrets only", () => {
   assert.deepEqual(listAvailableProviders({ GROQ_API_KEY: "g" }).map(item => [item.id, item.available]), [
-    ["groq", true], ["anthropic", false], ["google", false], ["deepseek", false]
+    ["groq", true], ["anthropic", false], ["google", false], ["deepseek", false], ["cloudflare_ai", false]
   ]);
   assert.equal(resolveProvider({ CLAUDE_API_KEY: "c" }, "auto", "balanced").provider, "anthropic");
 });
@@ -260,4 +260,30 @@ test("DeepSeek deep mode enables thinking and the chat health endpoint reports i
     assert.equal(health.status, 200);
     assert.equal((await health.json()).providers.find(item => item.id === "deepseek").available, true);
   } finally { globalThis.fetch = originalFetch; }
+});
+
+test("Cloudflare Workers AI binding is detected and used as the free fallback", async () => {
+  let captured;
+  const env = { AI: { run: async (model, input) => { captured = { model, input }; return { response: "پاسخ آزمایشی از هوش مصنوعی Cloudflare", model, usage: { prompt_tokens: 7, completion_tokens: 9, total_tokens: 16 } }; } } };
+  assert.equal(listAvailableProviders(env).find(item => item.id === "cloudflare_ai").available, true);
+  assert.equal(resolveProvider(env, "auto", "balanced").provider, "cloudflare_ai");
+  const result = await requestModel({ provider: "cloudflare_ai", env, messages: [{ role: "user", content: "سلام" }], maxTokens: 500, temperature: 0.4 });
+  assert.equal(captured.model, "@cf/zai-org/glm-4.7-flash");
+  assert.deepEqual(captured.input.messages, [{ role: "user", content: "سلام" }]);
+  assert.equal(captured.input.max_tokens, 500);
+  assert.equal(result.reply, "پاسخ آزمایشی از هوش مصنوعی Cloudflare");
+  assert.deepEqual(result.usage, { promptTokens: 7, completionTokens: 9, totalTokens: 16 });
+});
+
+test("Cloudflare Workers AI can answer chat requests without external API secrets", async () => {
+  const env = { AI: { run: async model => ({ choices: [{ message: { content: "سلام، پاسخ از مدل متصل به Cloudflare" } }], model, usage: { prompt_tokens: 2, completion_tokens: 5, total_tokens: 7 } }) } };
+  const request = new Request("https://houshyar.example/api/chat", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ message: "سلام", provider: "auto", mode: "balanced" }) });
+  const response = await onRequestPost({ request, env });
+  const data = await response.json();
+  assert.equal(response.status, 200);
+  assert.equal(data.provider, "cloudflare_ai");
+  assert.equal(data.reply, "سلام، پاسخ از مدل متصل به Cloudflare");
+  const health = await onRequestGet({ env });
+  assert.equal(health.status, 200);
+  assert.equal((await health.json()).aiConfigured, true);
 });
