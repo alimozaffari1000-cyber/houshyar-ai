@@ -209,7 +209,7 @@ test("chat API enables Google grounding only for an explicitly selected Gemini p
 });
 test("DeepSeek appears as a server-secret-backed fourth provider and supports deep-mode routing", () => {
   assert.deepEqual(listAvailableProviders({ DEEPSEEK_API_KEY: "d" }).map(item => [item.id, item.available]), [
-    ["groq", false], ["anthropic", false], ["google", false], ["deepseek", true]
+    ["groq", false], ["anthropic", false], ["google", false], ["deepseek", true], ["cloudflare_ai", false]
   ]);
   assert.equal(resolveProvider({ GROQ_API_KEY: "g", DEEPSEEK_API_KEY: "d" }, "auto", "deep").provider, "deepseek");
   assert.deepEqual(resolveProvider({ GROQ_API_KEY: "g" }, "deepseek", "balanced"), {
@@ -270,7 +270,7 @@ test("Cloudflare Workers AI binding is detected and used as the free fallback", 
   const result = await requestModel({ provider: "cloudflare_ai", env, messages: [{ role: "user", content: "سلام" }], maxTokens: 500, temperature: 0.4 });
   assert.equal(captured.model, "@cf/zai-org/glm-4.7-flash");
   assert.deepEqual(captured.input.messages, [{ role: "user", content: "سلام" }]);
-  assert.equal(captured.input.max_tokens, 500);
+  assert.equal(captured.input.max_completion_tokens, 500);
   assert.equal(result.reply, "پاسخ آزمایشی از هوش مصنوعی Cloudflare");
   assert.deepEqual(result.usage, { promptTokens: 7, completionTokens: 9, totalTokens: 16 });
 });
