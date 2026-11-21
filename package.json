@@ -10,10 +10,17 @@
     "qa": "node --test",
     "agent:check": "node scripts/agent-check.mjs",
     "agent:repair": "node scripts/agent-repair.mjs",
+    "agent:offline": "node scripts/offline-development-agent.mjs",
     "security:scan": "node scripts/security-scan.mjs",
     "quality:check": "node scripts/quality-agent.mjs",
     "android:add": "cap add android",
-    "android:sync": "npm run build && cap sync android"
+    "android:sync": "npm run build && cap sync android",
+    "agent:research": "node scripts/agent-research.mjs",
+    "agent:plan": "node scripts/agent-development-planner.mjs",
+    "agent:patch": "node scripts/agent-patch-proposal.mjs",
+    "agent:patch-sandbox": "node scripts/agent-patch-sandbox.mjs",
+    "agent:release-check": "node scripts/agent-release-preflight.mjs",
+    "agent:coordinate": "node scripts/agent-project-coordinator.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.6.0",
