@@ -72,3 +72,16 @@
 مستند رسمی:
 - https://developers.cloudflare.com/pages/configuration/build-configuration/
 - https://developers.cloudflare.com/workers/ci-cd/builds/configuration/
+
+
+## تفاوت Preview و Production و تأیید انتشار
+
+- هر Pull Request یا شاخه غیر از شاخه Production می‌تواند یک Preview با نشانی hash مانند `<hash>.houshyar-ai.pages.dev` بسازد. موفقیت این Preview فقط همان commit آزمایشی را تأیید می‌کند و سایت Production را به‌روزرسانی نمی‌کند.
+- در Pages، مقدار **Production branch** باید با شاخه‌ای که نسخه عمومی از آن منتشر می‌شود یکسان باشد؛ برای این مخزن معمولاً `main` است. این مقدار را در **Settings → Builds → Branch control** بررسی کنید.
+- برای تأیید انتشار عمومی، در صفحه **Deployments** باید یک ردیف با هر سه شرط دیده شود: محیط **Production**، شاخه `main` و وضعیت **Success**. SHA همان ردیف باید با commit مورد انتظار در GitHub یکسان باشد.
+- نشانی Preview را با دامنه اصلی `houshyar-ai.pages.dev` اشتباه نگیرید. Previewها جدا از Production هستند و نباید مبنای اعلام انتشار عمومی قرار گیرند.
+- اگر Preview موفق است ولی Production جدیدی وجود ندارد، ابتدا Production branch و کنترل‌های فعال‌بودن انتشار خودکار را بررسی کنید؛ پروژه یا Worker دیگری را حذف نکنید.
+
+مراجع رسمی Cloudflare:
+- GitHub integration و شاخه Production: https://developers.cloudflare.com/pages/configuration/git-integration/github-integration/
+- Preview deployments: https://developers.cloudflare.com/pages/configuration/preview-deployments/
