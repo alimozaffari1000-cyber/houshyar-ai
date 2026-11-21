@@ -25,16 +25,14 @@ self.addEventListener('fetch', event => {
   if (url.origin !== self.location.origin || url.pathname.startsWith('/api/')) return;
 
   if (request.mode === 'navigate') {
+    const responsePromise = fetch(request);
+    const cachePromise = responsePromise.then(response => {
+      if (!response.ok) return;
+      return caches.open(CACHE_NAME).then(cache => cache.put('/', response.clone()));
+    });
+    event.waitUntil(cachePromise.catch(() => {}));
     event.respondWith(
-      fetch(request)
-        .then(response => {
-          if (response.ok) {
-            const copy = response.clone();
-            caches.open(CACHE_NAME).then(cache => cache.put('/', copy));
-          }
-          return response;
-        })
-        .catch(async () => (await caches.match('/')) || Response.error())
+      responsePromise.catch(async () => (await caches.match('/')) || Response.error())
     );
     return;
   }
@@ -44,13 +42,16 @@ self.addEventListener('fetch', event => {
     || url.pathname.startsWith('/brand/');
   if (!isAppAsset) return;
 
-  event.respondWith(
-    caches.match(request).then(cached => cached || fetch(request).then(response => {
+  const cachedResponsePromise = caches.match(request);
+  const responsePromise = cachedResponsePromise.then(cached => cached || fetch(request));
+  const cachePromise = cachedResponsePromise.then(cached => {
+    if (cached) return;
+    return responsePromise.then(response => {
       if (response.ok && response.type === 'basic') {
-        const copy = response.clone();
-        caches.open(CACHE_NAME).then(cache => cache.put(request, copy));
+        return caches.open(CACHE_NAME).then(cache => cache.put(request, response.clone()));
       }
-      return response;
-    }))
-  );
+    });
+  });
+  event.waitUntil(cachePromise.catch(() => {}));
+  event.respondWith(responsePromise);
 });
