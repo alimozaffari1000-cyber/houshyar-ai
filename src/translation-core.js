@@ -42,5 +42,5 @@ export function buildTranslationRequest({ text, sourceLanguage = "auto", targetL
     "",
     "متن برای ترجمه:",
     input
-  ].join("\\n");
+  ].join("\n");
 }
