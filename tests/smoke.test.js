@@ -13,7 +13,7 @@ test('صفحه اصلی و ورودی برنامه وجود دارند', async (
 test('ورودی کاربر قبل از نمایش escape می‌شود', async () => {
   const js=await readFile(new URL('../src/main.js',import.meta.url),'utf8');
   assert.match(js,/escapeHTML/);
-  assert.match(js,/replace\(\/\[&<>"'\]/);
+  assert.match(js,/replace\(\/\[[&<>"']\]/);
 });
 
 test('پیش‌نویس پیام هنگام انتظار برای پاسخ حفظ می‌شود', async () => {
@@ -126,4 +126,18 @@ test('Google Search grounding is limited to Gemini and renders sanitized source 
  assert.match(providers,/google_search: \{\}/);
  assert.match(providers,/groundingMetadata/);
  assert.match(providers,/startsWith\("https:\/\/"\)/);
+});
+
+
+test('structured SEO data describes the app without claiming unavailable services', async () => {
+  const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
+  const match = html.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/);
+  assert.ok(match, 'JSON-LD block should exist');
+  const data = JSON.parse(match[1]);
+  assert.equal(data['@context'], 'https://schema.org');
+  assert.equal(data['@type'], 'SoftwareApplication');
+  assert.equal(data.name, 'هوش‌یار');
+  assert.equal(data.operatingSystem, 'Web');
+  assert.ok(Array.isArray(data.featureList));
+  assert.ok(data.featureList.length > 0);
 });
