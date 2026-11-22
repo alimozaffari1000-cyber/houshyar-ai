@@ -257,5 +257,5 @@ export async function onRequestGet({ env } = {}) {
     aiConfigured: configured,
     providers: providers.map(({ id, available, defaultModel }) => ({ id, available, defaultModel })),
     method: "POST"
-  }, configured ? 200 : 503);
+  }, 200);
 }
