@@ -50,6 +50,29 @@ test("rate limit is clamped to a safe supported range", async () => {
   assert.equal(result.allowed, true);
 });
 
+test("rate limiter rejects a missing or blank trusted Cloudflare client IP", async () => {
+  await assert.rejects(
+    () => checkChatRateLimit({ db: fakeDb(1), clientIp: "   ", now: 60 }),
+    /RATE_LIMIT_CLIENT_IP_UNAVAILABLE/
+  );
+});
+
+test("chat API fails closed when Cloudflare client IP is missing", async () => {
+  const db = fakeDb(1);
+  const missingIpRequest = new Request("https://example.test/api/chat", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ message: "سلام" })
+  });
+  const response = await onRequestPost({
+    request: missingIpRequest,
+    env: { GROQ_API_KEY: "test", CHAT_RATE_LIMIT_ENABLED: "true", DB: db }
+  });
+  assert.equal(response.status, 503);
+  assert.equal((await response.json()).error, "RATE_LIMIT_UNAVAILABLE");
+  assert.equal(db.captured(), undefined);
+});
+
 test("enabled limiter fails closed when D1 is not configured", async () => {
   const response = await onRequestPost({ request: request(), env: { GROQ_API_KEY: "test", CHAT_RATE_LIMIT_ENABLED: "true" } });
   assert.equal(response.status, 503);
