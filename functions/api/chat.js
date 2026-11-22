@@ -87,7 +87,7 @@ export async function onRequestPost({ request, env }) {
     try {
       const rate = await checkChatRateLimit({
         db: env.DB,
-        clientIp: request.headers.get("cf-connecting-ip") || "unknown",
+        clientIp: request.headers.get("cf-connecting-ip"),
         limit: Number(env.CHAT_RATE_LIMIT_PER_MINUTE) || 20
       });
       if (!rate.allowed) {
