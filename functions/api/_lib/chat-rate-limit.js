@@ -14,10 +14,13 @@ export async function checkChatRateLimit({ db, clientIp, now = Math.floor(Date.n
   if (!db || typeof db.prepare !== "function") {
     throw new Error("RATE_LIMIT_DATABASE_UNAVAILABLE");
   }
+  if (typeof clientIp !== "string" || !clientIp.trim()) {
+    throw new Error("RATE_LIMIT_CLIENT_IP_UNAVAILABLE");
+  }
 
   const safeLimit = Number.isInteger(limit) ? Math.min(120, Math.max(1, limit)) : 20;
   const windowStart = Math.floor(now / WINDOW_SECONDS) * WINDOW_SECONDS;
-  const bucketKey = `chat:ip:${await sha256Hex(String(clientIp || "unknown"))}`;
+  const bucketKey = `chat:ip:${await sha256Hex(clientIp.trim())}`;
   const expiresAt = windowStart + WINDOW_SECONDS * 2;
 
   const row = await db.prepare(
