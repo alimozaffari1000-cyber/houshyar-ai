@@ -1,4 +1,5 @@
 import './style.css';
+import { loadProviderAvailability } from './provider-availability.js';
 import { initAccountPanel } from './account.js';
 import { initAuthFlows } from './auth-flows.js';
 import { translate as t, getLocale, setLocale, localeOptions } from './i18n.js';
@@ -82,6 +83,7 @@ function render() {
   prompt.addEventListener('input',()=>{state.draft=prompt.value;resize();});
   prompt.addEventListener('keydown',event=>{if(event.key==='Enter'&&!event.shiftKey&&!event.isComposing){event.preventDefault();app.querySelector('#chat-form').requestSubmit();}});
   resize();
+  loadProviderAvailability(app.querySelector('#ai-provider'));
   app.querySelector('#response-mode').addEventListener('change', event => { state.mode = ['auto','fast','balanced','deep','creative'].includes(event.target.value) ? event.target.value : 'auto'; });
   app.querySelector('#compare-models').addEventListener('change', event => { state.compare = event.target.checked === true; });
   app.querySelector('#ai-provider').addEventListener('change', event => { state.provider = ['auto','groq','anthropic','google','deepseek','cloudflare_ai'].includes(event.target.value) ? event.target.value : 'auto'; if (state.provider !== 'google') state.webSearch = false; if (state.provider === 'cloudflare_ai') state.compare = false; render(); });
