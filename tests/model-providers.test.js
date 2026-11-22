@@ -287,3 +287,14 @@ test("Cloudflare Workers AI can answer chat requests without external API secret
   assert.equal(health.status, 200);
   assert.equal((await health.json()).aiConfigured, true);
 });
+
+
+test("provider status remains readable when no AI provider is configured", async () => {
+  const response = await onRequestGet({ env: {} });
+  const data = await response.json();
+  assert.equal(response.status, 200);
+  assert.equal(data.status, "configuration_required");
+  assert.equal(data.aiConfigured, false);
+  assert.ok(data.providers.length > 0);
+  assert.equal(data.providers.every(item => item.available === false), true);
+});
