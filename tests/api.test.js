@@ -8,9 +8,11 @@ const request = (body) => new Request('https://example.test/api/chat', {
 
 test('health endpoint reports missing provider configuration without exposing secrets', async () => {
   const response = await onRequestGet({ env: {} });
-  assert.equal(response.status, 503);
+  assert.equal(response.status, 200);
   const body = await response.json();
   assert.equal(body.status, 'configuration_required');
+  assert.ok(Array.isArray(body.providers));
+  assert.equal(body.providers.every((provider) => provider.available === false), true);
   assert.equal(body.aiConfigured, false);
   assert.equal(JSON.stringify(body).includes('test'), false);
 });
