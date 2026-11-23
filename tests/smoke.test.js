@@ -127,3 +127,14 @@ test('Google Search grounding is limited to Gemini and renders sanitized source 
  assert.match(providers,/groundingMetadata/);
  assert.match(providers,/startsWith\("https:\/\/"\)/);
 });
+
+test('mobile navigation announces the selected destination to assistive technology', async () => {
+ const js=await readFile(new URL('../src/main.js',import.meta.url),'utf8');
+ const mobileNav=js.match(/<nav class="mobile-tabbar"[\\s\\S]*?<\\/nav>/)?.[0] || '';
+ const states=[...mobileNav.matchAll(/aria-pressed="(true|false)"/g)].map(match=>match[1]);
+ assert.deepEqual(states,['true','false','false','false']);
+ assert.match(js,/function updateMobileTabSelection\\(activeButton\\)/);
+ assert.match(js,/item\\.setAttribute\\('aria-pressed', String\\(active\\)\\)/);
+ assert.match(js,/updateMobileTabSelection\\(button\\)/);
+ assert.match(js,/updateMobileTabSelection\\(app\\.querySelector\\('#mobile-account'\\)\\)/);
+});
