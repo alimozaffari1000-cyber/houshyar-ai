@@ -481,3 +481,72 @@ footer{margin:30px auto 0;padding:18px 0;border-top:1px solid var(--ui-line);col
 button:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--ui-accent);outline-offset:3px}
 @media(max-width:700px){#app{width:min(100% - 18px,1120px)}.top{margin-inline:-9px;padding:10px 12px}.brand .logo{width:38px;height:38px}.brand strong{font-size:14px}.brand small{font-size:9px}.top-actions{gap:5px}.top-actions .status{display:none}.account-open,.locale-select{padding:7px 8px!important;font-size:10px!important}.app-nav{top:62px;margin:9px 0 15px;padding:5px;border-radius:14px}.nav-item{min-height:36px;padding:0 10px;font-size:10px}.nav-spacer{display:none}.nav-special{display:none}.welcome{padding:23px 18px;border-radius:19px}.welcome h1{font-size:26px}.toolbox{padding:15px!important}.suggestions{grid-template-columns:repeat(2,minmax(0,1fr))}.chat{padding:11px!important}.msg{max-width:100%}.mode-control{justify-content:flex-start}.mode-control select{max-width:100%}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{transition:none!important;animation:none!important}}
+
+
+/* Mobile-first correction pass: compact header, non-overlapping navigation, safe widths */
+html,body{width:100%;max-width:100%;overflow-x:hidden}
+#app{width:100%;max-width:1120px;margin-inline:auto;padding-inline:14px}
+.top{box-sizing:border-box;width:100%;height:auto;min-height:68px;margin:0;padding:10px 0;gap:10px}
+.top-actions{min-width:0;max-width:100%;flex-wrap:wrap;gap:7px}
+.top-actions>*{min-width:0}
+.app-nav{position:relative;top:auto;width:100%;max-width:100%;margin:10px 0 16px;justify-content:flex-start;overflow-x:auto;overscroll-behavior-x:contain;scroll-snap-type:x proximity}
+.nav-item{scroll-snap-align:start}
+main{width:100%;max-width:900px;min-width:0;margin-inline:auto;padding:38px 0 28px}
+main>*{min-width:0;max-width:100%}
+.welcome{min-width:0;overflow-wrap:anywhere}
+.toolbox-grid,.suggestions{min-width:0}
+.toolbox-grid button,.suggestions button{min-width:0;overflow-wrap:anywhere}
+.chat,.msg,.translation-panel{min-width:0;max-width:100%;overflow-wrap:anywhere}
+.msg p{overflow-wrap:anywhere;word-break:break-word}
+#chat-form{min-width:0;max-width:100%}
+#prompt{width:100%;min-width:0}
+@media(max-width:700px){
+  #app{padding-inline:12px}
+  .top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;padding:9px 0}
+  .brand{flex:1 1 auto;min-width:120px}
+  .brand .logo{flex:0 0 38px;width:38px;height:38px}
+  .brand strong{font-size:15px}
+  .brand small{font-size:9px;white-space:normal}
+  .top-actions{flex:1 1 100%;width:100%;justify-content:flex-end;gap:6px}
+  .top-actions .status{display:none}
+  .locale-select{max-width:100px;flex:0 1 100px}
+  .account-open{flex:0 1 auto;white-space:nowrap;padding:7px 9px;font-size:10px}
+  .app-nav{gap:4px;padding:5px;border-radius:13px}
+  .nav-item{min-height:36px;padding:0 10px;font-size:10px}
+  .nav-spacer,.nav-special,#workspace-nav,#account-nav{display:none}
+  main{padding:30px 0 24px}
+  .welcome{padding:20px 12px}
+  .welcome h1{font-size:clamp(27px,8vw,38px);line-height:1.45;letter-spacing:-.5px}
+  .welcome p{font-size:12px;line-height:1.9}
+  .toolbox{margin:20px 0;padding:14px!important}
+  .toolbox-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .toolbox-grid button{min-height:56px;padding:9px;font-size:10px;gap:7px}
+  .toolbox-grid button span{flex-basis:28px;height:28px}
+  .suggestions{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:18px 0;padding:8px!important}
+  .suggestions button{min-height:82px;padding:10px;font-size:10px}
+  .suggestions small{font-size:9px;line-height:1.5}
+  .chat-tools{gap:8px;flex-wrap:wrap;font-size:11px}
+  .chat-tools>span{order:-1;flex:1 1 100%}
+  .chat{gap:9px;padding:10px!important}
+  .msg{max-width:100%;padding:12px;border-radius:14px}
+  .msg p{font-size:12px;line-height:1.9}
+  .msg-head{flex-wrap:wrap;gap:6px}
+  #chat-form{display:flex;align-items:stretch;gap:6px;padding:7px;margin-top:14px}
+  #prompt{min-height:44px;padding:8px;font-size:12px}
+  #send{min-height:42px;padding:0 12px;font-size:11px;white-space:nowrap}
+  .mode-control{justify-content:flex-start;gap:7px;font-size:10px}
+  .mode-control select{max-width:min(58vw,190px);font-size:10px}
+  .translation-panel{padding:13px!important}
+  .workspace-card,.account-card,.design-studio-card,.marketplace-card{width:100%;max-width:100%;max-height:88dvh;overflow:auto}
+}
+@media(max-width:380px){
+  #app{padding-inline:9px}
+  .top-actions{justify-content:space-between}
+  .account-open{padding:6px 7px;font-size:9px}
+  .locale-select{max-width:82px;flex-basis:82px;font-size:9px}
+  .nav-item{padding-inline:8px;font-size:9px}
+  .toolbox-grid button{font-size:9px}
+  #chat-form{flex-wrap:wrap}
+  #prompt{flex:1 1 100%}
+  #send{margin-inline-start:auto;min-height:38px}
+}
