@@ -1,3 +1,7 @@
 name = "houshyar-ai"
 compatibility_date = "2026-11-08"
 pages_build_output_dir = "./dist"
+
+# Expose Cloudflare Workers AI to Pages Functions as env.AI.
+[ai]
+binding = "AI"
