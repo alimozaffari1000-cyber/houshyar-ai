@@ -83,6 +83,14 @@ function render() {
       <button type="button" class="nav-item nav-special" data-open-design-studio><span>✦</span><b>${navLabels.studio}</b></button>
       <button type="button" class="nav-item nav-special" data-open-marketplace><span>◇</span><b>${navLabels.market}</b></button>
     </nav>
+    <nav class="mobile-tabbar" id="mobile-tabbar" aria-label="${navLabels.aria}">
+      <button type="button" class="mobile-tab active" data-nav="home"><span>⌂</span><b>${navLabels.home}</b></button>
+      <button type="button" class="mobile-tab" data-nav="chat"><span>✧</span><b>${navLabels.chat}</b></button>
+      <button type="button" class="mobile-tab" data-nav="tools"><span>▦</span><b>${navLabels.tools}</b></button>
+      <button type="button" class="mobile-tab" data-nav="translate"><span>文</span><b>${navLabels.translate}</b></button>
+      <button type="button" class="mobile-tab" id="mobile-workspace"><span>▤</span><b>${navLabels.workspace}</b></button>
+      <button type="button" class="mobile-tab" id="mobile-account"><span>◉</span><b>${navLabels.account}</b></button>
+    </nav>
     <main><section class="welcome" id="home-section"><span class="eyebrow">HOUSHYAR AI</span><h1>${t('greeting',locale)}<br><em>${t('help',locale)}</em></h1><p>${t('intro',locale)}</p></section>
     <section class="toolbox" id="tools-section" aria-labelledby="toolbox-title"><div class="toolbox-heading"><h2 id="toolbox-title">${t('toolboxTitle',locale)}</h2><p>${t('toolboxDesc',locale)}</p></div><div class="toolbox-grid">
       <button type="button" data-prompt="${escapeHTML(t('toolResearchPrompt',locale))}"><span>⌕</span><b>${t('toolResearch',locale)}</b></button>
@@ -119,6 +127,8 @@ function render() {
     app.querySelectorAll('.nav-item').forEach(item => item.classList.toggle('active', item === button));
   }));
   app.querySelector('#workspace-nav').addEventListener('click', () => app.querySelector('#workspace-open')?.click());
+  app.querySelector('#mobile-workspace').addEventListener('click', () => app.querySelector('#workspace-open')?.click());
+  app.querySelector('#mobile-account').addEventListener('click', () => app.querySelector('#account-open')?.click());
   app.querySelector('#account-nav').addEventListener('click', () => app.querySelector('#account-open')?.click());
   initAccountPanel(app);
   initAuthFlows(app);
