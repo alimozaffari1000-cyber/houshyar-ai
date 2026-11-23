@@ -1,0 +1,23 @@
+{
+  "id": "/",
+  "name": "هوش‌یار | دستیار هوشمند همه‌کاره",
+  "short_name": "هوش‌یار",
+  "description": "دستیار هوشمند چندمنظوره برای گفتگو، ترجمه، یادگیری و کارهای روزانه.",
+  "lang": "fa",
+  "dir": "rtl",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "background_color": "#080f1d",
+  "theme_color": "#080f1d",
+  "categories": ["productivity", "utilities", "education"],
+  "icons": [
+    {
+      "src": "/brand/mark.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
