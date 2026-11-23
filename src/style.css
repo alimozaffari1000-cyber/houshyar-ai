@@ -671,3 +671,10 @@ main{display:flex;flex-direction:column;gap:0}
   main{max-width:920px}
   .chat{min-height:360px;max-height:58vh}
 }
+
+.network-status{display:inline-flex;align-items:center;gap:6px;font-size:10px;color:#83e0c3;white-space:nowrap}
+.network-status::before{content:"";width:7px;height:7px;border-radius:50%;background:#52d6a2;display:inline-block}
+.network-status.offline{color:#ffbd83}
+.network-status.offline::before{background:#ff9b62}
+.install-app{border:1px solid #4b9f91;border-radius:9px;background:#143b3b;color:#dffbf4;padding:7px 10px;font:11px Vazirmatn;cursor:pointer;white-space:nowrap}
+@media(max-width:700px){.network-status{font-size:9px}.install-app{padding:6px 8px;font-size:10px}.top-actions{gap:7px}}
