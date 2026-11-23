@@ -173,4 +173,13 @@ async function submitMessage(event) {
   } finally { state.busy=false; render(); scrollChat(); }
 }
 
+// Register the installable app shell. API requests are deliberately never cached.
+if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(() => {
+      // The site remains fully usable when service workers are unavailable.
+    });
+  });
+}
+
 render();
