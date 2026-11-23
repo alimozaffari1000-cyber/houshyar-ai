@@ -633,3 +633,41 @@ button,select,input,textarea{touch-action:manipulation}
 @media(prefers-reduced-motion:reduce){
   .mobile-tabbar,.mobile-tab{transition:none!important}
 }
+
+
+/* Chat-first clean interface: put the conversation before dashboard content */
+main{display:flex;flex-direction:column;gap:0}
+.chat-tools{order:0;margin-top:8px;border-radius:15px!important}
+.chat-tools>span{order:-1}
+.chat{order:1;min-height:clamp(220px,48vh,560px);max-height:62vh;overflow-y:auto;overscroll-behavior:contain;scroll-behavior:smooth}
+#chat-form{order:2;position:sticky;bottom:8px;z-index:8;margin-top:12px;box-shadow:0 12px 32px rgba(0,0,0,.24)}
+.voice-status{order:3;margin:4px 4px 0}
+.mode-control{order:4}
+.input-hint,.notice{order:5}
+.welcome,.toolbox,.suggestions{display:none!important}
+.translation-panel{order:6}
+@media(max-width:700px){
+  body{padding-bottom:calc(76px + env(safe-area-inset-bottom))}
+  #app{padding-inline:14px}
+  main{min-height:calc(100dvh - 68px);padding:10px 0 16px!important}
+  .chat-tools{margin:5px 0 0;padding:9px 11px;border-radius:13px!important}
+  .chat-tools>span{flex:1 1 auto!important;order:0!important;font-size:13px}
+  .auto-speak{font-size:9px}
+  #clear-chat{padding:5px 9px;font-size:10px}
+  .chat{min-height:clamp(240px,54dvh,620px);max-height:64dvh;padding:12px!important;border-radius:14px!important}
+  #chat-form{position:sticky;bottom:calc(8px + env(safe-area-inset-bottom));margin-top:10px;padding:7px;gap:6px;background:rgba(17,29,48,.97);backdrop-filter:blur(16px)}
+  #prompt{min-height:46px;max-height:132px;font-size:16px}
+  #send{min-width:58px;padding-inline:12px}
+  .voice-status{min-height:0;font-size:9px}
+  .mode-control,.input-hint,.notice{display:none!important}
+  .mobile-tabbar{grid-template-columns:repeat(4,minmax(0,1fr));padding-top:5px}
+  .mobile-tab[data-nav="home"],#mobile-workspace{display:none!important}
+  .mobile-tab[data-nav="chat"]{order:-1}
+  .mobile-tab[data-nav="tools"]{order:0}
+  .mobile-tab[data-nav="translate"]{order:1}
+  #mobile-account{order:2}
+}
+@media(min-width:701px){
+  main{max-width:920px}
+  .chat{min-height:360px;max-height:58vh}
+}
