@@ -55,19 +55,33 @@ function startVoiceInput() {
 }
 function render() {
   const locale = getLocale();
+  const navLabels = {
+    fa:{aria:'منوی اصلی',home:'خانه',chat:'گفت‌وگو',tools:'ابزارها',translate:'مترجم',workspace:'فضای کار',account:'حساب من',studio:'استودیو طراحی',market:'بازارگاه'},
+    en:{aria:'Main menu',home:'Home',chat:'Chat',tools:'Tools',translate:'Translator',workspace:'Workspace',account:'My account',studio:'Design Studio',market:'Marketplace'},
+    de:{aria:'Hauptmenü',home:'Start',chat:'Chat',tools:'Werkzeuge',translate:'Übersetzer',workspace:'Arbeitsbereich',account:'Konto',studio:'Designstudio',market:'Marktplatz'},
+    ar:{aria:'القائمة الرئيسية',home:'الرئيسية',chat:'محادثة',tools:'الأدوات',translate:'المترجم',workspace:'مساحة العمل',account:'حسابي',studio:'استوديو التصميم',market:'السوق'},
+    tr:{aria:'Ana menü',home:'Ana sayfa',chat:'Sohbet',tools:'Araçlar',translate:'Çeviri',workspace:'Çalışma alanı',account:'Hesabım',studio:'Tasarım stüdyosu',market:'Pazar'},
+    es:{aria:'Menú principal',home:'Inicio',chat:'Chat',tools:'Herramientas',translate:'Traductor',workspace:'Espacio de trabajo',account:'Mi cuenta',studio:'Estudio de diseño',market:'Mercado'},
+    fr:{aria:'Menu principal',home:'Accueil',chat:'Discussion',tools:'Outils',translate:'Traducteur',workspace:'Espace de travail',account:'Mon compte',studio:'Studio de design',market:'Marché'},
+    ru:{aria:'Главное меню',home:'Главная',chat:'Чат',tools:'Инструменты',translate:'Переводчик',workspace:'Рабочее пространство',account:'Мой аккаунт',studio:'Студия дизайна',market:'Маркетплейс'},
+    zh:{aria:'主菜单',home:'首页',chat:'对话',tools:'工具',translate:'翻译',workspace:'工作区',account:'我的账户',studio:'设计工作室',market:'市场'},
+    hi:{aria:'मुख्य मेनू',home:'होम',chat:'चैट',tools:'टूल',translate:'अनुवादक',workspace:'वर्कस्पेस',account:'मेरा खाता',studio:'डिज़ाइन स्टूडियो',market:'मार्केटप्लेस'},
+    ur:{aria:'مرکزی مینو',home:'ہوم',chat:'گفتگو',tools:'ٹولز',translate:'مترجم',workspace:'ورک اسپیس',account:'میرا اکاؤنٹ',studio:'ڈیزائن اسٹوڈیو',market:'مارکیٹ'},
+    pt:{aria:'Menu principal',home:'Início',chat:'Conversa',tools:'Ferramentas',translate:'Tradutor',workspace:'Área de trabalho',account:'Minha conta',studio:'Estúdio de design',market:'Mercado'}
+  }[locale] || {aria:'Main menu',home:'Home',chat:'Chat',tools:'Tools',translate:'Translator',workspace:'Workspace',account:'Account',studio:'Design Studio',market:'Marketplace'};
   setLocale(locale);
   app.innerHTML = `
     <header class="top"><div class="brand"><img class="logo" src="/brand/mark.svg" alt="${t('logoAlt',locale)}" width="44" height="44"><div><strong>هوش‌یار</strong><small>${t('subtitle',locale)}</small></div></div><div class="top-actions"><select id="locale-select" class="locale-select" aria-label="${t('localeSelectLabel',locale)}">${localeOptions.map(item=>'<option value="'+item.code+'" '+(item.code===locale?'selected':'')+'>'+item.name+'</option>').join('')}</select><button id="workspace-open" type="button" class="account-open">${t("workspace",locale)}</button><button id="account-open" type="button" class="account-open">${t('account',locale)}</button><span class="status"><i></i> ${t('beta',locale)}</span></div></header>
-    <nav class="app-nav" aria-label="منوی اصلی">
-      <button type="button" class="nav-item active" data-nav="home"><span>⌂</span><b>خانه</b></button>
-      <button type="button" class="nav-item" data-nav="chat"><span>✧</span><b>گفت‌وگو</b></button>
-      <button type="button" class="nav-item" data-nav="tools"><span>▦</span><b>ابزارها</b></button>
-      <button type="button" class="nav-item" data-nav="translate"><span>文</span><b>مترجم</b></button>
-      <button type="button" class="nav-item" id="workspace-nav"><span>▤</span><b>فضای کار</b></button>
-      <button type="button" class="nav-item" id="account-nav"><span>◉</span><b>حساب من</b></button>
+    <nav class="app-nav" aria-label="${navLabels.aria}">
+      <button type="button" class="nav-item active" data-nav="home"><span>⌂</span><b>${navLabels.home}</b></button>
+      <button type="button" class="nav-item" data-nav="chat"><span>✧</span><b>${navLabels.chat}</b></button>
+      <button type="button" class="nav-item" data-nav="tools"><span>▦</span><b>${navLabels.tools}</b></button>
+      <button type="button" class="nav-item" data-nav="translate"><span>文</span><b>${navLabels.translate}</b></button>
+      <button type="button" class="nav-item" id="workspace-nav"><span>▤</span><b>${navLabels.workspace}</b></button>
+      <button type="button" class="nav-item" id="account-nav"><span>◉</span><b>${navLabels.account}</b></button>
       <span class="nav-spacer"></span>
-      <button type="button" class="nav-item nav-special" data-open-design-studio><span>✦</span><b>استودیو طراحی</b></button>
-      <button type="button" class="nav-item nav-special" data-open-marketplace><span>◇</span><b>بازارگاه</b></button>
+      <button type="button" class="nav-item nav-special" data-open-design-studio><span>✦</span><b>${navLabels.studio}</b></button>
+      <button type="button" class="nav-item nav-special" data-open-marketplace><span>◇</span><b>${navLabels.market}</b></button>
     </nav>
     <main><section class="welcome" id="home-section"><span class="eyebrow">HOUSHYAR AI</span><h1>${t('greeting',locale)}<br><em>${t('help',locale)}</em></h1><p>${t('intro',locale)}</p></section>
     <section class="toolbox" id="tools-section" aria-labelledby="toolbox-title"><div class="toolbox-heading"><h2 id="toolbox-title">${t('toolboxTitle',locale)}</h2><p>${t('toolboxDesc',locale)}</p></div><div class="toolbox-grid">
