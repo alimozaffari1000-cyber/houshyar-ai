@@ -762,3 +762,38 @@ footer{color:#888!important;border-color:#eee!important}
   .top{background:#fff!important}
   .mobile-tabbar{border-radius:14px 14px 0 0!important}
 }
+
+
+/* Mobile navigation views: four working destinations, chat-first by default */
+@media(max-width:700px){
+  .mobile-tabbar{grid-template-columns:repeat(4,minmax(0,1fr))!important}
+  .mobile-tabbar .mobile-tab{display:flex!important;min-height:52px;color:#6b7280!important;background:transparent!important}
+  .mobile-tabbar .mobile-tab.active{background:#f2f2f2!important;color:#202123!important;border-color:#e5e7eb!important}
+  .mobile-tabbar .mobile-tab.active span{color:#202123!important}
+  main[data-view="chat"] .toolbox,
+  main[data-view="chat"] .suggestions,
+  main[data-view="chat"] #translation-panel{display:none!important}
+  main[data-view="tools"] .chat-tools,
+  main[data-view="tools"] .chat,
+  main[data-view="tools"] #chat-form,
+  main[data-view="tools"] #voice-status,
+  main[data-view="tools"] .mode-control,
+  main[data-view="tools"] .input-hint,
+  main[data-view="tools"] .notice,
+  main[data-view="tools"] .suggestions,
+  main[data-view="tools"] #translation-panel{display:none!important}
+  main[data-view="tools"] .toolbox{display:block!important;margin:12px 0!important}
+  main[data-view="tools"] .toolbox-grid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  main[data-view="translate"] .chat-tools,
+  main[data-view="translate"] .chat,
+  main[data-view="translate"] #chat-form,
+  main[data-view="translate"] #voice-status,
+  main[data-view="translate"] .mode-control,
+  main[data-view="translate"] .input-hint,
+  main[data-view="translate"] .notice,
+  main[data-view="translate"] .toolbox,
+  main[data-view="translate"] .suggestions{display:none!important}
+  main[data-view="translate"] #translation-panel{display:block!important;margin:12px 0!important}
+  main[data-view="chat"] .chat{min-height:clamp(260px,55dvh,620px)!important;max-height:64dvh!important}
+  main[data-view="chat"] #chat-form{position:sticky!important;bottom:calc(8px + env(safe-area-inset-bottom))!important;background:#fff!important;border:1px solid #d9d9d9!important}
+}
