@@ -15,7 +15,7 @@ export function initTranslationUI(app) {
     '<label>زبان مبدأ<select id="translation-source"><option value="auto">تشخیص خودکار</option>' + options + '</select></label>' +
     '<label>زبان مقصد<select id="translation-target" required><option value="">انتخاب زبان مقصد</option>' + options + '</select></label>' +
     '<label>سبک ترجمه<select id="translation-tone"><option value="natural">طبیعی و روان</option><option value="formal">رسمی</option><option value="casual">محاوره‌ای</option><option value="literal">تحت‌اللفظی</option></select></label></div>' +
-    '<label class="translation-input-label" for="translation-input">متن برای ترجمه</label><textarea id="translation-input" maxlength="4500" rows="5" placeholder="متن خود را اینجا وارد کنید..." required></textarea>' +
+    '<label class="translation-input-label" for="translation-input">متن برای ترجمه</label><textarea id="translation-input" dir="auto" maxlength="4500" rows="5" placeholder="متن خود را اینجا وارد کنید..." required></textarea>' +
     '<div class="translation-actions"><small id="translation-counter">۰ / ۴۵۰۰</small><button id="translation-submit" type="submit">ترجمه کن</button></div></form>' +
     '<p id="translation-status" class="translation-status" role="status" aria-live="polite"></p>' +
     '<section id="translation-result-wrap" class="translation-result-wrap" hidden><div class="translation-result-head"><strong>نتیجه ترجمه</strong><button type="button" id="translation-copy">کپی ترجمه</button></div><p id="translation-result" class="translation-result" dir="auto"></p></section>';
