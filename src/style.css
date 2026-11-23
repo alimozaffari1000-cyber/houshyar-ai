@@ -550,3 +550,86 @@ main>*{min-width:0;max-width:100%}
   #prompt{flex:1 1 100%}
   #send{margin-inline-start:auto;min-height:38px}
 }
+
+
+/* Mobile-first v2: dedicated thumb-friendly bottom navigation */
+*{box-sizing:border-box}
+img,svg,video,canvas{max-width:100%}
+button,select,input,textarea{touch-action:manipulation}
+.mobile-tabbar{display:none}
+@media(max-width:700px){
+  html,body{min-width:320px;max-width:100%;overflow-x:hidden}
+  body{padding-bottom:calc(82px + env(safe-area-inset-bottom))}
+  #app{padding-inline:12px}
+  .top{
+    position:relative;top:auto;z-index:12;
+    display:flex;flex-wrap:nowrap;align-items:center;justify-content:space-between;
+    gap:8px;min-height:58px;padding:8px 0;
+  }
+  .brand{flex:1 1 auto;min-width:0;gap:8px}
+  .brand .logo{flex:0 0 34px;width:34px;height:34px}
+  .brand strong{font-size:15px}
+  .brand small{display:none}
+  .top-actions{display:flex;flex:0 0 auto;width:auto;max-width:48%;align-items:center;justify-content:flex-end;gap:5px}
+  .top-actions #workspace-open,.top-actions #account-open,.top-actions .status{display:none!important}
+  .locale-select{max-width:108px;min-width:0;padding:8px 6px!important;font-size:11px!important}
+  .app-nav{display:none!important}
+  .mobile-tabbar{
+    position:fixed;inset:auto 0 0;z-index:60;
+    display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:2px;
+    width:100%;max-width:100%;margin:0;
+    padding:7px 5px calc(7px + env(safe-area-inset-bottom));
+    border:0;border-top:1px solid rgba(163,187,220,.18);
+    border-radius:16px 16px 0 0;
+    background:rgba(8,15,29,.96);
+    box-shadow:0 -10px 35px rgba(0,0,0,.28);
+    -webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);
+  }
+  .mobile-tab{
+    display:flex;min-width:0;min-height:54px;flex-direction:column;
+    align-items:center;justify-content:center;gap:3px;
+    padding:5px 1px;border:1px solid transparent;border-radius:11px;
+    background:transparent;color:#9aacc5;cursor:pointer;
+    font:600 9px/1.3 Vazirmatn,sans-serif;
+  }
+  .mobile-tab span{font-size:18px;line-height:1.2;color:#9aacc5}
+  .mobile-tab b{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:9px}
+  .mobile-tab.active{border-color:rgba(112,229,202,.2);background:rgba(112,229,202,.1);color:#c9fff0}
+  .mobile-tab.active span{color:#70e5ca}
+  main{padding:22px 0 18px!important}
+  .welcome{margin-bottom:14px}
+  .toolbox{margin:16px 0 20px!important;padding:13px!important}
+  .toolbox-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .toolbox-grid button{min-height:58px;padding:9px;gap:7px;font-size:11px}
+  .toolbox-grid button span{flex-basis:30px;height:30px}
+  .suggestions{margin:18px 0 20px!important;gap:8px;padding:9px!important}
+  .suggestions button{min-height:76px;padding:10px;font-size:11px}
+  .chat-tools{margin-top:16px;gap:8px}
+  .chat{min-height:70px}
+  .msg{padding:13px!important}
+  .msg p{font-size:13px;line-height:1.9}
+  #chat-form{gap:7px;padding:8px;border-radius:16px}
+  #prompt{min-height:44px;max-height:140px;padding:10px;font-size:16px;line-height:1.6}
+  .voice-input{min-height:44px;flex-basis:44px}
+  #send{min-height:44px;padding-inline:16px}
+  .mode-control{gap:8px;margin:12px 0;font-size:10px}
+  .mode-control select{min-height:40px;max-width:100%;font-size:12px}
+  .translation-panel{padding:13px!important}
+  .translation-fields{grid-template-columns:minmax(0,1fr)!important}
+  .translation-fields select,.translation-fields textarea,.translation-panel select,.translation-panel textarea{width:100%;min-width:0;max-width:100%;font-size:16px}
+  .design-studio-overlay,.marketplace-overlay,.workspace-overlay{padding:8px}
+  .design-studio-card,.marketplace-dialog,.workspace-card,.account-card{width:100%;max-width:100%;max-height:calc(100dvh - 24px);overflow:auto}
+  footer{margin-top:18px;padding-bottom:12px}
+}
+@media(max-width:370px){
+  #app{padding-inline:9px}
+  .mobile-tabbar{padding-inline:3px;gap:1px}
+  .mobile-tab{font-size:8px}
+  .mobile-tab b{font-size:8px}
+  .brand strong{font-size:14px}
+  .locale-select{max-width:92px;font-size:10px!important}
+  .toolbox-grid button{font-size:10px}
+}
+@media(prefers-reduced-motion:reduce){
+  .mobile-tabbar,.mobile-tab{transition:none!important}
+}
