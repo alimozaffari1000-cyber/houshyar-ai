@@ -124,7 +124,7 @@ function render() {
     const target = button.dataset.nav === 'home' ? '#home-section' : button.dataset.nav === 'chat' ? '#chat-section' : button.dataset.nav === 'tools' ? '#tools-section' : '.translation-panel';
     const section = app.querySelector(target);
     if (section) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    app.querySelectorAll('.nav-item').forEach(item => item.classList.toggle('active', item === button));
+    app.querySelectorAll('.nav-item,.mobile-tab').forEach(item => item.classList.toggle('active', item === button));
   }));
   app.querySelector('#workspace-nav').addEventListener('click', () => app.querySelector('#workspace-open')?.click());
   app.querySelector('#mobile-workspace').addEventListener('click', () => app.querySelector('#workspace-open')?.click());
