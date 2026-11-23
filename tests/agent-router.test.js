@@ -12,13 +12,25 @@ test("routes translation, coding, analysis, research, content and planning tasks
   assert.equal(routeAgentRequest("سلام").id, "general");
 });
 
-test("agent routing never grants autonomous tool permissions", () => {
-  const result = routeAgentRequest("کد من را بررسی کن");
-  assert.equal(result.executionMode, "single_model_specialist");
-  assert.equal(result.autonomousTools, false);
+test("routes education, wellness, travel and everyday productivity", () => {
+  assert.equal(routeAgentRequest("این مبحث را ساده بهم یاد بده").id, "tutor");
+  assert.equal(routeAgentRequest("این علائم بیماری چه معنی دارد؟").id, "wellness");
+  assert.equal(routeAgentRequest("برای سفر به استانبول برنامه بده").id, "travel");
+  assert.equal(routeAgentRequest("برای کارهای روزانه من فهرست وظایف بساز").id, "productivity");
 });
 
-test("agent catalog exposes the available specialist roles", () => {
-  assert.ok(listAgents().length >= 7);
-  assert.ok(listAgents().every(agent => agent.status === "available"));
+test("agent routing never grants autonomous tool permissions", () => {
+  for (const message of ["کد من را بررسی کن", "برای سفر برنامه بده", "این مبحث را آموزش بده"]) {
+    const result = routeAgentRequest(message);
+    assert.equal(result.executionMode, "single_model_specialist");
+    assert.equal(result.autonomousTools, false);
+  }
+});
+
+test("agent catalog exposes specialist roles without claiming live tool execution", () => {
+  const agents = listAgents();
+  assert.ok(agents.length >= 10);
+  assert.ok(agents.every(agent => agent.status === "available"));
+  assert.ok(agents.some(agent => agent.id === "wellness"));
+  assert.ok(agents.some(agent => agent.id === "travel"));
 });

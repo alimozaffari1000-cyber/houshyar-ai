@@ -15,9 +15,33 @@ const RESPONSE_MODE_LABELS = {"fa":["سریع","متعادل","تحلیلی عم
 const COMPARE_LABELS = {"fa":"مقایسه دو مدل (مصرف بیشتر)","en":"Compare two models (higher usage)","de":"Zwei Modelle vergleichen (mehr Verbrauch)","ar":"مقارنة نموذجين (استهلاك أعلى)","tr":"İki modeli karşılaştır (daha fazla kullanım)","es":"Comparar dos modelos (mayor consumo)","fr":"Comparer deux modèles (consommation accrue)","ru":"Сравнить две модели (больше затрат)","zh":"比较两个模型（消耗更多）","hi":"दो मॉडल तुलना करें (अधिक उपयोग)","ur":"دو ماڈلز کا موازنہ (زیادہ استعمال)","pt":"Comparar dois modelos (maior consumo)"};
 const GOOGLE_SEARCH_LABELS = { fa: 'جست‌وجوی وب گوگل و نمایش منابع', en: 'Google web search and sources', de: 'Google-Websuche und Quellen', ar: 'بحث الويب من Google والمصادر', tr: 'Google web araması ve kaynaklar', es: 'Búsqueda web de Google y fuentes', fr: 'Recherche Google et sources', ru: 'Поиск Google и источники', zh: 'Google 网页搜索与来源', hi: 'Google वेब खोज और स्रोत', ur: 'گوگل ویب سرچ اور ذرائع', pt: 'Pesquisa Google e fontes' };
 const RESPONSE_MODE_TITLES = {"fa":"حالت پاسخ","en":"Response mode","de":"Antwortmodus","ar":"وضع الاستجابة","tr":"Yanıt modu","es":"Modo de respuesta","fr":"Mode de réponse","ru":"Режим ответа","zh":"回答模式","hi":"उत्तर मोड","ur":"جواب کا انداز","pt":"Modo de resposta"};
-const state = { messages: [], busy: false, draft: '', mode: 'auto', compare: false, provider: 'auto', webSearch: false, autoSpeak: false, listening: false };
+const state = { messages: [], busy: false, draft: '', mode: 'auto', compare: false, provider: 'auto', webSearch: false, autoSpeak: false, listening: false, deferredInstallPrompt: null };
 const DESIGN_STUDIO_LABELS = {fa:'استودیو طراحی',en:'Design Studio',de:'Designstudio',ar:'استوديو التصميم',tr:'Tasarım Stüdyosu',es:'Estudio de diseño',fr:'Studio de design',ru:'Студия дизайна',zh:'设计工作室',hi:'डिज़ाइन स्टूडियो',ur:'ڈیزائن اسٹوڈیو',pt:'Estúdio de design'};
 const AUTO_MODE_LABELS = { fa: 'یادگیری خودکار', en: 'Adaptive auto', de: 'Adaptiv automatisch', ar: 'تلقائي متكيف', tr: 'Uyarlanabilir otomatik', es: 'Automático adaptativo', fr: 'Automatique adaptatif', ru: 'Адаптивный авто', zh: '自适应自动', hi: 'अनुकूली ऑटो', ur: 'خودکار موافق', pt: 'Automático adaptativo' };
+const NETWORK_LABELS = {
+  fa: { online: 'شبکه متصل', offline: 'بدون اتصال شبکه', install: 'نصب هوش‌یار' },
+  en: { online: 'Network connected', offline: 'Offline', install: 'Install Houshyar' },
+  de: { online: 'Netzwerk verbunden', offline: 'Offline', install: 'Houshyar installieren' },
+  ar: { online: 'الشبكة متصلة', offline: 'غير متصل', install: 'تثبيت هوش‌یار' },
+  tr: { online: 'Ağ bağlı', offline: 'Çevrimdışı', install: 'Houshyar’ı yükle' },
+  es: { online: 'Red conectada', offline: 'Sin conexión', install: 'Instalar Houshyar' },
+  fr: { online: 'Réseau connecté', offline: 'Hors ligne', install: 'Installer Houshyar' },
+  ru: { online: 'Сеть подключена', offline: 'Нет сети', install: 'Установить Houshyar' },
+  zh: { online: '网络已连接', offline: '网络已断开', install: '安装 Houshyar' },
+  hi: { online: 'नेटवर्क जुड़ा है', offline: 'ऑफ़लाइन', install: 'Houshyar इंस्टॉल करें' },
+  ur: { online: 'نیٹ ورک منسلک ہے', offline: 'آف لائن', install: 'ہوشیار انسٹال کریں' },
+  pt: { online: 'Rede conectada', offline: 'Sem conexão', install: 'Instalar Houshyar' }
+};
+let networkListenersAttached = false;
+function updateNetworkStatus() {
+  const el = app.querySelector('#network-status');
+  if (!el) return;
+  const labels = NETWORK_LABELS[getLocale()] || NETWORK_LABELS.en;
+  const online = navigator.onLine !== false;
+  el.textContent = online ? labels.online : labels.offline;
+  el.classList.toggle('offline', !online);
+}
+
 const escapeHTML = (value='') => String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const scrollChat = () => {
   const chat = app.querySelector('.chat');
@@ -71,7 +95,7 @@ function render() {
   }[locale] || {aria:'Main menu',home:'Home',chat:'Chat',tools:'Tools',translate:'Translator',workspace:'Workspace',account:'Account',studio:'Design Studio',market:'Marketplace'};
   setLocale(locale);
   app.innerHTML = `
-    <header class="top"><div class="brand"><img class="logo" src="/brand/mark.svg" alt="${t('logoAlt',locale)}" width="44" height="44"><div><strong>هوش‌یار</strong><small>${t('subtitle',locale)}</small></div></div><div class="top-actions"><select id="locale-select" class="locale-select" aria-label="${t('localeSelectLabel',locale)}">${localeOptions.map(item=>'<option value="'+item.code+'" '+(item.code===locale?'selected':'')+'>'+item.name+'</option>').join('')}</select><button id="workspace-open" type="button" class="account-open">${t("workspace",locale)}</button><button id="account-open" type="button" class="account-open">${t('account',locale)}</button><span class="status"><i></i> ${t('beta',locale)}</span></div></header>
+    <header class="top"><div class="brand"><img class="logo" src="/brand/mark.svg" alt="${t('logoAlt',locale)}" width="44" height="44"><div><strong>هوش‌یار</strong><small>${t('subtitle',locale)}</small></div></div><div class="top-actions"><select id="locale-select" class="locale-select" aria-label="${t('localeSelectLabel',locale)}">${localeOptions.map(item=>'<option value="'+item.code+'" '+(item.code===locale?'selected':'')+'>'+item.name+'</option>').join('')}</select><button id="workspace-open" type="button" class="account-open">${t("workspace",locale)}</button><button id="account-open" type="button" class="account-open">${t('account',locale)}</button><span class="status"><i></i> ${t('beta',locale)}</span><span id="network-status" class="network-status" role="status" aria-live="polite"></span>${state.deferredInstallPrompt ? '<button id="install-app" type="button" class="install-app">'+(NETWORK_LABELS[locale] || NETWORK_LABELS.en).install+'</button>' : ''}</div></header>
     <nav class="app-nav" aria-label="${navLabels.aria}">
       <button type="button" class="nav-item active" data-nav="home"><span>⌂</span><b>${navLabels.home}</b></button>
       <button type="button" class="nav-item" data-nav="chat"><span>✧</span><b>${navLabels.chat}</b></button>
@@ -116,6 +140,21 @@ function render() {
     <footer>${t('footer',locale)}</footer>`;
   initTranslationUI(app);
   void loadProviderAvailability(app.querySelector('#ai-provider'));
+  updateNetworkStatus();
+  if (!networkListenersAttached) {
+    window.addEventListener('online', updateNetworkStatus);
+    window.addEventListener('offline', updateNetworkStatus);
+    networkListenersAttached = true;
+  }
+  const installButton = app.querySelector('#install-app');
+  if (installButton) installButton.addEventListener('click', async () => {
+    const promptEvent = state.deferredInstallPrompt;
+    if (!promptEvent) return;
+    promptEvent.prompt();
+    try { await promptEvent.userChoice; } catch { /* Browser controls the install prompt. */ }
+    state.deferredInstallPrompt = null;
+    render();
+  });
   attachLearningFeedback(app.querySelector('.chat'), state.messages, locale);
   initDesignStudio(app, { locale });
   initMarketplace(app, { locale });
@@ -171,6 +210,25 @@ async function submitMessage(event) {
   } catch(error) {
     state.messages.push({role:'assistant',text:error.message || t('errorGeneric',getLocale())});
   } finally { state.busy=false; render(); scrollChat(); }
+}
+
+window.addEventListener('beforeinstallprompt', event => {
+  event.preventDefault();
+  state.deferredInstallPrompt = event;
+  render();
+});
+window.addEventListener('appinstalled', () => {
+  state.deferredInstallPrompt = null;
+  render();
+});
+
+// Register the installable app shell. API requests are deliberately never cached.
+if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(() => {
+      // The site remains fully usable when service workers are unavailable.
+    });
+  });
 }
 
 render();
