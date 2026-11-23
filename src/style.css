@@ -678,3 +678,87 @@ main{display:flex;flex-direction:column;gap:0}
 .network-status.offline::before{background:#ff9b62}
 .install-app{border:1px solid #4b9f91;border-radius:9px;background:#143b3b;color:#dffbf4;padding:7px 10px;font:11px Vazirmatn;cursor:pointer;white-space:nowrap}
 @media(max-width:700px){.network-status{font-size:9px}.install-app{padding:6px 8px;font-size:10px}.top-actions{gap:7px}}
+
+
+/* Houshyar light, minimal ChatGPT-inspired interface */
+:root{
+  color-scheme:light;
+  --ui-bg:#ffffff;
+  --ui-text:#202123;
+  --ui-muted:#6b7280;
+  --ui-line:#e5e7eb;
+  --ui-accent:#10a37f;
+  --ui-violet:#6b7280;
+}
+html,body{background:#fff!important;color:#202123!important}
+body{background:#fff!important}
+#app{background:#fff!important;color:#202123!important}
+.top{
+  background:rgba(255,255,255,.96)!important;
+  border-bottom:1px solid #ececec!important;
+  box-shadow:none!important;
+  backdrop-filter:blur(14px)!important;
+}
+.brand strong{color:#202123!important}
+.brand small{color:#777!important}
+.logo{box-shadow:none!important}
+.account-open,.locale-select{
+  background:#fff!important;color:#333!important;
+  border:1px solid #e5e7eb!important;border-radius:10px!important;
+}
+.status{background:#f7f7f8!important;color:#6b7280!important;border:1px solid #ececec!important}
+.network-status{color:#16856b!important}
+.app-nav{
+  background:#fff!important;border:1px solid #ededed!important;
+  box-shadow:none!important;border-radius:14px!important;
+}
+.nav-item{color:#555!important}
+.nav-item span{color:#777!important}
+.nav-item:hover,.nav-item.active{
+  background:#f4f4f4!important;border-color:#e8e8e8!important;color:#202123!important;
+}
+.nav-item.active span,.nav-item:hover span{color:#202123!important}
+.nav-special{background:#fafafa!important;color:#555!important}
+main{background:#fff!important}
+.chat-tools{
+  background:#fff!important;border:1px solid #ededed!important;
+  color:#666!important;box-shadow:none!important;
+}
+.chat-tools>span{color:#202123!important}
+.chat,.toolbox,.suggestions,.translation-panel{
+  background:#fff!important;border:1px solid #ededed!important;
+  box-shadow:none!important;
+}
+.msg{background:#f7f7f8!important;border:1px solid #ededed!important;color:#202123!important}
+.msg.user{background:#f1f1f1!important;border-color:#e8e8e8!important}
+.msg p{color:#202123!important}
+#chat-form{
+  background:#fff!important;border:1px solid #d9d9d9!important;
+  box-shadow:0 3px 14px rgba(0,0,0,.06)!important;
+}
+#prompt{color:#202123!important}
+#prompt::placeholder{color:#8a8a8a!important}
+#send{background:#202123!important;color:#fff!important;border-radius:12px!important}
+.voice-input{background:#f2f2f2!important;color:#333!important}
+.mode-control{background:#fff!important;border:1px solid #ededed!important;color:#555!important}
+.mode-control select{background:#fff!important;color:#333!important}
+.toolbox-heading h2,.toolbox-heading p{color:#202123!important}
+.toolbox-grid button,.suggestions button{
+  background:#fff!important;color:#333!important;border:1px solid #ededed!important;
+}
+.toolbox-grid button:hover,.suggestions button:hover{background:#f7f7f7!important}
+footer{color:#888!important;border-color:#eee!important}
+.install-app{background:#f7f7f7!important;color:#333!important;border-color:#ddd!important}
+.mobile-tabbar{
+  background:rgba(255,255,255,.97)!important;
+  border-top:1px solid #eaeaea!important;
+  box-shadow:0 -4px 18px rgba(0,0,0,.05)!important;
+}
+.mobile-tab{color:#777!important}
+.mobile-tab span{color:#777!important}
+.mobile-tab.active{background:#f2f2f2!important;border-color:#e7e7e7!important;color:#202123!important}
+.mobile-tab.active span{color:#202123!important}
+@media(max-width:700px){
+  .top{background:#fff!important}
+  .mobile-tabbar{border-radius:14px 14px 0 0!important}
+}
