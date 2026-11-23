@@ -108,11 +108,9 @@ function render() {
       <button type="button" class="nav-item nav-special" data-open-marketplace><span>◇</span><b>${navLabels.market}</b></button>
     </nav>
     <nav class="mobile-tabbar" id="mobile-tabbar" aria-label="${navLabels.aria}">
-      <button type="button" class="mobile-tab active" data-nav="home"><span>⌂</span><b>${navLabels.home}</b></button>
-      <button type="button" class="mobile-tab" data-nav="chat"><span>✧</span><b>${navLabels.chat}</b></button>
+      <button type="button" class="mobile-tab active" data-nav="chat"><span>✧</span><b>${navLabels.chat}</b></button>
       <button type="button" class="mobile-tab" data-nav="tools"><span>▦</span><b>${navLabels.tools}</b></button>
       <button type="button" class="mobile-tab" data-nav="translate"><span>文</span><b>${navLabels.translate}</b></button>
-      <button type="button" class="mobile-tab" id="mobile-workspace"><span>▤</span><b>${navLabels.workspace}</b></button>
       <button type="button" class="mobile-tab" id="mobile-account"><span>◉</span><b>${navLabels.account}</b></button>
     </nav>
     <main><section class="welcome" id="home-section"><span class="eyebrow">HOUSHYAR AI</span><h1>${t('greeting',locale)}<br><em>${t('help',locale)}</em></h1><p>${t('intro',locale)}</p></section>
@@ -159,12 +157,22 @@ function render() {
   initDesignStudio(app, { locale });
   initMarketplace(app, { locale });
   app.querySelector('#locale-select').addEventListener('change', event => { setLocale(event.target.value); render(); });
+  const mainView = app.querySelector('main');
+  if (mainView) mainView.dataset.view = 'chat';
   app.querySelectorAll('[data-nav]').forEach(button => button.addEventListener('click', () => {
-    const target = button.dataset.nav === 'home' ? '#home-section' : button.dataset.nav === 'chat' ? '#chat-section' : button.dataset.nav === 'tools' ? '#tools-section' : '.translation-panel';
-    const section = app.querySelector(target);
-    if (section) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const view = button.dataset.nav;
+    if (button.classList.contains('mobile-tab')) {
+      if (mainView && ['chat','tools','translate'].includes(view)) mainView.dataset.view = view;
+    } else {
+      const target = view === 'home' ? '#home-section' : view === 'chat' ? '#chat-section' : view === 'tools' ? '#tools-section' : '.translation-panel';
+      const section = app.querySelector(target);
+      if (section) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
     app.querySelectorAll('.nav-item,.mobile-tab').forEach(item => item.classList.toggle('active', item === button));
   }));
+  app.querySelector('#mobile-account').addEventListener('click', () => {
+    app.querySelectorAll('.mobile-tab').forEach(item => item.classList.toggle('active', item.id === 'mobile-account'));
+  });
   app.querySelector('#workspace-nav').addEventListener('click', () => app.querySelector('#workspace-open')?.click());
   app.querySelector('#mobile-workspace').addEventListener('click', () => app.querySelector('#workspace-open')?.click());
   app.querySelector('#mobile-account').addEventListener('click', () => app.querySelector('#account-open')?.click());
