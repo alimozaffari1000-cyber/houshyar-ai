@@ -77,6 +77,14 @@ function startVoiceInput() {
  r.onresult=e=>{const value=e.results?.[0]?.[0]?.transcript?.trim(),input=app.querySelector('#prompt');if(value&&input){input.value=[input.value.trim(),value].filter(Boolean).join(' ');state.draft=input.value;input.dispatchEvent(new Event('input',{bubbles:true}));setVoiceStatus('گفتار به متن تبدیل شد؛ برای ارسال دکمه ارسال را بزنید.');}};
  r.onerror=e=>setVoiceStatus(e.error==='not-allowed'?'اجازه میکروفون داده نشد؛ مجوز میکروفون را فعال کنید.':'خطای تشخیص گفتار: '+e.error);r.onend=()=>{state.listening=false;const x=app.querySelector('#voice-input');if(x){x.disabled=false;x.textContent='🎙️';}};try{r.start();}catch{state.listening=false;btn.disabled=false;btn.textContent='🎙️';setVoiceStatus('شروع میکروفون ناموفق بود.');}
 }
+function updateMobileTabSelection(activeButton) {
+  app.querySelectorAll('.mobile-tab').forEach(item => {
+    const active = item === activeButton;
+    item.classList.toggle('active', active);
+    item.setAttribute('aria-pressed', String(active));
+  });
+}
+
 function render() {
   const locale = getLocale();
   const navLabels = {
@@ -108,10 +116,10 @@ function render() {
       <button type="button" class="nav-item nav-special" data-open-marketplace><span>◇</span><b>${navLabels.market}</b></button>
     </nav>
     <nav class="mobile-tabbar" id="mobile-tabbar" aria-label="${navLabels.aria}">
-      <button type="button" class="mobile-tab active" data-nav="chat"><span>✧</span><b>${navLabels.chat}</b></button>
-      <button type="button" class="mobile-tab" data-nav="tools"><span>▦</span><b>${navLabels.tools}</b></button>
-      <button type="button" class="mobile-tab" data-nav="translate"><span>文</span><b>${navLabels.translate}</b></button>
-      <button type="button" class="mobile-tab" id="mobile-account"><span>◉</span><b>${navLabels.account}</b></button>
+      <button type="button" class="mobile-tab active" aria-pressed="true" data-nav="chat"><span>✧</span><b>${navLabels.chat}</b></button>
+      <button type="button" class="mobile-tab" aria-pressed="false" data-nav="tools"><span>▦</span><b>${navLabels.tools}</b></button>
+      <button type="button" class="mobile-tab" aria-pressed="false" data-nav="translate"><span>文</span><b>${navLabels.translate}</b></button>
+      <button type="button" class="mobile-tab" aria-pressed="false" id="mobile-account"><span>◉</span><b>${navLabels.account}</b></button>
     </nav>
     <main><section class="welcome" id="home-section"><span class="eyebrow">HOUSHYAR AI</span><h1>${t('greeting',locale)}<br><em>${t('help',locale)}</em></h1><p>${t('intro',locale)}</p></section>
     <section class="toolbox" id="tools-section" aria-labelledby="toolbox-title"><div class="toolbox-heading"><h2 id="toolbox-title">${t('toolboxTitle',locale)}</h2><p>${t('toolboxDesc',locale)}</p></div><div class="toolbox-grid">
@@ -169,9 +177,10 @@ function render() {
       if (section) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
     app.querySelectorAll('.nav-item,.mobile-tab').forEach(item => item.classList.toggle('active', item === button));
+    if (button.classList.contains('mobile-tab')) updateMobileTabSelection(button);
   }));
   app.querySelector('#mobile-account').addEventListener('click', () => {
-    app.querySelectorAll('.mobile-tab').forEach(item => item.classList.toggle('active', item.id === 'mobile-account'));
+    updateMobileTabSelection(app.querySelector('#mobile-account'));
   });
   app.querySelector('#workspace-nav').addEventListener('click', () => app.querySelector('#workspace-open')?.click());
   app.querySelector('#mobile-workspace').addEventListener('click', () => app.querySelector('#workspace-open')?.click());
