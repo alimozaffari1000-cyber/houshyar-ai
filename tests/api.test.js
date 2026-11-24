@@ -251,3 +251,32 @@ test('returns 504 when the upstream deadline aborts the request', async () => {
     globalThis.clearTimeout = originalClearTimeout;
   }
 });
+
+test('marks chat API health, error, and successful responses as non-cacheable', async () => {
+  const health = await onRequestGet({ env: {} });
+  assert.equal(health.headers.get('cache-control'), 'no-store');
+
+  const unavailable = await onRequestPost({
+    request: request({ message: 'سلام' }),
+    env: {}
+  });
+  assert.equal(unavailable.status, 503);
+  assert.equal(unavailable.headers.get('cache-control'), 'no-store');
+
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response(
+    JSON.stringify({ choices: [{ message: { content: 'پاسخ آزمایشی' } }] }),
+    { status: 200 }
+  );
+  try {
+    const success = await onRequestPost({
+      request: request({ message: 'سلام' }),
+      env: { GROQ_API_KEY: 'test-key' }
+    });
+    assert.equal(success.status, 200);
+    assert.equal(success.headers.get('cache-control'), 'no-store');
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
