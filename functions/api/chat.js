@@ -58,7 +58,7 @@ async function readJsonLimited(request) {
 }
 
 export async function onRequestPost({ request, env }) {
-  if (!env.GROQ_API_KEY && !env.CLAUDE_API_KEY && !env.GEMINI_API_KEY && !env.DEEPSEEK_API_KEY && typeof env.AI?.run !== "function") return json({ error: "AI_NOT_CONFIGURED", message: "هیچ ارائه‌دهنده هوش مصنوعی پیکربندی نشده است." }, 503);
+  if (!env.GROQ_API_KEY && !env.CLAUDE_API_KEY && !env.GEMINI_API_KEY && !env.DEEPSEEK_API_KEY && !env.HOUSHYAR_MODEL_BASE_URL && typeof env.AI?.run !== "function") return json({ error: "AI_NOT_CONFIGURED", message: "هیچ ارائه‌دهنده هوش مصنوعی پیکربندی نشده است." }, 503);
   const contentType = (request.headers.get("content-type") || "").split(";", 1)[0].trim().toLowerCase();
   if (contentType !== "application/json") {
     return json({ error: "UNSUPPORTED_MEDIA_TYPE", message: "نوع محتوای درخواست باید JSON باشد." }, 415);
