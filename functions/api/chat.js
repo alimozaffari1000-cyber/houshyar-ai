@@ -197,6 +197,9 @@ export async function onRequestPost({ request, env }) {
     }
     const runComparison = async target => {
       const compareController = new AbortController();
+      const abortFromClient = () => compareController.abort("client_disconnected");
+      if (request.signal.aborted) abortFromClient();
+      else request.signal.addEventListener("abort", abortFromClient, { once: true });
       const compareTimeout = setTimeout(() => compareController.abort("upstream_timeout"), UPSTREAM_TIMEOUT_MS);
       try {
         const result = await requestModel({
@@ -204,7 +207,10 @@ export async function onRequestPost({ request, env }) {
           signal: compareController.signal, maxTokens: 1200, temperature: 0.5, thinking: requestedMode === "deep"
         });
         return { provider: target.provider, model: result.model, reply: result.reply, usage: result.usage };
-      } finally { clearTimeout(compareTimeout); }
+      } finally {
+        clearTimeout(compareTimeout);
+        request.signal.removeEventListener("abort", abortFromClient);
+      }
     };
     try {
       const comparison = await Promise.all(compareTargets.map(runComparison));
@@ -222,6 +228,9 @@ export async function onRequestPost({ request, env }) {
   }
 
   const controller = new AbortController();
+  const abortFromClient = () => controller.abort("client_disconnected");
+  if (request.signal.aborted) abortFromClient();
+  else request.signal.addEventListener("abort", abortFromClient, { once: true });
   const timeout = setTimeout(() => controller.abort("upstream_timeout"), UPSTREAM_TIMEOUT_MS);
   let result;
   try {
@@ -239,6 +248,7 @@ export async function onRequestPost({ request, env }) {
     return json({ error: "UPSTREAM_ERROR", message: "ارائه‌دهنده هوش مصنوعی موقتاً پاسخ‌گو نیست یا تنظیمات آن معتبر نیست." }, 502);
   } finally {
     clearTimeout(timeout);
+    request.signal.removeEventListener("abort", abortFromClient);
   }
   return json({
     reply: result.reply,
