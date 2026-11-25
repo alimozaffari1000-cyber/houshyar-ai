@@ -252,16 +252,14 @@ test('returns 504 when the upstream deadline aborts the request', async () => {
   }
 });
 
-test('marks chat API health, error, and successful responses as non-cacheable', async () => {
+test('marks chat API health, error, and successful responses with safe non-cacheable JSON headers', async () => {
   const health = await onRequestGet({ env: {} });
-  assert.equal(health.headers.get('cache-control'), 'no-store');
 
   const unavailable = await onRequestPost({
     request: request({ message: 'سلام' }),
     env: {}
   });
   assert.equal(unavailable.status, 503);
-  assert.equal(unavailable.headers.get('cache-control'), 'no-store');
 
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async () => new Response(
@@ -274,7 +272,12 @@ test('marks chat API health, error, and successful responses as non-cacheable', 
       env: { GROQ_API_KEY: 'test-key' }
     });
     assert.equal(success.status, 200);
-    assert.equal(success.headers.get('cache-control'), 'no-store');
+
+    for (const response of [health, unavailable, success]) {
+      assert.equal(response.headers.get('cache-control'), 'no-store');
+      assert.equal(response.headers.get('x-content-type-options'), 'nosniff');
+      assert.match(response.headers.get('content-type') || '', /^application\\/json; charset=utf-8$/i);
+    }
   } finally {
     globalThis.fetch = originalFetch;
   }
