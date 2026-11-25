@@ -1267,3 +1267,29 @@ main[data-view="translate"] .chat-settings{display:none!important}
   .translation-panel textarea{min-height:180px!important;font-size:15px!important}
   .translation-actions button{min-height:46px!important}
 }
+
+
+/* Make the first chat screen visibly useful on small phones */
+@media(max-width:700px){
+  main[data-view="chat"] .chat{
+    min-height:clamp(220px,38dvh,420px)!important;
+    max-height:52dvh!important;
+    padding:12px 8px!important;
+    border:1px solid #eeeeec!important;
+    border-radius:18px!important;
+    background:#fff!important;
+  }
+  main[data-view="chat"] .chat-empty-state{
+    min-height:210px!important;
+    justify-content:center!important;
+    gap:4px!important;
+  }
+  main[data-view="chat"] .chat-empty-state h2{
+    color:#202123!important;
+    font-size:20px!important;
+  }
+  main[data-view="chat"] .chat-empty-state p{
+    color:#737373!important;
+    font-size:12px!important;
+  }
+}
