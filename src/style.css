@@ -797,3 +797,123 @@ footer{color:#888!important;border-color:#eee!important}
   main[data-view="chat"] .chat{min-height:clamp(260px,55dvh,620px)!important;max-height:64dvh!important}
   main[data-view="chat"] #chat-form{position:sticky!important;bottom:calc(8px + env(safe-area-inset-bottom))!important;background:#fff!important;border:1px solid #d9d9d9!important}
 }
+
+
+/* Light theme consistency: keep secondary workspaces aligned with the clean chat UI. */
+:root{
+  color-scheme:light;
+  --surface-0:#fff;
+  --surface-1:#fff;
+  --surface-2:#f7f7f8;
+  --surface-3:#f1f1f2;
+  --line:#e5e7eb;
+  --text-main:#202123;
+  --text-muted:#6b7280;
+  --mint:#10a37f;
+  --ui-bg:#fff;
+  --ui-panel:#fff;
+  --ui-line:#e5e7eb;
+  --ui-text:#202123;
+  --ui-muted:#6b7280;
+  --ui-accent:#10a37f;
+}
+.account-panel,.auth-flow-overlay,.workspace-overlay,.design-studio-overlay,.marketplace-overlay{
+  background:rgba(20,20,20,.42)!important;
+  -webkit-backdrop-filter:blur(5px);
+  backdrop-filter:blur(5px);
+}
+.account-card,.workspace-card,.design-studio-card,.marketplace-dialog{
+  color:#202123!important;
+  background:#fff!important;
+  border:1px solid #e5e7eb!important;
+  border-radius:18px!important;
+  box-shadow:0 18px 55px rgba(0,0,0,.14)!important;
+}
+.account-card strong,.workspace-head h2,.design-studio-head h2,.marketplace-head h2,
+.workspace-item strong,.marketplace-product-info h3,.marketplace-form-card h3,
+.marketplace-seller-list h3{color:#202123!important}
+.account-card label,.workspace-head p,.workspace-item p,.design-studio-head p,
+.marketplace-head p,.marketplace-product-info p,.marketplace-note{color:#6b7280!important}
+.account-card input,.workspace-project-form input,.workspace-project-form textarea,
+.design-studio-categories select,.design-studio-form input,.design-studio-form select,
+.design-studio-form textarea,.marketplace-search input,.marketplace-search select,
+.marketplace-form-card input,.marketplace-form-card textarea,
+.translation-fields select,.translation-panel textarea{
+  color:#202123!important;
+  background:#fff!important;
+  border:1px solid #d9d9d9!important;
+  border-radius:10px!important;
+}
+.account-card input::placeholder,.workspace-project-form input::placeholder,
+.marketplace-search input::placeholder,.marketplace-form-card input::placeholder,
+.translation-panel textarea::placeholder{color:#8a8a8a!important}
+.account-head button,.workspace-head>button,.workspace-tabs button,
+.workspace-item-actions button,.design-studio-head>button,
+.design-template,.design-studio-output,.design-studio-output pre,
+.marketplace-head>button,.marketplace-tabs button,.marketplace-product,
+.marketplace-form-card,.marketplace-seller-product,
+.translation-result-wrap,.translation-result-head button{
+  color:#333!important;
+  background:#f7f7f8!important;
+  border-color:#e5e7eb!important;
+}
+.workspace-tabs button.active,.design-template:hover,.design-template.selected{
+  color:#087f63!important;
+  background:#effaf6!important;
+  border-color:#b9e8d8!important;
+}
+.workspace-credit,.marketplace-store-state{
+  color:#176b56!important;
+  background:#f0faf6!important;
+  border-color:#d5eee4!important;
+}
+.workspace-credit strong,.marketplace-store-state span,
+.design-studio-kicker,.translation-eyebrow,.translation-count,
+.translation-result-head strong,.translation-status{color:#16856b!important}
+.workspace-credit p,.workspace-notice,.workspace-feedback,
+.workspace-item small,.workspace-empty,.design-studio-note,
+.design-template small,.marketplace-product-info small,
+.marketplace-category,.marketplace-state,.translation-description,
+.translation-actions small,.translation-actions .translation-status{
+  color:#6b7280!important;
+}
+.account-submit,.workspace-primary,.design-studio-generate,
+.translation-actions button{
+  background:#202123!important;
+  color:#fff!important;
+  border:0!important;
+}
+.design-studio-output pre,.translation-result{
+  color:#202123!important;
+  background:#fff!important;
+}
+.marketplace-tabs button.active,.marketplace-search button,
+.marketplace-form-card button,.marketplace-seller-product button,
+.marketplace-more{
+  background:#202123!important;
+  color:#fff!important;
+  border-color:#202123!important;
+}
+.source-list{
+  color:#555!important;
+  background:#f7f7f8!important;
+  border-color:#e5e7eb!important;
+}
+.source-list strong,.source-list a{color:#176b56!important}
+.learning-feedback{color:#6b7280!important;border-color:#ededed!important}
+.learning-feedback button{color:#555!important;background:#fff!important;border-color:#e5e7eb!important}
+.learning-feedback button.selected{color:#087f63!important;background:#effaf6!important;border-color:#b9e8d8!important}
+button:focus-visible,select:focus-visible,textarea:focus-visible,input:focus-visible{
+  outline:2px solid #10a37f!important;
+  outline-offset:2px;
+}
+@media(max-width:700px){
+  .account-card,.workspace-card,.design-studio-card,.marketplace-dialog{
+    max-height:calc(100dvh - 20px)!important;
+    overflow:auto!important;
+    overscroll-behavior:contain;
+  }
+  .account-panel,.auth-flow-overlay,.workspace-overlay,.design-studio-overlay,.marketplace-overlay{
+    padding:10px!important;
+  }
+}
