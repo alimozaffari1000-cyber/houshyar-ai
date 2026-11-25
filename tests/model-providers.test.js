@@ -300,6 +300,30 @@ test("provider status remains readable when no AI provider is configured", async
 });
 
 
+test("Cloudflare Workers AI retries with the configured fallback model after a primary model failure", async () => {
+  const attempted = [];
+  const env = {
+    AI: {
+      run: async (model) => {
+        attempted.push(model);
+        if (model === "@cf/zai-org/glm-4.7-flash") throw new Error("primary_model_unavailable");
+        return { response: "پاسخ از مدل جایگزین", model };
+      }
+    }
+  };
+  const result = await requestModel({
+    provider: "cloudflare_ai",
+    env,
+    messages: [{ role: "user", content: "سلام" }]
+  });
+  assert.deepEqual(attempted, [
+    "@cf/zai-org/glm-4.7-flash",
+    "@cf/google/gemma-4-26b-a4b-it"
+  ]);
+  assert.equal(result.reply, "پاسخ از مدل جایگزین");
+  assert.equal(result.model, "@cf/google/gemma-4-26b-a4b-it");
+});
+
 test("Cloudflare Workers AI respects the chat request abort signal", async () => {
   const controller = new AbortController();
   const env = { AI: { run: async () => new Promise(() => {}) } };

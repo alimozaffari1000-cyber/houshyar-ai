@@ -2,6 +2,7 @@ const CLAUDE_DEFAULT_MODEL = "claude-sonnet-5-5";
 const GEMINI_DEFAULT_MODEL = "gemini-2.5-flash";
 const DEEPSEEK_DEFAULT_MODEL = "deepseek-flash";
 const CLOUDFLARE_AI_DEFAULT_MODEL = "@cf/zai-org/glm-4.7-flash";
+const CLOUDFLARE_AI_FALLBACK_MODEL = "@cf/google/gemma-4-26b-a4b-it";
 
 export function listAvailableProviders(env = {}) {
   return [
@@ -33,10 +34,13 @@ export async function requestModel({ provider, env, messages, model, signal, max
   if (provider === "cloudflare_ai") {
     if (typeof env.AI?.run !== "function") throw new Error("provider_not_configured");
     const selectedModel = model || env.CLOUDFLARE_AI_MODEL || CLOUDFLARE_AI_DEFAULT_MODEL;
-    const run = Promise.resolve().then(() => env.AI.run(selectedModel, { messages, max_completion_tokens: maxTokens, temperature }));
-    let removeAbortListener = () => {};
-    const data = signal
-      ? await Promise.race([
+    const input = { messages, max_completion_tokens: maxTokens, temperature };
+    const runWithAbort = async (modelId) => {
+      const run = Promise.resolve().then(() => env.AI.run(modelId, input));
+      if (!signal) return run;
+      let removeAbortListener = () => {};
+      try {
+        return await Promise.race([
           run,
           new Promise((_, reject) => {
             const abort = () => reject(new Error("upstream_timeout"));
@@ -46,15 +50,35 @@ export async function requestModel({ provider, env, messages, model, signal, max
               removeAbortListener = () => signal.removeEventListener("abort", abort);
             }
           })
-        ]).finally(() => removeAbortListener())
-      : await run;
+        ]);
+      } finally {
+        removeAbortListener();
+      }
+    };
+    let data;
+    let responseModel = selectedModel;
+    try {
+      data = await runWithAbort(selectedModel);
+    } catch (error) {
+      if (signal?.aborted) throw error;
+      const fallbackModel = env.CLOUDFLARE_AI_FALLBACK_MODEL || CLOUDFLARE_AI_FALLBACK_MODEL;
+      if (!fallbackModel || fallbackModel === selectedModel) throw error;
+      // Log only model identifiers and error class; never log prompts or credentials.
+      console.warn("[houshyar-ai] Cloudflare AI primary model failed; trying fallback", {
+        model: selectedModel,
+        fallbackModel,
+        errorName: error?.name || "Error"
+      });
+      data = await runWithAbort(fallbackModel);
+      responseModel = fallbackModel;
+    }
     const rawReply = data?.response ?? data?.choices?.[0]?.message?.content ?? data?.result?.response;
     if (typeof rawReply !== "string" || !rawReply.trim()) throw new Error("provider_empty_reply");
     const usage = data?.usage || data?.result?.usage;
     const promptTokens = usage?.prompt_tokens ?? usage?.input_tokens ?? 0;
     const completionTokens = usage?.completion_tokens ?? usage?.output_tokens ?? 0;
     const totalTokens = usage?.total_tokens ?? (promptTokens + completionTokens);
-    return { reply: rawReply.trim(), model: data?.model || selectedModel, usage: usage ? { promptTokens, completionTokens, totalTokens } : null };
+    return { reply: rawReply.trim(), model: data?.model || responseModel, usage: usage ? { promptTokens, completionTokens, totalTokens } : null };
   }
   if (provider === "google") {
     if (!env.GEMINI_API_KEY) throw new Error("provider_not_configured");
