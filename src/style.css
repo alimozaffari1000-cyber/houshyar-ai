@@ -1179,3 +1179,37 @@ button:focus-visible,select:focus-visible,textarea:focus-visible,input:focus-vis
 @media(prefers-reduced-motion:reduce){
   .nav-item,.mobile-tab,.chat-starters button{transition:none!important}
 }
+
+
+/* Compact, accessible chat settings disclosure */
+.chat-settings{
+  display:block;width:100%;max-width:790px;margin:10px auto 0!important;
+  order:4;border:1px solid #ededeb;border-radius:12px;background:#fff;
+}
+.chat-settings>summary{
+  display:flex;align-items:center;justify-content:space-between;
+  min-height:38px;padding:8px 12px;cursor:pointer;list-style:none;
+  color:#666;font:600 11px Vazirmatn,sans-serif;
+}
+.chat-settings>summary::-webkit-details-marker{display:none}
+.chat-settings>summary:after{content:"⌄";color:#888;font-size:16px}
+.chat-settings[open]>summary:after{content:"⌃"}
+.chat-settings .mode-control{
+  display:flex!important;max-width:none;margin:0!important;
+  border:0!important;border-top:1px solid #f0f0ee!important;
+  border-radius:0 0 12px 12px!important;
+}
+main[data-view="tools"] .chat-settings,
+main[data-view="translate"] .chat-settings{display:none!important}
+@media(max-width:700px){
+  .chat-settings{display:block!important;margin:8px auto 0!important}
+  .chat-settings>summary{min-height:35px;padding:7px 10px;font-size:10px}
+  .chat-settings:not([open]) .mode-control{display:none!important}
+  .chat-settings[open] .mode-control{
+    display:grid!important;grid-template-columns:1fr!important;
+    gap:7px!important;padding:10px!important;
+  }
+  .chat-settings[open] .mode-control select{width:100%;max-width:none!important}
+  main[data-view="tools"] .chat-settings,
+  main[data-view="translate"] .chat-settings{display:none!important}
+}
