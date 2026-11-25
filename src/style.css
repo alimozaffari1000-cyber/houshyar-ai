@@ -1213,3 +1213,57 @@ main[data-view="translate"] .chat-settings{display:none!important}
   main[data-view="tools"] .chat-settings,
   main[data-view="translate"] .chat-settings{display:none!important}
 }
+
+
+/* Translator light-surface correction — mobile and desktop */
+.translation-panel{
+  margin:16px 0 22px!important;
+  padding:clamp(16px,3vw,26px)!important;
+  background:#fff!important;
+  border:1px solid #e8e8e6!important;
+  border-radius:20px!important;
+  box-shadow:0 2px 12px rgba(0,0,0,.025)!important;
+  color:#202123!important;
+}
+.translation-heading h2{color:#202123!important;font-size:clamp(20px,3vw,25px)!important}
+.translation-eyebrow{color:#16856b!important;letter-spacing:2px!important}
+.translation-count{background:#fff!important;border:1px solid #dcebe4!important;color:#16856b!important}
+.translation-description{color:#777!important;font-size:13px!important}
+.translation-fields{gap:12px!important;margin:18px 0!important}
+.translation-fields label,.translation-input-label{color:#666!important;font-size:12px!important}
+.translation-fields select,.translation-panel textarea{
+  background:#fff!important;color:#202123!important;
+  border:1px solid #dededb!important;border-radius:12px!important;
+  font:13px Vazirmatn,system-ui,sans-serif!important;
+  box-shadow:none!important;
+}
+.translation-fields select{min-height:46px!important;padding:10px 12px!important}
+.translation-panel textarea{
+  min-height:170px!important;padding:13px!important;line-height:1.9!important;
+}
+.translation-panel textarea::placeholder{color:#9a9a9a!important}
+.translation-actions{margin-top:14px!important}
+.translation-actions small{color:#929292!important}
+.translation-actions button,.translation-result-head button{
+  background:#10a37f!important;color:#fff!important;
+  border-radius:12px!important;padding:11px 19px!important;
+}
+.translation-status{color:#666!important}
+.translation-result-wrap{
+  background:#f8faf9!important;border:1px solid #e5eee9!important;
+  border-radius:14px!important;color:#202123!important;
+}
+.translation-result-head strong,.translation-result{color:#202123!important}
+.translation-result-head button{background:#202123!important;color:#fff!important}
+@media(max-width:700px){
+  .translation-panel{
+    width:100%!important;margin:8px 0 16px!important;
+    padding:16px!important;border-radius:17px!important;
+  }
+  .translation-heading{align-items:flex-start!important}
+  .translation-heading h2{font-size:21px!important}
+  .translation-fields{grid-template-columns:minmax(0,1fr)!important;gap:12px!important;margin:16px 0!important}
+  .translation-fields select{width:100%!important;min-height:48px!important;font-size:14px!important}
+  .translation-panel textarea{min-height:180px!important;font-size:15px!important}
+  .translation-actions button{min-height:46px!important}
+}
