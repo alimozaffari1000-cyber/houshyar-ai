@@ -146,14 +146,16 @@ export async function onRequestPost({ request, env }) {
   }
 
   const requestedMode = ["fast", "balanced", "deep", "creative"].includes(body.mode) ? body.mode : "balanced";
-  const requestedProvider = ["auto", "groq", "anthropic", "google", "deepseek", "cloudflare_ai"].includes(body.provider) ? body.provider : "auto";
+  const requestedProvider = ["auto", "groq", "anthropic", "google", "deepseek", "cloudflare_ai", "houshyar_local"].includes(body.provider) ? body.provider : "auto";
   const providerChoice = resolveProvider(env, requestedProvider, requestedMode);
   if (providerChoice.error) {
     await releaseQuota();
     return json({ error: "PROVIDER_NOT_CONFIGURED", provider: providerChoice.provider, message: "ارائه‌دهنده انتخاب‌شده هنوز در تنظیمات سرور فعال نیست." }, 503);
   }
   const groqModelByMode = { fast: env.GROQ_MODEL_FAST, balanced: env.GROQ_MODEL, deep: env.GROQ_MODEL_DEEP, creative: env.GROQ_MODEL_CREATIVE };
-  const model = providerChoice.provider === "cloudflare_ai"
+  const model = providerChoice.provider === "houshyar_local"
+    ? (env.HOUSHYAR_MODEL || providerChoice.model)
+    : providerChoice.provider === "cloudflare_ai"
     ? (env.CLOUDFLARE_AI_MODEL || providerChoice.model)
     : providerChoice.provider === "anthropic"
     ? (env.CLAUDE_MODEL || providerChoice.model)
