@@ -136,6 +136,48 @@ function render() {
     <p class="input-hint">${t('hint',locale)}</p>
     <p class="notice">${t('notice',locale)}</p></main>
     <footer>${t('footer',locale)}</footer>`;
+  // ChatGPT-style navigation shell and locally stored conversation history.
+  const historyKey = 'houshyar-chat-history-v1';
+  const readSavedChats = () => { try { const value = JSON.parse(localStorage.getItem(historyKey) || '[]'); return Array.isArray(value) ? value.slice(0,40) : []; } catch { return []; } };
+  const saveCurrentChat = () => {
+    if (!state.messages.length) return;
+    const chats = readSavedChats();
+    const id = state.activeChatId || (state.activeChatId = (crypto.randomUUID?.() || String(Date.now())));
+    const first = state.messages.find(m => m.role === 'user')?.text || 'گفت‌وگوی جدید';
+    const item = { id, title: String(first).slice(0,64), updatedAt: Date.now(), messages: state.messages.slice(-40) };
+    const next = [item, ...chats.filter(chat => chat.id !== id)].slice(0,40);
+    try { localStorage.setItem(historyKey, JSON.stringify(next)); } catch { /* Storage may be unavailable or full. */ }
+    renderHistory();
+  };
+  const renderHistory = (filter = '') => {
+    const list = app.querySelector('#conversation-history');
+    if (!list) return;
+    const chats = readSavedChats().filter(chat => String(chat.title || '').toLocaleLowerCase().includes(filter.toLocaleLowerCase()));
+    list.innerHTML = chats.length ? chats.map(chat => '<button type="button" class="history-item '+(chat.id===state.activeChatId?'selected':'')+'" data-chat-id="'+escapeHTML(chat.id)+'"><span class="history-item-title">'+escapeHTML(chat.title || 'گفت‌وگوی جدید')+'</span><span class="history-item-date">'+new Date(chat.updatedAt || Date.now()).toLocaleDateString(getLocale()==='fa'?'fa-IR':'en-US')+'</span></button>').join('') : '<p class="history-empty">گفت‌وگویی پیدا نشد.</p>';
+    list.querySelectorAll('[data-chat-id]').forEach(button => button.addEventListener('click', () => {
+      const chat = readSavedChats().find(item => item.id === button.dataset.chatId);
+      if (!chat) return;
+      state.activeChatId = chat.id; state.messages = Array.isArray(chat.messages) ? chat.messages : []; state.draft = '';
+      render(); scrollChat(); app.querySelector('#history-sidebar')?.classList.remove('open');
+    }));
+  };
+  const topbar = app.querySelector('.top');
+  if (topbar && !topbar.querySelector('#sidebar-toggle')) {
+    const toggle = document.createElement('button'); toggle.id='sidebar-toggle'; toggle.type='button'; toggle.className='sidebar-toggle'; toggle.setAttribute('aria-label','باز کردن منو'); toggle.textContent='☰'; topbar.prepend(toggle);
+    toggle.addEventListener('click', () => app.querySelector('#history-sidebar')?.classList.toggle('open'));
+  }
+  if (!app.querySelector('#history-sidebar')) {
+    topbar?.insertAdjacentHTML('afterend', '<aside id="history-sidebar" class="history-sidebar" aria-label="تاریخچه گفتگو"><div class="sidebar-actions"><button type="button" id="new-chat" class="new-chat-button"><span>＋</span> گفت‌وگوی جدید</button><button type="button" id="search-history-toggle" class="history-search-button"><span>⌕</span> جست‌وجو در گفتگوها</button></div><div class="history-section-label">امروز و گذشته</div><div id="conversation-history" class="conversation-history"></div><div class="sidebar-bottom"><span class="sidebar-avatar">ه</span><span><b>هوش‌یار</b><small>دستیار هوشمند</small></span></div></aside><div class="sidebar-backdrop" id="sidebar-backdrop"></div>');
+    renderHistory();
+    app.querySelector('#new-chat')?.addEventListener('click', () => { saveCurrentChat(); state.messages=[]; state.draft=''; state.activeChatId=null; render(); app.querySelector('#prompt')?.focus(); app.querySelector('#history-sidebar')?.classList.remove('open'); });
+    app.querySelector('#search-history-toggle')?.addEventListener('click', () => {
+      const old=app.querySelector('#history-search-input');
+      if (old) { old.remove(); renderHistory(); return; }
+      const input=document.createElement('input'); input.id='history-search-input'; input.type='search'; input.placeholder='جست‌وجوی گفتگوها'; input.className='history-search-input';
+      app.querySelector('.sidebar-actions')?.append(input); input.focus(); input.addEventListener('input',()=>renderHistory(input.value));
+    });
+    app.querySelector('#sidebar-backdrop')?.addEventListener('click',()=>app.querySelector('#history-sidebar')?.classList.remove('open'));
+  }
   initTranslationUI(app);
   void loadProviderAvailability(app.querySelector('#ai-provider'));
   updateNetworkStatus();
@@ -194,13 +236,25 @@ function render() {
   app.querySelectorAll('.copy-reply').forEach(button=>button.addEventListener('click',async()=>{const reply=state.messages[Number(button.dataset.index)]?.text;if(!reply)return;try{await navigator.clipboard.writeText(reply);button.textContent=t('copyDone',getLocale());}catch{button.textContent=t('copyFailed',getLocale());}}));
 }
 
+function saveChatAfterResponse() {
+  try {
+    if (!state.messages.length) return;
+    const key='houshyar-chat-history-v1';
+    const chats=JSON.parse(localStorage.getItem(key)||'[]');
+    const id=state.activeChatId || (state.activeChatId=crypto.randomUUID?.() || String(Date.now()));
+    const title=String(state.messages.find(m=>m.role==='user')?.text || 'گفت‌وگوی جدید').slice(0,64);
+    localStorage.setItem(key,JSON.stringify([{id,title,updatedAt:Date.now(),messages:state.messages.slice(-40)},...chats.filter(c=>c.id!==id)].slice(0,40)));
+  } catch { /* Conversation still works if local storage is unavailable. */ }
+}
+
 async function submitMessage(event) {
   event.preventDefault();
   const input=app.querySelector('#prompt'); const text=input.value.trim();
   if(!text || state.busy) return;
   state.draft='';
   const learningMode = state.mode === 'auto' ? recommendLearningMode(text) : state.mode;
-  state.messages.push({role:'user',text});
+  if (!state.activeChatId) state.activeChatId = crypto.randomUUID?.() || String(Date.now());
+    state.messages.push({role:'user',text});
   state.busy=true; render(); scrollChat();
   try {
     const response=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:text,history:state.messages.slice(-11),mode:learningMode,compare:state.compare,provider:state.provider,webSearch:state.webSearch})});
@@ -213,7 +267,7 @@ async function submitMessage(event) {
     if(state.autoSpeak)speakReply(data.reply || 'پاسخ خالی از سرویس دریافت شد.');
   } catch(error) {
     state.messages.push({role:'assistant',text:error.message || t('errorGeneric',getLocale())});
-  } finally { state.busy=false; render(); scrollChat(); }
+  } finally { state.busy=false; saveChatAfterResponse(); render(); scrollChat(); }
 }
 
 window.addEventListener('beforeinstallprompt', event => {
