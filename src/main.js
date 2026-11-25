@@ -178,6 +178,7 @@ function render() {
     });
     app.querySelector('#sidebar-backdrop')?.addEventListener('click',()=>app.querySelector('#history-sidebar')?.classList.remove('open'));
   }
+  renderHistory();
   initTranslationUI(app);
   void loadProviderAvailability(app.querySelector('#ai-provider'));
   updateNetworkStatus();
