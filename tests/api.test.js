@@ -276,7 +276,7 @@ test('marks chat API health, error, and successful responses with safe non-cache
     for (const response of [health, unavailable, success]) {
       assert.equal(response.headers.get('cache-control'), 'no-store');
       assert.equal(response.headers.get('x-content-type-options'), 'nosniff');
-      assert.match(response.headers.get('content-type') || '', /^application\\/json; charset=utf-8$/i);
+      assert.match(response.headers.get('content-type') || '', /^application\/json; charset=utf-8$/i);
     }
   } finally {
     globalThis.fetch = originalFetch;
