@@ -298,3 +298,17 @@ test("provider status remains readable when no AI provider is configured", async
   assert.ok(data.providers.length > 0);
   assert.equal(data.providers.every(item => item.available === false), true);
 });
+
+
+test("Cloudflare Workers AI respects the chat request abort signal", async () => {
+  const controller = new AbortController();
+  const env = { AI: { run: async () => new Promise(() => {}) } };
+  const pending = requestModel({
+    provider: "cloudflare_ai",
+    env,
+    messages: [{ role: "user", content: "سلام" }],
+    signal: controller.signal
+  });
+  controller.abort("upstream_timeout");
+  await assert.rejects(pending, /upstream_timeout/);
+});
