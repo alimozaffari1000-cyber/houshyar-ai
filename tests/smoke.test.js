@@ -127,3 +127,11 @@ test('Google Search grounding is limited to Gemini and renders sanitized source 
  assert.match(providers,/groundingMetadata/);
  assert.match(providers,/startsWith\("https:\/\/"\)/);
 });
+
+
+test('mobile navigation initialization never binds events to a missing workspace tab', async () => {
+  const js = await readFile(new URL('../src/main.js', import.meta.url), 'utf8');
+  assert.match(js, /id="mobile-tabbar"/);
+  assert.doesNotMatch(js, /app\.querySelector\(['"]#mobile-workspace['"]\)\.addEventListener/);
+  assert.match(js, /id="mobile-account"/);
+});
