@@ -1462,3 +1462,10 @@ footer{margin-right:var(--sidebar-width)}
 }
 @media(min-width:1000px){.history-sidebar{transform:none}.sidebar-backdrop{display:none!important}.top{padding-right:calc(var(--sidebar-width) + 20px)}}
 @media(max-width:650px){.top{padding:0 10px}.sidebar-toggle{width:33px;height:33px;flex-basis:33px}.top-actions{margin-right:auto}}
+
+/* Desktop content is centered in the space beside the persistent sidebar. */
+@media(min-width:1000px){
+  main{width:min(850px,calc(100% - var(--sidebar-width) - 48px));max-width:850px;margin:0 auto;transform:translateX(calc(var(--sidebar-width)/2))}
+  footer{margin-right:0}
+}
+@media(max-width:999px){main{width:100%;margin:0 auto;transform:none}}
