@@ -1469,3 +1469,13 @@ footer{margin-right:var(--sidebar-width)}
   footer{margin-right:0}
 }
 @media(max-width:999px){main{width:100%;margin:0 auto;transform:none}}
+
+/* Composer actions and message-level controls */
+#chat-form .attach-file,#chat-form .stop-response{display:inline-grid;place-items:center;min-width:38px;height:38px;border:1px solid #e4e4e8;border-radius:50%;background:#fff;color:#444;font-size:19px;cursor:pointer}
+#chat-form .stop-response{border-radius:10px;padding:0 10px;font-size:11px;white-space:nowrap}
+#chat-form .stop-response[hidden]{display:none}
+#chat-form .attach-file:hover,.edit-message:hover,.regenerate-reply:hover{background:#f0f0f2}
+.edit-message,.regenerate-reply{margin-inline-start:7px;padding:4px 8px;border:1px solid #e7e7eb;border-radius:7px;background:#fff;color:#666;font:10px Vazirmatn,Tahoma,sans-serif;cursor:pointer}
+.msg-head{display:flex;align-items:center;flex-wrap:wrap;gap:5px}
+.reply-actions{margin-inline-start:auto;display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+@media(max-width:600px){#chat-form .attach-file{min-width:34px;height:34px}.edit-message,.regenerate-reply{font-size:9px;padding:4px 6px}}
