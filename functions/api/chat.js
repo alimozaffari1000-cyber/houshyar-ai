@@ -5,7 +5,7 @@ import { buildCoreContext, getCoreCapabilities } from "./_lib/houshyar-core.js";
 import { resolveProvider, requestModel, listAvailableProviders } from "./_lib/model-providers.js";
 
 const MAX_BODY_BYTES = 32 * 1024;
-const UPSTREAM_TIMEOUT_MS = 20_000;
+const UPSTREAM_TIMEOUT_MS = 45_000;
 
 const json = (body, status = 200, extraHeaders = {}) => new Response(JSON.stringify(body), {
   status,
