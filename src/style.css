@@ -1293,3 +1293,136 @@ main[data-view="translate"] .chat-settings{display:none!important}
     font-size:12px!important;
   }
 }
+
+
+/* Houshyar ChatGPT-inspired light shell — UI-only refresh */
+:root{
+  color-scheme:light;
+  --surface-0:#ffffff;
+  --surface-1:#ffffff;
+  --surface-2:#f7f7f8;
+  --surface-3:#ececf0;
+  --line:#e5e5e8;
+  --text-main:#202123;
+  --text-muted:#6b6b72;
+  --mint:#10a37f;
+  --blue:#2563eb;
+  font-family:Vazirmatn,Tahoma,sans-serif;
+}
+html,body{min-height:100%;background:#fff!important;color:#202123!important}
+body{background:#fff!important;background-image:none!important}
+body:before{display:none!important}
+.top{
+  position:sticky;top:0;z-index:20;height:62px;padding:0 22px;
+  background:rgba(255,255,255,.94)!important;border-bottom:1px solid #ececef;
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)
+}
+.brand{gap:10px}.brand strong{color:#202123;font-size:17px}.brand small{color:#777;font-size:10px}
+.brand .logo{width:34px;height:34px;flex-basis:34px}
+.top-actions{gap:8px}.top-actions .status,.top-actions .network-status{display:none}
+.account-open,.locale-select{
+  color:#34343a!important;background:#fff!important;border:1px solid #e3e3e7!important;
+  border-radius:9px;padding:7px 10px;font-size:11px
+}
+.account-open:hover,.locale-select:hover{background:#f7f7f8!important;border-color:#cfcfd5!important}
+.app-nav,.mobile-tabbar{display:none!important}
+main{width:min(100%,850px);max-width:850px;margin:0 auto;padding:48px 24px 32px}
+.welcome{padding:20px 0 8px}
+.welcome:before{display:none}
+.eyebrow{padding:0;border:0;background:none;color:#777;letter-spacing:1.8px;font-size:9px}
+.welcome h1{margin:13px 0 8px;color:#202123;font-size:clamp(30px,5vw,43px);font-weight:700;letter-spacing:-.7px;line-height:1.45}
+.welcome em{color:#202123;background:none;-webkit-text-fill-color:currentColor}
+.welcome p{color:#777;font-size:13px;line-height:2}
+.toolbox{display:none!important}
+.suggestions{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:25px auto 30px;max-width:650px}
+.suggestions button{
+  min-height:70px;padding:13px 15px;border:1px solid #e6e6e9;border-radius:14px;
+  color:#303036;background:#fff;box-shadow:none;font-size:12px;line-height:1.7
+}
+.suggestions button:after{display:none}
+.suggestions button:hover{transform:translateY(-1px);border-color:#bdbdc4;background:#fafafa;box-shadow:none}
+.suggestions small{color:#777;font-size:10px}
+.chat-tools{margin:18px 2px 10px;color:#6d6d73;font-size:11px}
+.chat-tools button,.copy-reply{border:1px solid #e4e4e7;background:#fff;color:#555;border-radius:8px}
+.chat-tools button:hover,.copy-reply:hover{background:#f7f7f8;border-color:#c9c9cf;color:#222}
+.chat{gap:14px;min-height:40px}
+.msg{padding:15px 17px;border:1px solid #ededf0;border-radius:15px;background:#f7f7f8;box-shadow:none}
+.msg.user{background:#fff;border-color:#e7e7ea}
+.msg p{color:#26262b;font-size:13px;line-height:2}
+.msg-head b{color:#555}
+.agent-label{color:#777}
+.chat-empty-state{text-align:center;padding:25px 12px 12px;color:#242428}
+.chat-empty-state h2{font-size:18px;font-weight:600;color:#252529}
+.chat-empty-state p{font-size:12px;color:#777}
+.chat-starters{display:flex;justify-content:center;flex-wrap:wrap;gap:8px}
+.chat-starters button{border:1px solid #e4e4e7;border-radius:999px;background:#fff;color:#444;padding:8px 12px;font:11px Vazirmatn}
+.chat-settings{margin:15px 0;border:1px solid #e7e7ea;border-radius:12px;background:#fff;color:#444}
+.chat-settings summary{padding:10px 13px;color:#666;font-size:11px;cursor:pointer}
+.mode-control{padding:8px 12px;color:#555}
+.mode-control select,.account-card input,.workspace-project-form input,.workspace-project-form textarea,
+.design-studio-categories select,.design-studio-form input,.design-studio-form select,.design-studio-form textarea,
+.marketplace-search input,.marketplace-search select,.marketplace-form-card input,.marketplace-form-card textarea,
+.translation-fields select,.translation-panel textarea{
+  color:#26262b!important;background:#fff!important;border:1px solid #dedee3!important;border-radius:9px
+}
+.web-search-toggle,.mode-control .compare-toggle{color:#555}
+#chat-form{
+  position:sticky;bottom:10px;z-index:10;display:flex;align-items:flex-end;gap:8px;
+  margin:18px 0 0;padding:9px 10px;border:1px solid #d9d9de;border-radius:18px;
+  background:rgba(255,255,255,.97);box-shadow:0 5px 22px rgba(0,0,0,.07);
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)
+}
+#chat-form:focus-within{border-color:#aaaab2;box-shadow:0 5px 22px rgba(0,0,0,.07)}
+textarea{color:#202123!important;font-size:13px}
+textarea::placeholder{color:#929299}
+#send{min-height:40px;padding:0 17px;border-radius:12px;background:#202123;color:#fff;box-shadow:none}
+#send:hover:not(:disabled){transform:none;filter:brightness(1.12);box-shadow:none}
+.voice-input{border:0!important;background:transparent!important;color:#555!important}
+.input-hint,.notice{color:#888;font-size:10px}
+footer{color:#888;border-color:#eee}
+.account-panel,.workspace-overlay,.design-studio-overlay,.marketplace-overlay,.auth-flow-overlay{
+  background:rgba(20,20,24,.42)!important;backdrop-filter:blur(5px)
+}
+.account-card,.workspace-card,.design-studio-card,.marketplace-dialog{
+  color:#252529!important;background:#fff!important;border:1px solid #e7e7ea!important;
+  border-radius:18px;box-shadow:0 20px 60px rgba(0,0,0,.16)
+}
+.account-head strong,.workspace-head h2,.design-studio-head h2,.marketplace-head h2,
+.account-card label,.workspace-item strong,.design-template strong,.marketplace-product-info h3{color:#242428}
+.account-muted,.workspace-head p,.workspace-item p,.design-studio-head p,.marketplace-head p{color:#777}
+.account-tabs button,.account-actions button,.workspace-tabs button,.workspace-item-actions button,
+.design-studio-head>button,.design-template,.marketplace-tabs button,.marketplace-head>button{
+  color:#444;background:#fff;border:1px solid #e4e4e7;border-radius:9px
+}
+.account-submit,.workspace-primary,.design-studio-generate,.translation-actions button{
+  color:#fff;background:#202123;border:0;border-radius:10px
+}
+.workspace-credit,.design-studio-output,.translation-result-wrap,.marketplace-form-card{
+  background:#f8f8f9;border-color:#e6e6e9;color:#444
+}
+.workspace-item,.marketplace-product{background:#fff;border-color:#e8e8eb}
+.workspace-item small,.marketplace-product-info p,.marketplace-product-info small{color:#777}
+.translation-panel{background:#fff;border:1px solid #e6e6e9;box-shadow:none;color:#242428}
+.translation-heading h2,.translation-result-head strong,.translation-description{color:#333}
+.source-list{background:#f8f8f9;border-color:#e6e6e9;color:#555}
+.source-list strong{color:#333}.source-list a{color:#245b9e}
+.voice-status{color:#777}
+button:focus-visible,textarea:focus-visible,select:focus-visible{outline:2px solid #777;outline-offset:2px}
+@media(max-width:650px){
+  .top{height:58px;padding:0 13px}
+  .brand .logo{width:31px;height:31px;flex-basis:31px}
+  .brand strong{font-size:15px}
+  .brand small{display:none}
+  .top-actions{flex:0 0 auto;width:auto;gap:6px}
+  .locale-select{max-width:82px;padding:6px 5px}
+  .account-open{padding:6px 8px;font-size:10px}
+  main{padding:32px 15px 24px}
+  .welcome{padding:15px 5px 5px}
+  .welcome h1{font-size:clamp(27px,8vw,36px);line-height:1.5}
+  .welcome p{font-size:12px}
+  .suggestions{gap:8px;margin:20px 0 22px}
+  .suggestions button{min-height:64px;padding:10px;font-size:11px}
+  #chat-form{bottom:6px;border-radius:16px;padding:7px}
+  #send{min-height:38px;padding:0 13px}
+  .msg{padding:12px 13px}
+}
