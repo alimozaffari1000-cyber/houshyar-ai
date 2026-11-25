@@ -174,7 +174,7 @@ function render() {
     app.querySelectorAll('.mobile-tab').forEach(item => item.classList.toggle('active', item.id === 'mobile-account'));
   });
   app.querySelector('#workspace-nav').addEventListener('click', () => app.querySelector('#workspace-open')?.click());
-  app.querySelector('#mobile-workspace').addEventListener('click', () => app.querySelector('#workspace-open')?.click());
+  // The mobile tab bar intentionally has no workspace button; keep this optional.
   app.querySelector('#mobile-account').addEventListener('click', () => app.querySelector('#account-open')?.click());
   app.querySelector('#account-nav').addEventListener('click', () => app.querySelector('#account-open')?.click());
   initAccountPanel(app);
