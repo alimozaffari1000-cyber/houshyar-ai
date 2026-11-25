@@ -10,6 +10,7 @@ export function listAvailableProviders(env = {}) {
     { id: "anthropic", available: Boolean(env.CLAUDE_API_KEY), defaultModel: env.CLAUDE_MODEL || CLAUDE_DEFAULT_MODEL },
     { id: "google", available: Boolean(env.GEMINI_API_KEY), defaultModel: env.GEMINI_MODEL || GEMINI_DEFAULT_MODEL },
     { id: "deepseek", available: Boolean(env.DEEPSEEK_API_KEY), defaultModel: env.DEEPSEEK_MODEL || DEEPSEEK_DEFAULT_MODEL },
+    { id: "houshyar_local", available: Boolean(env.HOUSHYAR_MODEL_BASE_URL), defaultModel: env.HOUSHYAR_MODEL || "houshyar-local" },
     { id: "cloudflare_ai", available: typeof env.AI?.run === "function", defaultModel: env.CLOUDFLARE_AI_MODEL || CLOUDFLARE_AI_DEFAULT_MODEL }
   ];
 }
@@ -17,13 +18,13 @@ export function listAvailableProviders(env = {}) {
 export function resolveProvider(env = {}, requested = "auto", mode = "balanced") {
   const available = listAvailableProviders(env);
   const configured = new Set(available.filter(item => item.available).map(item => item.id));
-  const requestedId = ["groq", "anthropic", "google", "deepseek", "cloudflare_ai"].includes(requested) ? requested : "auto";
+  const requestedId = ["groq", "anthropic", "google", "deepseek", "cloudflare_ai", "houshyar_local"].includes(requested) ? requested : "auto";
   let selected = requestedId;
   if (requestedId === "auto") {
     if (mode === "deep" && configured.has("anthropic")) selected = "anthropic";
     else if (mode === "deep" && configured.has("deepseek")) selected = "deepseek";
     else if (configured.has(env.AI_DEFAULT_PROVIDER)) selected = env.AI_DEFAULT_PROVIDER;
-    else selected = ["groq", "anthropic", "google", "deepseek", "cloudflare_ai"].find(id => configured.has(id)) || "groq";
+    else selected = ["houshyar_local", "groq", "anthropic", "google", "deepseek", "cloudflare_ai"].find(id => configured.has(id)) || "groq";
   }
   const provider = available.find(item => item.id === selected);
   if (!provider?.available) return { error: "PROVIDER_NOT_CONFIGURED", provider: selected };
@@ -80,6 +81,43 @@ export async function requestModel({ provider, env, messages, model, signal, max
     const totalTokens = usage?.total_tokens ?? (promptTokens + completionTokens);
     return { reply: rawReply.trim(), model: data?.model || responseModel, usage: usage ? { promptTokens, completionTokens, totalTokens } : null };
   }
+
+  if (provider === "houshyar_local") {
+    if (!env.HOUSHYAR_MODEL_BASE_URL) throw new Error("provider_not_configured");
+    let endpoint;
+    try {
+      const base = new URL(env.HOUSHYAR_MODEL_BASE_URL);
+      if (base.protocol !== "https:" || base.username || base.password || base.search || base.hash) {
+        throw new Error("invalid_local_model_url");
+      }
+      endpoint = new URL("v1/chat/completions", base.href.endsWith("/") ? base : base.href + "/");
+    } catch {
+      throw new Error("invalid_local_model_url");
+    }
+    const selectedModel = model || env.HOUSHYAR_MODEL || "houshyar-local";
+    const headers = { "Content-Type": "application/json" };
+    if (env.HOUSHYAR_MODEL_API_KEY) headers.Authorization = "Bearer " + env.HOUSHYAR_MODEL_API_KEY;
+    const response = await fetch(endpoint.toString(), {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ model: selectedModel, messages, temperature, max_tokens: maxTokens, stream: false }),
+      signal
+    });
+    if (!response.ok) throw new Error("provider_request_failed");
+    const data = await response.json();
+    const reply = data?.choices?.[0]?.message?.content;
+    if (typeof reply !== "string" || !reply.trim()) throw new Error("provider_empty_reply");
+    return {
+      reply: reply.trim(),
+      model: data.model || selectedModel,
+      usage: data.usage ? {
+        promptTokens: data.usage.prompt_tokens || 0,
+        completionTokens: data.usage.completion_tokens || 0,
+        totalTokens: data.usage.total_tokens || 0
+      } : null
+    };
+  }
+
   if (provider === "google") {
     if (!env.GEMINI_API_KEY) throw new Error("provider_not_configured");
     const selectedModel = model || env.GEMINI_MODEL || GEMINI_DEFAULT_MODEL;
