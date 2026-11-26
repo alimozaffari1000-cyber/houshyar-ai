@@ -58,7 +58,7 @@ async function readJsonLimited(request) {
 }
 
 export async function onRequestPost({ request, env }) {
-  if (!env.GROQ_API_KEY && !env.CLAUDE_API_KEY && !env.GEMINI_API_KEY && !env.DEEPSEEK_API_KEY && !env.HOUSHYAR_MODEL_BASE_URL && typeof env.AI?.run !== "function") return json({ error: "AI_NOT_CONFIGURED", message: "هیچ ارائه‌دهنده هوش مصنوعی پیکربندی نشده است." }, 503);
+  if (!env.GROQ_API_KEY && !env.CLAUDE_API_KEY && !env.GEMINI_API_KEY && !env.DEEPSEEK_API_KEY && !env.OPENROUTER_API_KEY && !env.HOUSHYAR_MODEL_BASE_URL && typeof env.AI?.run !== "function") return json({ error: "AI_NOT_CONFIGURED", message: "هیچ ارائه‌دهنده هوش مصنوعی پیکربندی نشده است." }, 503);
   const contentType = (request.headers.get("content-type") || "").split(";", 1)[0].trim().toLowerCase();
   if (contentType !== "application/json") {
     return json({ error: "UNSUPPORTED_MEDIA_TYPE", message: "نوع محتوای درخواست باید JSON باشد." }, 415);
@@ -146,7 +146,7 @@ export async function onRequestPost({ request, env }) {
   }
 
   const requestedMode = ["fast", "balanced", "deep", "creative"].includes(body.mode) ? body.mode : "balanced";
-  const requestedProvider = ["auto", "groq", "anthropic", "google", "deepseek", "cloudflare_ai", "houshyar_local"].includes(body.provider) ? body.provider : "auto";
+  const requestedProvider = ["auto", "groq", "anthropic", "google", "deepseek", "openrouter", "cloudflare_ai", "houshyar_local"].includes(body.provider) ? body.provider : "auto";
   const providerChoice = resolveProvider(env, requestedProvider, requestedMode);
   if (providerChoice.error) {
     await releaseQuota();
@@ -163,7 +163,9 @@ export async function onRequestPost({ request, env }) {
       ? (env.GEMINI_MODEL || providerChoice.model)
       : providerChoice.provider === "deepseek"
         ? (requestedMode === "deep" ? (env.DEEPSEEK_MODEL_DEEP || env.DEEPSEEK_MODEL_PRO || "deepseek-v4-pro") : (env.DEEPSEEK_MODEL || providerChoice.model))
-        : (groqModelByMode[requestedMode] || providerChoice.model);
+        : providerChoice.provider === "openrouter"
+          ? (env.OPENROUTER_MODEL || providerChoice.model)
+          : (groqModelByMode[requestedMode] || providerChoice.model);
   const coreContext = buildCoreContext({ message: latest, mode: requestedMode });
   const selectedAgent = coreContext.agent;
   const messages = [
