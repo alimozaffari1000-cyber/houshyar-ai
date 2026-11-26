@@ -1,6 +1,7 @@
 const CLAUDE_DEFAULT_MODEL = "claude-sonnet-5-5";
 const GEMINI_DEFAULT_MODEL = "gemini-2.5-flash";
 const DEEPSEEK_DEFAULT_MODEL = "deepseek-flash";
+const OPENROUTER_DEFAULT_MODEL = "openrouter/free";
 const CLOUDFLARE_AI_DEFAULT_MODEL = "@cf/zai-org/glm-4.7-flash";
 const CLOUDFLARE_AI_FALLBACK_MODEL = "@cf/google/gemma-4-26b-a4b-it";
 
@@ -10,6 +11,7 @@ export function listAvailableProviders(env = {}) {
     { id: "anthropic", available: Boolean(env.CLAUDE_API_KEY), defaultModel: env.CLAUDE_MODEL || CLAUDE_DEFAULT_MODEL },
     { id: "google", available: Boolean(env.GEMINI_API_KEY), defaultModel: env.GEMINI_MODEL || GEMINI_DEFAULT_MODEL },
     { id: "deepseek", available: Boolean(env.DEEPSEEK_API_KEY), defaultModel: env.DEEPSEEK_MODEL || DEEPSEEK_DEFAULT_MODEL },
+    { id: "openrouter", available: Boolean(env.OPENROUTER_API_KEY), defaultModel: env.OPENROUTER_MODEL || OPENROUTER_DEFAULT_MODEL },
     { id: "houshyar_local", available: Boolean(env.HOUSHYAR_MODEL_BASE_URL), defaultModel: env.HOUSHYAR_MODEL || "houshyar-local" },
     { id: "cloudflare_ai", available: typeof env.AI?.run === "function", defaultModel: env.CLOUDFLARE_AI_MODEL || CLOUDFLARE_AI_DEFAULT_MODEL }
   ];
@@ -18,13 +20,13 @@ export function listAvailableProviders(env = {}) {
 export function resolveProvider(env = {}, requested = "auto", mode = "balanced") {
   const available = listAvailableProviders(env);
   const configured = new Set(available.filter(item => item.available).map(item => item.id));
-  const requestedId = ["groq", "anthropic", "google", "deepseek", "cloudflare_ai", "houshyar_local"].includes(requested) ? requested : "auto";
+  const requestedId = ["groq", "anthropic", "google", "deepseek", "openrouter", "cloudflare_ai", "houshyar_local"].includes(requested) ? requested : "auto";
   let selected = requestedId;
   if (requestedId === "auto") {
     if (mode === "deep" && configured.has("anthropic")) selected = "anthropic";
     else if (mode === "deep" && configured.has("deepseek")) selected = "deepseek";
     else if (configured.has(env.AI_DEFAULT_PROVIDER)) selected = env.AI_DEFAULT_PROVIDER;
-    else selected = ["houshyar_local", "groq", "anthropic", "google", "deepseek", "cloudflare_ai"].find(id => configured.has(id)) || "groq";
+    else selected = ["openrouter", "houshyar_local", "groq", "anthropic", "google", "deepseek", "cloudflare_ai"].find(id => configured.has(id)) || "groq";
   }
   const provider = available.find(item => item.id === selected);
   if (!provider?.available) return { error: "PROVIDER_NOT_CONFIGURED", provider: selected };
@@ -32,6 +34,42 @@ export function resolveProvider(env = {}, requested = "auto", mode = "balanced")
 }
 
 export async function requestModel({ provider, env, messages, model, signal, maxTokens = 1200, temperature = 0.5, webSearch = false, thinking = false }) {
+  if (provider === "openrouter") {
+    if (!env.OPENROUTER_API_KEY) throw new Error("provider_not_configured");
+    const selectedModel = model || env.OPENROUTER_MODEL || OPENROUTER_DEFAULT_MODEL;
+    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: "Bearer " + env.OPENROUTER_API_KEY,
+        "Content-Type": "application/json",
+        "HTTP-Referer": env.HOUSHYAR_PUBLIC_URL || "https://houshyar-ai.pages.dev",
+        "X-Title": "Houshyar AI"
+      },
+      body: JSON.stringify({
+        model: selectedModel,
+        messages,
+        max_tokens: maxTokens,
+        temperature,
+        ...(env.OPENROUTER_FALLBACK_MODELS ? { models: String(env.OPENROUTER_FALLBACK_MODELS).split(",").map(value => value.trim()).filter(Boolean).slice(0, 3) } : {}),
+        provider: { allow_fallbacks: true }
+      }),
+      signal
+    });
+    if (!response.ok) throw new Error("provider_request_failed");
+    const data = await response.json();
+    const reply = data?.choices?.[0]?.message?.content;
+    if (typeof reply !== "string" || !reply.trim()) throw new Error("provider_empty_reply");
+    return {
+      reply: reply.trim(),
+      model: data.model || selectedModel,
+      usage: data.usage ? {
+        promptTokens: data.usage.prompt_tokens || 0,
+        completionTokens: data.usage.completion_tokens || 0,
+        totalTokens: data.usage.total_tokens || 0
+      } : null
+    };
+  }
+
   if (provider === "cloudflare_ai") {
     if (typeof env.AI?.run !== "function") throw new Error("provider_not_configured");
     const selectedModel = model || env.CLOUDFLARE_AI_MODEL || CLOUDFLARE_AI_DEFAULT_MODEL;
