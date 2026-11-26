@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { SUPPORTED_TRANSLATION_LANGUAGES, buildTranslationRequest } from "../src/translation-core.js";
+import { SUPPORTED_TRANSLATION_LANGUAGES, buildTranslationRequest, protectNumericTokens, restoreNumericTokens } from "../src/translation-core.js";
 
 test("translation catalog contains exactly 100 distinct languages", () => {
   assert.equal(SUPPORTED_TRANSLATION_LANGUAGES.length, 100);
@@ -43,4 +43,26 @@ test("translation instructions require exact preservation of numeric formats", (
   const prompt = buildTranslationRequest({ text: "Meeting at 9:30 on 2026-11-26.", targetLanguage: "Persian" });
   assert.match(prompt, /قانون سخت‌گیرانه اعداد/);
   assert.match(prompt, /9:30 باید دقیقاً 9:30 بماند/);
+});
+
+
+test("protects and restores numeric tokens without changing their exact formatting", () => {
+  const source = "Meeting at 9:30 on 2026-11-26. Total: 12.50 USD; order #104.";
+  const protectedInput = protectNumericTokens(source);
+  assert.equal(protectedInput.tokens.length, 4);
+  assert.ok(!protectedInput.text.includes("9:30"));
+  assert.ok(protectedInput.text.includes("ZXQNUMTOKEN0QXZ"));
+  const simulatedTranslation = "جلسه در ZXQNUMTOKEN0QXZ در تاریخ ZXQNUMTOKEN1QXZ. جمع: ZXQNUMTOKEN2QXZ دلار؛ سفارش شماره ZXQNUMTOKEN3QXZ.";
+  assert.equal(
+    restoreNumericTokens(simulatedTranslation, protectedInput.tokens),
+    "جلسه در 9:30 در تاریخ 2026-11-26. جمع: 12.50 دلار؛ سفارش شماره 104."
+  );
+});
+
+test("numeric token protection leaves ordinary text untouched", () => {
+  const source = "Good morning. No numbers here.";
+  const protectedInput = protectNumericTokens(source);
+  assert.equal(protectedInput.text, source);
+  assert.deepEqual(protectedInput.tokens, []);
+  assert.equal(restoreNumericTokens(source, protectedInput.tokens), source);
 });
