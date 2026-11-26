@@ -225,6 +225,65 @@ test('passes an abort signal to the upstream provider request', async () => {
 });
 
 
+
+test('aborts upstream provider requests when the client disconnects', async () => {
+  const originalFetch = globalThis.fetch;
+
+  const runAbortScenario = async ({ body, env, expectedCalls }) => {
+    const clientController = new AbortController();
+    const upstreamSignals = [];
+    const abortEvents = [];
+    let resolveStarted;
+    const started = new Promise((resolve) => { resolveStarted = resolve; });
+
+    globalThis.fetch = async (_url, options) => {
+      upstreamSignals.push(options.signal);
+      if (upstreamSignals.length === expectedCalls) resolveStarted();
+      return new Promise((_resolve, reject) => {
+        const onAbort = () => {
+          abortEvents.push(true);
+          reject(new Error('upstream request aborted after client disconnect'));
+        };
+        if (options.signal.aborted) onAbort();
+        else options.signal.addEventListener('abort', onAbort, { once: true });
+      });
+    };
+
+    const pending = onRequestPost({
+      request: new Request('https://example.test/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+        signal: clientController.signal
+      }),
+      env
+    });
+
+    await started;
+    clientController.abort('test_client_disconnect');
+    await pending;
+
+    assert.equal(upstreamSignals.length, expectedCalls);
+    assert.equal(upstreamSignals.every((signal) => signal instanceof AbortSignal && signal.aborted), true);
+    assert.equal(abortEvents.length, expectedCalls);
+  };
+
+  try {
+    await runAbortScenario({
+      body: { message: 'سلام' },
+      env: { GROQ_API_KEY: 'test-key' },
+      expectedCalls: 1
+    });
+    await runAbortScenario({
+      body: { message: 'مقایسه کن', compare: true },
+      env: { GROQ_API_KEY: 'test-key', CLAUDE_API_KEY: 'test-key' },
+      expectedCalls: 2
+    });
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test('returns 504 when the upstream deadline aborts the request', async () => {
   const originalFetch = globalThis.fetch;
   const originalSetTimeout = globalThis.setTimeout;
