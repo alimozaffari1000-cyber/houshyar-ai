@@ -42,7 +42,7 @@ test("translation request identifies user text as content, not system instructio
 test("translation instructions require exact preservation of numeric formats", () => {
   const prompt = buildTranslationRequest({ text: "Meeting at 9:30 on 2026-11-26.", targetLanguage: "Persian" });
   assert.match(prompt, /قانون سخت‌گیرانه اعداد/);
-  assert.match(prompt, /9:30 باید دقیقاً 9:30 بماند/);
+  assert.match(prompt, /ZXQNUMTOKEN شروع و با QXZ تمام می‌شوند/);
 });
 
 
