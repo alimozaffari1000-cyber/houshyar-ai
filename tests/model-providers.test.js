@@ -336,3 +336,57 @@ test("Cloudflare Workers AI respects the chat request abort signal", async () =>
   controller.abort("upstream_timeout");
   await assert.rejects(pending, /upstream_timeout/);
 });
+
+
+test("OpenRouter adapter sends a secure OpenAI-compatible chat request and maps usage", async () => {
+  const originalFetch = globalThis.fetch;
+  let captured;
+  globalThis.fetch = async (url, init) => {
+    captured = { url, headers: init.headers, body: JSON.parse(init.body) };
+    return new Response(JSON.stringify({
+      model: "openrouter/free",
+      choices: [{ message: { role: "assistant", content: "سلام از OpenRouter" } }],
+      usage: { prompt_tokens: 8, completion_tokens: 6, total_tokens: 14 }
+    }), { status: 200, headers: { "content-type": "application/json" } });
+  };
+  try {
+    const result = await requestModel({
+      provider: "openrouter",
+      env: { OPENROUTER_API_KEY: "openrouter-test-secret" },
+      messages: [{ role: "system", content: "system rules" }, { role: "user", content: "سلام" }]
+    });
+    assert.equal(captured.url, "https://openrouter.ai/api/v1/chat/completions");
+    assert.equal(captured.headers.Authorization, "Bearer openrouter-test-secret");
+    assert.equal(captured.headers["X-Title"], "Houshyar AI");
+    assert.equal(captured.body.model, "openrouter/free");
+    assert.deepEqual(captured.body.messages, [{ role: "system", content: "system rules" }, { role: "user", content: "سلام" }]);
+    assert.equal(captured.body.provider.allow_fallbacks, true);
+    assert.equal(result.reply, "سلام از OpenRouter");
+    assert.deepEqual(result.usage, { promptTokens: 8, completionTokens: 6, totalTokens: 14 });
+    assert.equal(JSON.stringify(result).includes("openrouter-test-secret"), false);
+  } finally { globalThis.fetch = originalFetch; }
+});
+
+test("OpenRouter is selectable, detected by health, and serves chat without other provider keys", async () => {
+  assert.equal(resolveProvider({ OPENROUTER_API_KEY: "or-key" }, "auto", "balanced").provider, "openrouter");
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response(JSON.stringify({
+    model: "openrouter/free",
+    choices: [{ message: { content: "پاسخ آزمایشی OpenRouter" } }],
+    usage: { prompt_tokens: 2, completion_tokens: 3, total_tokens: 5 }
+  }), { status: 200, headers: { "content-type": "application/json" } });
+  try {
+    const request = new Request("https://houshyar.example/api/chat", {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ message: "سلام", provider: "openrouter", mode: "balanced" })
+    });
+    const response = await onRequestPost({ request, env: { OPENROUTER_API_KEY: "test-openrouter-secret" } });
+    const data = await response.json();
+    assert.equal(response.status, 200);
+    assert.equal(data.provider, "openrouter");
+    assert.equal(data.reply, "پاسخ آزمایشی OpenRouter");
+    assert.equal(JSON.stringify(data).includes("test-openrouter-secret"), false);
+    const health = await onRequestGet({ env: { OPENROUTER_API_KEY: "test-openrouter-secret" } });
+    assert.equal((await health.json()).providers.find(item => item.id === "openrouter").available, true);
+  } finally { globalThis.fetch = originalFetch; }
+});
