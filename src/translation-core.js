@@ -24,7 +24,7 @@ const clean = (value, max) => {
 export function protectNumericTokens(value) {
   if (typeof value !== "string") throw new TypeError("Expected text input");
   const tokens = [];
-  const text = value.replace(/\d+(?:[.,:/-]\\d+)*(?:%|‰)?/gu, token => {
+  const text = value.replace(/\d+(?:[.,:/-]\d+)*(?:%|‰)?/gu, token => {
     const marker = "ZXQNUMTOKEN" + tokens.length + "QXZ";
     tokens.push({ marker, value: token });
     return marker;
