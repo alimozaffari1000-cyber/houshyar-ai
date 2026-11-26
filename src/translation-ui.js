@@ -1,4 +1,4 @@
-import { buildTranslationRequest, SUPPORTED_TRANSLATION_LANGUAGES } from "./translation-core.js";
+import { buildTranslationRequest, protectNumericTokens, restoreNumericTokens, SUPPORTED_TRANSLATION_LANGUAGES } from "./translation-core.js";
 
 const escapeHTML = value => String(value).replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
 
@@ -37,9 +37,12 @@ export function initTranslationUI(app) {
     event.preventDefault();
     const button = panel.querySelector("#translation-submit");
     let message;
+    let numericTokens = [];
     try {
+      const protectedInput = protectNumericTokens(input.value);
+      numericTokens = protectedInput.tokens;
       message = buildTranslationRequest({
-        text: input.value,
+        text: protectedInput.text,
         sourceLanguage: panel.querySelector("#translation-source").value,
         targetLanguage: panel.querySelector("#translation-target").value,
         tone: panel.querySelector("#translation-tone").value
@@ -59,7 +62,7 @@ export function initTranslationUI(app) {
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.message || "سرویس ترجمه در دسترس نیست.");
       if (typeof data.reply !== "string" || !data.reply.trim()) throw new Error("پاسخ ترجمه خالی بود.");
-      output.textContent = data.reply.trim();
+      output.textContent = restoreNumericTokens(data.reply.trim(), numericTokens);
       resultWrap.hidden = false;
       status.textContent = "ترجمه دریافت شد؛ موتور: " + (data.provider || "انتخاب خودکار");
     } catch (error) { status.textContent = error.message || "ارتباط با سرویس ترجمه ناموفق بود."; }
