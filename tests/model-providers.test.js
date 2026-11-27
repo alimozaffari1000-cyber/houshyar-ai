@@ -5,7 +5,7 @@ import { onRequestPost, onRequestGet } from "../functions/api/chat.js";
 
 test("provider availability reflects server-side secrets only", () => {
   assert.deepEqual(listAvailableProviders({ GROQ_API_KEY: "g" }).map(item => [item.id, item.available]), [
-    ["groq", true], ["anthropic", false], ["google", false], ["deepseek", false], ["houshyar_local", false], ["cloudflare_ai", false]
+    ["groq", true], ["anthropic", false], ["google", false], ["deepseek", false], ["openrouter", false], ["houshyar_local", false], ["cloudflare_ai", false]
   ]);
   assert.equal(resolveProvider({ CLAUDE_API_KEY: "c" }, "auto", "balanced").provider, "anthropic");
 });
@@ -209,7 +209,7 @@ test("chat API enables Google grounding only for an explicitly selected Gemini p
 });
 test("DeepSeek appears as a server-secret-backed fourth provider and supports deep-mode routing", () => {
   assert.deepEqual(listAvailableProviders({ DEEPSEEK_API_KEY: "d" }).map(item => [item.id, item.available]), [
-    ["groq", false], ["anthropic", false], ["google", false], ["deepseek", true], ["houshyar_local", false], ["cloudflare_ai", false]
+    ["groq", false], ["anthropic", false], ["google", false], ["deepseek", true], ["openrouter", false], ["houshyar_local", false], ["cloudflare_ai", false]
   ]);
   assert.equal(resolveProvider({ GROQ_API_KEY: "g", DEEPSEEK_API_KEY: "d" }, "auto", "deep").provider, "deepseek");
   assert.deepEqual(resolveProvider({ GROQ_API_KEY: "g" }, "deepseek", "balanced"), {
@@ -387,6 +387,8 @@ test("OpenRouter is selectable, detected by health, and serves chat without othe
     assert.equal(data.reply, "پاسخ آزمایشی OpenRouter");
     assert.equal(JSON.stringify(data).includes("test-openrouter-secret"), false);
     const health = await onRequestGet({ env: { OPENROUTER_API_KEY: "test-openrouter-secret" } });
-    assert.equal((await health.json()).providers.find(item => item.id === "openrouter").available, true);
+    const healthData = await health.json();
+    assert.equal(healthData.providers.find(item => item.id === "openrouter").available, true);
+    assert.equal(JSON.stringify(healthData).includes("test-openrouter-secret"), false);
   } finally { globalThis.fetch = originalFetch; }
 });
