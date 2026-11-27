@@ -387,6 +387,8 @@ test("OpenRouter is selectable, detected by health, and serves chat without othe
     assert.equal(data.reply, "پاسخ آزمایشی OpenRouter");
     assert.equal(JSON.stringify(data).includes("test-openrouter-secret"), false);
     const health = await onRequestGet({ env: { OPENROUTER_API_KEY: "test-openrouter-secret" } });
-    assert.equal((await health.json()).providers.find(item => item.id === "openrouter").available, true);
+    const healthData = await health.json();
+    assert.equal(healthData.providers.find(item => item.id === "openrouter").available, true);
+    assert.equal(JSON.stringify(healthData).includes("test-openrouter-secret"), false);
   } finally { globalThis.fetch = originalFetch; }
 });
