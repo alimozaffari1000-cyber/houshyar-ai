@@ -9,6 +9,7 @@ export function initTranslationUI(app) {
   const panel = document.createElement("section");
   panel.id = "translation-panel";
   panel.className = "translation-panel";
+  panel.setAttribute("aria-labelledby", "translation-title");
   panel.innerHTML = '<div class="translation-heading"><div><span class="translation-eyebrow">HOUSHYAR TRANSLATOR</span><h2 id="translation-title">مترجم هوش‌یار</h2></div><span class="translation-count">۱۰۰ زبان</span></div>' +
     '<p class="translation-description">ترجمه متن با موتور هوش مصنوعی انتخاب‌شده در نوار گفتگو.</p>' +
     '<form id="translation-form"><div class="translation-fields">' +
