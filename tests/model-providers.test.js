@@ -5,7 +5,7 @@ import { onRequestPost, onRequestGet } from "../functions/api/chat.js";
 
 test("provider availability reflects server-side secrets only", () => {
   assert.deepEqual(listAvailableProviders({ GROQ_API_KEY: "g" }).map(item => [item.id, item.available]), [
-    ["groq", true], ["anthropic", false], ["google", false], ["deepseek", false], ["houshyar_local", false], ["cloudflare_ai", false]
+    ["groq", true], ["anthropic", false], ["google", false], ["deepseek", false], ["openrouter", false], ["houshyar_local", false], ["cloudflare_ai", false]
   ]);
   assert.equal(resolveProvider({ CLAUDE_API_KEY: "c" }, "auto", "balanced").provider, "anthropic");
 });
@@ -209,7 +209,7 @@ test("chat API enables Google grounding only for an explicitly selected Gemini p
 });
 test("DeepSeek appears as a server-secret-backed fourth provider and supports deep-mode routing", () => {
   assert.deepEqual(listAvailableProviders({ DEEPSEEK_API_KEY: "d" }).map(item => [item.id, item.available]), [
-    ["groq", false], ["anthropic", false], ["google", false], ["deepseek", true], ["houshyar_local", false], ["cloudflare_ai", false]
+    ["groq", false], ["anthropic", false], ["google", false], ["deepseek", true], ["openrouter", false], ["houshyar_local", false], ["cloudflare_ai", false]
   ]);
   assert.equal(resolveProvider({ GROQ_API_KEY: "g", DEEPSEEK_API_KEY: "d" }, "auto", "deep").provider, "deepseek");
   assert.deepEqual(resolveProvider({ GROQ_API_KEY: "g" }, "deepseek", "balanced"), {
